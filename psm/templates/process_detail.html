@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% block content %}
+<p class="note"><a href="/processes">← 製程清單</a>
+　<a href="/sop">SOP</a>
+　<a href="/training">教育訓練</a></p>
+<h2>製程 {{ process.process_id }}　{{ process.name }}</h2>
+<div class="card inspect-meta">
+  <p>操作權責 <strong>{{ process.operating_dept_id }}</strong> {{ process.operating_dept_name }}
+　連續／批次 {{ PROCESS_MODE_LABEL[process.mode] }}
+　化學反應 {{ '是' if process.has_chemical_reaction else '否' }}
+　過壓保護 {{ '是' if process.has_overpressure else '否' }}
+　裝卸單元 {{ '是' if process.is_loading else '否' }}
+　後段處理 {{ '是' if process.is_downstream else '否' }}</p>
+  {% if process.overview %}
+  <p>概述 {{ process.overview }}</p>
+  {% endif %}
+</div>
+
+<h3>設備</h3>
+<div class="table-bar"><a class="btn" href="/equipment">新增</a></div>
+<table class="data" data-no-auto-add>
+  <tr><th>設備編號</th><th>名稱</th><th>類型</th><th>區域</th><th>維護部門</th></tr>
+  {% for e in equipment %}
+  <tr>
+    <td>{{ e.equipment_id }}</td><td>{{ e.name }}</td><td>{{ e.equipment_type }}</td>
+    <td>{{ e.area_code }}</td><td>{{ e.maint_dept_id }} {{ e.maint_dept_name }}</td>
+  </tr>
+  {% else %}
+  <tr><td colspan="5" class="muted">此製程尚無設備。</td></tr>
+  {% endfor %}
+</table>
+
+<h3>化學品（CAS）</h3>
+<div class="table-bar"><a class="btn" href="/chemicals">新增</a></div>
+<table class="data" data-no-auto-add>
+  <tr><th>CAS</th><th>品名</th><th>角色</th></tr>
+  {% for c in chemicals %}
+  <tr><td>{{ c.cas }}</td><td>{{ c.name }}</td><td>{{ c.role }}</td></tr>
+  {% else %}
+  <tr><td colspan="3" class="muted">此製程尚無化學品。</td></tr>
+  {% endfor %}
+</table>
+
+<h3>對應表</h3>
+<div class="table-bar"><a class="btn" href="/map">新增</a></div>
+<table class="data" data-no-auto-add>
+  <tr><th>設備</th><th>CAS</th><th>材質</th><th>殘留</th><th>檢討</th></tr>
+  {% for m in pec_map %}
+  <tr>
+    <td>{{ m.equipment_id }} {{ m.equipment_name }}</td>
+    <td>{{ m.cas or '（無製程化學品）' }} {{ m.chemical_name or '' }}</td>
+    <td>{{ m.material or '' }}</td>
+    <td>{{ '是' if m.may_remain else '否' }}</td>
+    <td>{{ m.review_notes or '' }}</td>
+  </tr>
+  {% else %}
+  <tr><td colspan="5" class="muted">此製程尚無對應列。</td></tr>
+  {% endfor %}
+</table>
+{% if pha_prompts %}
+<h3>PHA 提示</h3>
+<ul>{% for p in pha_prompts %}<li>{{ p.equipment_id }}：{{ p.message }}</li>{% endfor %}</ul>
+{% endif %}
+{% if mi_prompts %}
+<h3>機械完整性提示</h3>
+<ul>{% for p in mi_prompts %}<li>{{ p.equipment_id }}：{{ p.message }}</li>{% endfor %}</ul>
+{% endif %}
+
+<h3>標準作業程序</h3>
+<h4>製程操作</h4>
+<div class="table-bar"><a class="btn" href="/sop">新增</a></div>
+<table class="data" data-no-auto-add>
+  <tr><th>SOP</th><th>標題</th><th>程序編號</th><th>正文</th></tr>
+  {% for s in process_sops %}
+  <tr><td>{{ s.sop_id }}</td><td>{{ s.title }}</td><td>{{ s.procedure_no or '' }}</td><td>（正文空）</td></tr>
+  {% else %}
+  <tr><td colspan="4" class="muted">尚未建立製程操作 SOP</td></tr>
+  {% endfor %}
+</table>
+<h4>機械設備操作</h4>
+<div class="table-bar"><a class="btn" href="/sop">新增</a></div>
+<table class="data" data-no-auto-add>
+  <tr><th>設備編號</th><th>SOP</th><th>標題</th><th>正文</th></tr>
+  {% for e in equipment %}
+    {% set es = equipment_sops | selectattr('equipment_id', 'equalto', e.equipment_id) | list %}
+    {% if es %}
+      {% for s in es %}
+      <tr><td>{{ e.equipment_id }}</td><td>{{ s.sop_id }}</td><td>{{ s.title }}</td><td>（正文空）</td></tr>
+      {% endfor %}
+    {% else %}
+      <tr><td>{{ e.equipment_id }}</td><td colspan="3" class="muted">尚未建立機械設備操作 SOP</td></tr>
+    {% endif %}
+  {% else %}
+  <tr><td colspan="4" class="muted">此製程尚無設備</td></tr>
+  {% endfor %}
+</table>
+
+<h3>教育訓練</h3>
+<h4>製程操作</h4>
+<div class="table-bar"><a class="btn" href="/training">新增</a></div>
+<table class="data" data-no-auto-add>
+  <tr><th>課程</th><th>名稱</th><th>時數</th><th>對象</th></tr>
+  {% for c in process_courses %}
+  <tr><td>{{ c.course_id }}</td><td>{{ c.name }}</td><td>{{ c.hours }}</td><td>{{ c.audience }}</td></tr>
+  {% else %}
+  <tr><td colspan="4" class="muted">尚未建立製程操作課程</td></tr>
+  {% endfor %}
+</table>
+<h4>機械設備操作</h4>
+<div class="table-bar"><a class="btn" href="/training">新增</a></div>
+<table class="data" data-no-auto-add>
+  <tr><th>設備編號</th><th>課程</th><th>名稱</th><th>時數</th></tr>
+  {% for e in equipment %}
+    {% set cs = equipment_courses | selectattr('equipment_id', 'equalto', e.equipment_id) | list %}
+    {% if cs %}
+      {% for c in cs %}
+      <tr><td>{{ e.equipment_id }}</td><td>{{ c.course_id }}</td><td>{{ c.name }}</td><td>{{ c.hours }}</td></tr>
+      {% endfor %}
+    {% else %}
+      <tr><td>{{ e.equipment_id }}</td><td colspan="3" class="muted">尚未建立機械設備操作課程</td></tr>
+    {% endif %}
+  {% else %}
+  <tr><td colspan="4" class="muted">此製程尚無設備</td></tr>
+  {% endfor %}
+</table>
+
+<h3>P&amp;ID</h3>
+<div class="table-bar"><a class="btn" href="/pid">新增</a></div>
+<table class="data" data-no-auto-add>
+  <tr><th>圖號</th><th>版次</th><th>名稱</th><th>as-built</th></tr>
+  {% for d in drawings %}
+  <tr><td>{{ d.drawing_no }}</td><td>{{ d.revision }}</td><td>{{ d.name }}</td><td>{{ '是' if d.is_as_built else '否' }}</td></tr>
+  {% else %}
+  <tr><td colspan="4" class="muted">尚無圖資</td></tr>
+  {% endfor %}
+</table>
+
+<h3>HAZOP 評估</h3>
+<div class="table-bar"><a class="btn" href="/hazop?process_id={{ process.process_id }}">新增</a></div>
+<table class="data" data-no-auto-add>
+  <tr><th>評估</th><th>方法</th><th>狀態</th><th>日期</th></tr>
+  {% for a in assessments %}
+  <tr><td><a href="/hazop?process_id={{ process.process_id }}">{{ a.assessment_id }}</a></td>
+      <td>{{ a.method }}</td><td>{{ a.status }}</td><td>{{ a.assessment_date or '' }}</td></tr>
+  {% else %}
+  <tr><td colspan="4" class="muted">尚無評估</td></tr>
+  {% endfor %}
+</table>
+{% endblock %}

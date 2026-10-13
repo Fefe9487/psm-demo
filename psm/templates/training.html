@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>3.5 教育訓練</h2>
+{% include "_proc.html" %}
+<p>與 SOP 相同：<strong>每個製程都列出</strong>。課程分兩類：<strong>製程操作</strong>掛製程編號；<strong>機械設備操作</strong>掛該製程下的設備編號。不得手打製程名或設備名。</p>
+
+<h3>製程操作</h3>
+{% for p in board.processes %}
+<div class="op-block card">
+  <a class="op-head" href="/processes/{{ p.process_id }}">{{ p.process_id }} {{ p.name }} <span class="open">檢視</span></a>
+  <p class="muted">操作權責 {{ p.operating_dept_id }} {{ p.operating_dept_name }}</p>
+  <div class="table-bar"><a class="btn" href="#train-process">新增</a></div>
+  <table class="data" data-no-auto-add>
+    <tr><th>課程</th><th>名稱</th><th>時數</th><th>對象</th><th>種類</th></tr>
+    {% for c in p.courses %}
+    <tr><td>{{ c.course_id }}</td><td>{{ c.name }}</td><td>{{ c.hours }}</td><td>{{ c.audience }}</td>
+        <td>{{ '初次' if c.kind == 'initial' else '在職' }}</td></tr>
+    {% else %}
+    <tr><td colspan="5" class="muted">尚未建立製程操作課程</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% else %}
+<p class="muted">還沒有製程。請先在核心資料表建立製程。</p>
+{% endfor %}
+
+<h3>機械設備操作</h3>
+{% for p in board.processes %}
+<div class="op-block card">
+  <a class="op-head" href="/processes/{{ p.process_id }}">{{ p.process_id }} {{ p.name }} <span class="open">檢視</span></a>
+  <div class="table-bar"><a class="btn" href="#train-equipment">新增</a></div>
+  <table class="data" data-no-auto-add>
+    <tr><th>設備編號</th><th>名稱（JOIN）</th><th>課程</th><th>名稱</th><th>時數</th><th>對象</th></tr>
+    {% for e in p.equipment %}
+      {% if e.courses %}
+        {% for c in e.courses %}
+        <tr>
+          <td>{{ e.equipment_id }}</td><td>{{ e.name }}</td>
+          <td>{{ c.course_id }}</td><td>{{ c.name }}</td><td>{{ c.hours }}</td><td>{{ c.audience }}</td>
+        </tr>
+        {% endfor %}
+      {% else %}
+        <tr><td>{{ e.equipment_id }}</td><td>{{ e.name }}</td><td colspan="4" class="muted">尚未建立機械設備操作課程</td></tr>
+      {% endif %}
+    {% else %}
+    <tr><td colspan="6" class="muted">此製程尚無設備</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endfor %}
+
+<h3>已訓紀錄</h3>
+<div class="table-bar"><a class="btn" href="#train-record">新增</a></div>
+<table class="data" data-no-auto-add>
+  <tr><th>紀錄</th><th>課程</th><th>學員</th><th>日期</th><th>測驗</th></tr>
+  {% for r in records %}
+  <tr><td>{{ r.record_id }}</td><td>{{ r.course_id }} {{ r.course_name }}</td><td>{{ r.trainee }}</td>
+      <td>{{ r.train_date }}</td><td>{{ '是' if r.tested else '否' }}</td></tr>
+  {% else %}
+  <tr><td colspan="5" class="muted">尚無已訓紀錄</td></tr>
+  {% endfor %}
+</table>
+
+<form id="train-process" class="grid card" method="post" action="/training/course">
+  <input type="hidden" name="op_kind" value="process">
+  <p class="note" style="grid-column:1/-1">新增製程操作課程</p>
+  <label>課程編號 <input name="course_id" required></label>
+  <label>製程
+    <select name="process_id" required>
+      <option value="">（必選已有製程）</option>
+      {% for p in processes %}<option value="{{ p.process_id }}">{{ p.process_id }} {{ p.name }}</option>{% endfor %}
+    </select>
+  </label>
+  <label>名稱 <input name="name" required></label>
+  <label>時數 <input name="hours" value="8"></label>
+  <label>對象 <input name="audience"></label>
+  <label>種類 <select name="kind"><option value="initial">初次</option><option value="refresher">在職</option></select></label>
+  <button type="submit">新增製程操作課程</button>
+</form>
+<form id="train-equipment" class="grid card" method="post" action="/training/course">
+  <input type="hidden" name="op_kind" value="equipment">
+  <p class="note" style="grid-column:1/-1">新增機械設備操作課程（製程由設備帶出）</p>
+  <label>課程編號 <input name="course_id" required></label>
+  <label>設備
+    <select name="equipment_id" required>
+      <option value="">（必選已有設備）</option>
+      {% for e in equipment %}<option value="{{ e.equipment_id }}">{{ e.equipment_id }} {{ e.name }}（{{ e.process_id }}）</option>{% endfor %}
+    </select>
+  </label>
+  <label>名稱 <input name="name" required></label>
+  <label>時數 <input name="hours" value="4"></label>
+  <label>對象 <input name="audience"></label>
+  <label>種類 <select name="kind"><option value="initial">初次</option><option value="refresher">在職</option></select></label>
+  <button type="submit">新增機械設備操作課程</button>
+</form>
+<form id="train-record" class="grid card" method="post" action="/training/record">
+  <label>紀錄編號 <input name="record_id" required></label>
+  <label>課程
+    <select name="course_id">{% for c in courses %}<option value="{{ c.course_id }}">{{ c.course_id }} {{ c.name }}</option>{% endfor %}</select>
+  </label>
+  <label>學員 <input name="trainee" required></label>
+  <label>日期 <input name="train_date" required></label>
+  <label><input type="checkbox" name="tested"> 已測驗</label>
+  <button type="submit">新增已訓紀錄</button>
+</form>
+{% endblock %}

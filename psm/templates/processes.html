@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>3 製程</h2>
+<p class="note">點製程編號打開該製程的設備、化學品、SOP 與訓練。名稱由製程表帶出，細表不另存製程名。</p>
+<table class="data">
+  <tr><th>製程編號</th><th>名稱</th><th>概述</th><th>操作權責</th><th>連續／批次</th><th>反應</th><th>過壓</th><th>裝卸</th><th>後段</th></tr>
+  {% for p in processes %}
+    <tr>
+    <td><a href="/processes/{{ p.process_id }}">{{ p.process_id }}</a></td><td>{{ p.name }}</td>
+    <td>{{ p.overview or '' }}</td>
+    <td>{{ p.operating_dept_id }} {{ p.operating_dept_name }}</td>
+    <td>{{ PROCESS_MODE_LABEL[p.mode] }}</td>
+    <td>{{ '是' if p.has_chemical_reaction else '否' }}</td>
+    <td>{{ '是' if p.has_overpressure else '否' }}</td>
+    <td>{{ '是' if p.is_loading else '否' }}</td>
+    <td>{{ '是' if p.is_downstream else '否' }}</td>
+  </tr>
+  {% endfor %}
+</table>
+<form class="grid card" method="post">
+  <label>製程編號 <input name="process_id" required></label>
+  <label>名稱 <input name="name" required></label>
+  <label>操作權責部門編號
+    <select name="operating_dept_id" required>
+      {% for d in departments %}<option value="{{ d.dept_id }}">{{ d.dept_id }} {{ d.name }}</option>{% endfor %}
+    </select>
+  </label>
+  <label>連續或批次
+    <select name="mode">{% for m in PROCESS_MODES %}<option value="{{ m }}">{{ PROCESS_MODE_LABEL[m] }}</option>{% endfor %}</select>
+  </label>
+  <label><input type="checkbox" name="has_chemical_reaction"> 有化學反應</label>
+  <label><input type="checkbox" name="has_overpressure"> 有過壓／需超壓保護</label>
+  <label><input type="checkbox" name="is_special"> 特殊製程</label>
+  <label><input type="checkbox" name="is_loading"> 裝卸或輸送單元</label>
+  <label><input type="checkbox" name="is_downstream"> 後段處理單元</label>
+  <label>製程概述（目的與操作流程） <textarea name="overview" rows="2"></textarea></label>
+  <button type="submit">新增製程</button>
+</form>
+{% endblock %}

@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>2 部門（組織主檔，不是第四塊安全主檔）</h2>
+<table class="data">
+  <tr><th>部門編號</th><th>名稱</th><th>上層</th><th>更名</th></tr>
+  {% for d in departments %}
+  <tr>
+    <td>{{ d.dept_id }}</td><td>{{ d.name }}</td><td>{{ d.parent_dept_id or '' }}</td>
+    <td>
+      <form method="post" action="/departments/rename" style="display:flex;gap:4px">
+        <input type="hidden" name="dept_id" value="{{ d.dept_id }}">
+        <input name="name" value="{{ d.name }}">
+        <button type="submit">更名</button>
+      </form>
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+<p class="note">名稱只存在本表。設備列存 maint_dept_id，改名不必改設備列。</p>
+<form class="grid card" method="post">
+  <label>部門編號 <input name="dept_id" required></label>
+  <label>名稱 <input name="name" required></label>
+  <label>上層部門編號
+    <select name="parent_dept_id">
+      <option value="">（無）</option>
+      {% for d in departments %}<option value="{{ d.dept_id }}">{{ d.dept_id }}</option>{% endfor %}
+    </select>
+  </label>
+  <button type="submit">新增部門</button>
+</form>
+{% endblock %}

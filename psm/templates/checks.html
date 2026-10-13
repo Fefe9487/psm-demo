@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>9 化學品三種檢核（引用 Chemical，禁止另建品名）</h2>
+{% include "_proc.html" %}
+<h3>表3.2-1 危害性</h3>
+<table class="data">
+  <tr><th>CAS</th><th>製程</th><th>火災</th><th>爆炸</th><th>毒性</th><th>PEL</th><th>閃火點</th></tr>
+  {% for r in hazards %}
+  <tr><td>{{ r.cas }}</td><td>{{ r.process_id }}</td><td>{{ r.fire }}</td><td>{{ r.explosion }}</td>
+      <td>{{ r.toxicity }}</td><td>{{ r.pel_twa }}</td><td>{{ r.flash_point }}</td></tr>
+  {% endfor %}
+</table>
+<form class="grid card" method="post" action="/checks/hazard">
+  <label>CAS+製程
+    <select name="cas" id="hcas">
+      {% for c in chemicals %}<option value="{{ c.cas }}" data-p="{{ c.process_id }}">{{ c.cas }} / {{ c.process_id }}</option>{% endfor %}
+    </select>
+  </label>
+  <label>製程編號 <input name="process_id" id="hproc" value="{{ chemicals[0].process_id if chemicals else '' }}"></label>
+  <label>毒性 <input name="toxicity"></label>
+  <label>PEL TWA <input name="pel_twa"></label>
+  <label>閃火點 <input name="flash_point"></label>
+  <label><input type="checkbox" name="fire"> 火災</label>
+  <label><input type="checkbox" name="explosion"> 爆炸</label>
+  <button type="submit">新增危害檢核</button>
+</form>
+<p class="note">相容性與處理方法見 seed／報告；CAS 只能從主檔選。</p>
+<div class="table-bar"><a class="btn" href="#compat-add">新增</a></div>
+<table class="data" data-no-auto-add>
+  <tr><th>CAS</th><th>製程</th><th>設備</th><th>相容</th><th>說明</th></tr>
+  {% for r in compat %}
+  <tr><td>{{ r.cas_a }}</td><td>{{ r.process_id_a }}</td><td>{{ r.equipment_id }}</td>
+      <td>{{ '是' if r.compatible else '否' }}</td><td>{{ r.hazard_note }}</td></tr>
+  {% endfor %}
+</table>
+<div class="table-bar"><a class="btn" href="#handling-add">新增</a></div>
+<table class="data" data-no-auto-add>
+  <tr><th>CAS</th><th>製程</th><th>儲存</th><th>緊急</th></tr>
+  {% for r in handling %}
+  <tr><td>{{ r.cas }}</td><td>{{ r.process_id }}</td><td>{{ r.storage_notes }}</td><td>{{ r.emergency_notes }}</td></tr>
+  {% endfor %}
+</table>
+<form id="compat-add" class="grid card" method="post" action="/checks/compat">
+  <label>CAS＋製程
+    <select name="cas" required>
+      {% for c in chemicals %}<option value="{{ c.cas }}|{{ c.process_id }}">{{ c.cas }} / {{ c.process_id }}</option>{% endfor %}
+    </select>
+  </label>
+  <label>設備
+    <select name="equipment_id"><option value="">（可不填）</option>
+      {% for e in equipment %}<option value="{{ e.equipment_id }}">{{ e.equipment_id }}</option>{% endfor %}
+    </select>
+  </label>
+  <label><input type="checkbox" name="compatible" checked> 相容</label>
+  <label>說明 <input name="hazard_note"></label>
+  <button type="submit">新增相容性</button>
+</form>
+<form id="handling-add" class="grid card" method="post" action="/checks/handling">
+  <label>CAS＋製程
+    <select name="cas" required>
+      {% for c in chemicals %}<option value="{{ c.cas }}|{{ c.process_id }}">{{ c.cas }} / {{ c.process_id }}</option>{% endfor %}
+    </select>
+  </label>
+  <label>儲存 <input name="storage_notes"></label>
+  <label>製程條件 <input name="process_conditions"></label>
+  <label>緊急 <input name="emergency_notes"></label>
+  <button type="submit">新增處理方法</button>
+</form>
+<script>
+document.getElementById('hcas').addEventListener('change', function() {
+  const o = this.options[this.selectedIndex];
+  document.getElementById('hproc').value = o.getAttribute('data-p') || '';
+});
+</script>
+{% endblock %}

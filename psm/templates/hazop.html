@@ -1,0 +1,250 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>10 HAZOP（先選製程，再只能選該製程設備與 CAS）</h2>
+{% include "_proc.html" %}
+{% if scoring_blocked %}
+  <div class="banner warn">主檔未完備，評分與「評估完成」關閉：{{ scoring_reasons | join('；') }}</div>
+{% endif %}
+
+<form method="get" action="/hazop" class="grid card">
+  <label>製程編號
+    <select name="process_id" onchange="this.form.submit()">
+      <option value="">（未選 — 設備欄關閉）</option>
+      {% for p in processes %}
+        <option value="{{ p.process_id }}" {% if p.process_id == process_id %}selected{% endif %}>{{ p.process_id }} {{ p.name }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <noscript><button type="submit">帶出設備／CAS</button></noscript>
+</form>
+
+<p class="note">矩陣 {{ MATRIX_VERSION }}。設備與 CAS 下拉來自<strong>對應表</strong>（該製程實際關係）。S／L 空白由人填，提示不代評。</p>
+
+{% if pha_prompts %}
+<h3>寫死提示（PHA）</h3>
+<p class="note">提示不是風險分數。標不適用必須填理由。</p>
+<ul>
+  {% for p in pha_prompts %}
+  <li>
+    {{ p.equipment_id }} {{ p.cas }}：{{ p.message }}
+    <span class="muted">（{{ p.status }}）</span>
+    <form class="inline" method="post" action="/prompt/status">
+      <input type="hidden" name="prompt_id" value="{{ p.prompt_id }}">
+      <input type="hidden" name="next" value="/hazop?process_id={{ process_id }}">
+      <select name="status">
+        <option value="open">待處理</option>
+        <option value="accepted">已採納</option>
+        <option value="not_applicable">不適用</option>
+      </select>
+      <input name="na_reason" placeholder="不適用理由">
+      <button type="submit">更新</button>
+    </form>
+  </li>
+  {% endfor %}
+</ul>
+{% endif %}
+
+{% if process_id %}
+  <h3>涵蓋檢查（本製程尚未進入任何節點）</h3>
+  <p>{% if gaps %}{{ gaps | map(attribute='equipment_id') | join(', ') }}{% else %}無缺漏{% endif %}</p>
+{% endif %}
+
+<h3>評估資料</h3>
+<table class="data">
+  <tr><th>評估</th><th>製程</th><th>方法</th><th>狀態</th><th>日期</th></tr>
+  {% for a in assessments %}
+  <tr><td>{{ a.assessment_id }}</td><td>{{ a.process_id or '—' }}</td><td>{{ a.method }}</td><td>{{ a.status }}</td><td>{{ a.assessment_date }}</td></tr>
+  {% endfor %}
+</table>
+<form class="grid card" method="post" action="/hazop/assessment">
+  <label>評估識別 <input name="assessment_id" required></label>
+  <label>製程
+    <select name="process_id">
+      <option value="" selected>不在評估紀錄掛製程</option>
+      {% for p in processes %}<option value="{{ p.process_id }}">{{ p.process_id }}</option>{% endfor %}
+    </select>
+  </label>
+  <label>方法 <input name="method" value="HAZOP"></label>
+  <label>日期 <input name="assessment_date"></label>
+  <button type="submit">建立評估</button>
+</form>
+
+<h3>節點</h3>
+<table class="data">
+  <tr><th>節點</th><th>製程</th><th>設備編號</th><th>CAS</th><th>偏離</th><th>原因</th></tr>
+  {% for n in nodes %}
+  <tr><td>{{ n.node_id }}</td><td>{{ n.process_id }}</td><td>{{ n.equipment_ids }}</td>
+      <td>{{ n.cas_list }}</td><td>{{ n.deviation }}</td><td>{{ n.cause }}</td></tr>
+  {% endfor %}
+</table>
+<form class="grid card" method="post" action="/hazop/node">
+  <input type="hidden" name="process_id" value="{{ process_id }}">
+  <label>節點編號 <input name="node_id" required {% if not process_id %}disabled{% endif %}></label>
+  <label>評估
+    <select name="assessment_id" {% if not process_id %}disabled{% endif %}>
+      {% for a in assessments %}
+        <option value="{{ a.assessment_id }}">{{ a.assessment_id }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>描述 <input name="description" {% if not process_id %}disabled{% endif %}></label>
+  <label>偏離 <input name="deviation" {% if not process_id %}disabled{% endif %}></label>
+  <label>原因 <input name="cause" {% if not process_id %}disabled{% endif %}></label>
+  <label>現況 P&amp;ID（僅已結構化）
+    <select name="drawing_no" {% if not process_id %}disabled{% endif %}>
+      <option value="">（不指定）</option>
+      {% for d in drawings %}
+        <option value="{{ d.drawing_no }}||{{ d.revision }}">{{ d.drawing_no }} Rev.{{ d.revision }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>設備編號（未選製程則關閉）
+    <select name="equipment_ids" id="hazop-equipment" multiple size="5" {% if not process_id %}disabled{% endif %}>
+      {% for e in eq_choices %}
+        <option value="{{ e.equipment_id }}">{{ e.equipment_id }} {{ e.name }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>CAS
+    <select name="cas_list" id="hazop-cas" multiple size="3" {% if not process_id %}disabled{% endif %}>
+      {% for c in chem_choices %}
+        <option value="{{ c.cas }}">{{ c.cas }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label><input type="checkbox" name="considers_location" {% if not process_id %}disabled{% endif %}> 設置地點</label>
+  <label><input type="checkbox" name="considers_human" {% if not process_id %}disabled{% endif %}> 人為因素</label>
+  <label><input type="checkbox" name="considers_control_failure" {% if not process_id %}disabled{% endif %}> 控制失效</label>
+  <button type="submit" {% if not process_id %}disabled{% endif %}>新增節點</button>
+</form>
+
+<h3>後果／防護／評分／改善</h3>
+<table class="data">
+  <tr><th>後果</th><th>節點</th><th>描述</th><th>區域</th></tr>
+  {% for c in consequences %}
+  <tr><td>{{ c.consequence_id }}</td><td>{{ c.node_id }}</td><td>{{ c.description }}</td><td>{{ c.area_code or '' }}</td></tr>
+  {% endfor %}
+</table>
+<form class="grid card" method="post" action="/hazop/consequence">
+  <input type="hidden" name="process_id" value="{{ process_id }}">
+  <label>後果編號 <input name="consequence_id" required></label>
+  <label>節點
+    <select name="node_id">{% for n in nodes %}<option value="{{ n.node_id }}">{{ n.node_id }}</option>{% endfor %}</select>
+  </label>
+  <label>描述 <input name="description" required></label>
+  <label>災害類型 <input name="disaster_type" value="外洩"></label>
+  <label>設置地點區域
+    <select name="area_code"><option value=""></option>{% for a in areas %}<option value="{{ a.area_code }}">{{ a.area_code }}</option>{% endfor %}</select>
+  </label>
+  <button type="submit" {% if not process_id %}disabled{% endif %}>新增後果</button>
+</form>
+
+<table class="data">
+  <tr><th>防護</th><th>後果</th><th>設備</th><th>方案</th><th>SOP</th></tr>
+  {% for s in safeguards %}
+  <tr><td>{{ s.safeguard_id }}</td><td>{{ s.consequence_id }}</td>
+      <td>{{ s.equipment_id or '' }}</td><td>{{ s.scenario_id or '' }}</td><td>{{ s.sop_id or '' }}</td></tr>
+  {% endfor %}
+</table>
+<form class="grid card" method="post" action="/hazop/safeguard">
+  <input type="hidden" name="process_id" value="{{ process_id }}">
+  <label>防護編號 <input name="safeguard_id" required></label>
+  <label>後果
+    <select name="consequence_id">{% for c in consequences %}<option value="{{ c.consequence_id }}">{{ c.consequence_id }}</option>{% endfor %}</select>
+  </label>
+  <label>種類
+    <select name="kind">
+      <option value="equipment">設備編號</option>
+      <option value="scenario">緊急停車方案</option>
+      <option value="sop">SOP 編號</option>
+    </select>
+  </label>
+  <label>設備
+    <select name="equipment_id">
+      <option value=""></option>
+      {% for e in eq_choices %}<option value="{{ e.equipment_id }}">{{ e.equipment_id }}</option>{% endfor %}
+    </select>
+  </label>
+  <label>方案
+    <select name="scenario_id">
+      <option value=""></option>
+      {% for s in scenarios if not process_id or s.process_id == process_id %}
+        <option value="{{ s.scenario_id }}">{{ s.scenario_id }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>SOP
+    <select name="sop_id">
+      <option value=""></option>
+      {% for s in sops if not process_id or s.process_id == process_id %}
+        <option value="{{ s.sop_id }}">{{ s.sop_id }} {{ s.title }}{% if s.equipment_id %}（{{ s.equipment_id }}）{% endif %}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <button type="submit" {% if not process_id %}disabled{% endif %}>新增防護</button>
+</form>
+
+<table class="data">
+  <tr><th>評分</th><th>後果</th><th>S</th><th>L</th><th>等級</th><th>stale</th></tr>
+  {% for r in scores %}
+  <tr><td>{{ r.risk_id }}</td><td>{{ r.consequence_id }}</td><td>{{ r.severity }}</td>
+      <td>{{ r.likelihood }}</td><td>{{ r.rank_label }}</td><td>{{ '是' if r.stale else '否' }}</td></tr>
+  {% endfor %}
+</table>
+<form class="grid card" method="post" action="/hazop/score">
+  <input type="hidden" name="process_id" value="{{ process_id }}">
+  <label>評分編號 <input name="risk_id" required></label>
+  <label>後果
+    <select name="consequence_id">{% for c in consequences %}<option value="{{ c.consequence_id }}">{{ c.consequence_id }}</option>{% endfor %}</select>
+  </label>
+  <label>嚴重度 1–5 <input type="number" name="severity" min="1" max="5"></label>
+  <label>可能性 1–5 <input type="number" name="likelihood" min="1" max="5"></label>
+  <button type="submit" {% if scoring_blocked or not process_id %}disabled{% endif %}>評分</button>
+</form>
+
+<form method="post" action="/hazop/complete">
+  <input type="hidden" name="process_id" value="{{ process_id }}">
+  <label>標示完成
+    <select name="assessment_id">{% for a in assessments %}<option value="{{ a.assessment_id }}">{{ a.assessment_id }}</option>{% endfor %}</select>
+  </label>
+  <button type="submit" {% if scoring_blocked %}disabled{% endif %}>評估完成</button>
+</form>
+
+<h3>改善建議</h3>
+<table class="data">
+  <tr><th>編號</th><th>表</th><th>PK</th><th>說明</th><th>關閉</th></tr>
+  {% for r in recs %}
+  <tr><td>{{ r.rec_id }}</td><td>{{ r.target_table }}</td><td>{{ r.target_pk }}</td>
+      <td>{{ r.description }}</td><td>{{ '是' if r.closed else '否' }}</td></tr>
+  {% endfor %}
+</table>
+<form class="grid card" method="post" action="/hazop/rec">
+  <input type="hidden" name="process_id" value="{{ process_id }}">
+  <label>改善編號 <input name="rec_id" required></label>
+  <label>評估
+    <select name="assessment_id">{% for a in assessments %}<option value="{{ a.assessment_id }}">{{ a.assessment_id }}</option>{% endfor %}</select>
+  </label>
+  <label>後果
+    <select name="consequence_id"><option value=""></option>{% for c in consequences %}<option value="{{ c.consequence_id }}">{{ c.consequence_id }}</option>{% endfor %}</select>
+  </label>
+  <label>被改主檔
+    <select name="target_table">
+      <option value="">（未指明則不能關）</option>
+      <option>Process</option><option>Equipment</option><option>Chemical</option>
+    </select>
+  </label>
+  <label>PK（設備編號／製程編號／cas|process_id） <input name="target_pk"></label>
+  <label>說明 <input name="description" required></label>
+  <button type="submit">新增改善</button>
+</form>
+<form class="grid card" method="post" action="/hazop/rec/close">
+  <input type="hidden" name="process_id" value="{{ process_id }}">
+  <label>關閉哪一筆
+    <select name="rec_id">{% for r in recs %}<option value="{{ r.rec_id }}">{{ r.rec_id }}</option>{% endfor %}</select>
+  </label>
+  <label><input type="checkbox" name="marked_improved"> 已改善（僅此不夠）</label>
+  <label><input type="checkbox" name="master_updated"> 主檔已更新</label>
+  <label><input type="checkbox" name="reassessed_or_waiver"> 已重評或合格人員記載無須重評</label>
+  <button type="submit">關閉</button>
+</form>
+{% endblock %}

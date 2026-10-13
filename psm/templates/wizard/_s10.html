@@ -1,0 +1,65 @@
+{% set fl = flags if flags is defined else {} %}
+{% set courses = courses if courses is defined else [] %}
+{% set sops = sops if sops is defined else [] %}
+<section class="sec">
+  <h3>登錄變更案件與執行紀錄 <small class="table-ref">表10.1-2</small></h3>
+  <p class="note">首次送件須上傳管理 MOC 運作的程序書（手冊亦稱「變更管理計畫書」）。本次尚無變更案件時，不必填表10.1-2；已有案件才填執行紀錄。可複選實際涉及的製程、設備與化學品；設備和化學品可留空。舊式單一關聯列須核對後刪除重登。教育訓練選表5.1-1，可後補。</p>
+  <form class="yn-grid card" method="post" action="/wizard/flags">
+    <input type="hidden" name="step" value="10">
+    <label>本次是否全部新建、尚無變更案件
+      <select name="moc_none" data-gate="moc-need">
+        <option value="">（請選）</option>
+        <option value="是" {% if fl.get('moc_none')=='是' %}selected{% endif %}>是，全部新建且沒有變更案件</option>
+        <option value="否" {% if fl.get('moc_none')=='否' %}selected{% endif %}>否，依實際案件填寫</option>
+      </select>
+    </label>
+    <div data-panel="moc-need" data-show="否" hidden>
+      <label>程序已含辦法所稱「製程修改」定義
+        <select name="moc_def">
+          <option value="">（請選）</option>
+          <option value="是" {% if fl.get('moc_def')=='是' %}selected{% endif %}>是</option>
+          <option value="否" {% if fl.get('moc_def')=='否' %}selected{% endif %}>否</option>
+        </select>
+      </label>
+      <label class="chk"><input type="checkbox" name="moc_no_case" value="1" data-gate="moc-case" {% if fl.get('moc_no_case')=='1' %}checked{% endif %}> 制度有了，目前尚無案件</label>
+    </div>
+    <button type="submit">存頁首</button>
+  </form>
+  <div data-panel="moc-need" data-show="否" hidden>
+  <div data-panel="moc-case" data-show="0">
+  <table class="data">
+    <tr><th>項次</th><th>名稱</th><th>製程</th><th>設備</th><th>化學品</th><th>教育訓練</th><th>實際完成</th><th></th></tr>
+    {% for r in rows.get('10.1', []) %}
+    <tr data-fill-form="form-101" data-json="{{ r | tojson | forceescape }}"><td>{{ r.change_id }}</td><td>{{ r.name or r.rec }}</td><td>{{ r.process_ids|join('、') if r.process_ids is defined else (r.process_id or '') }}</td><td>{{ r.equipment_ids|join('、') if r.equipment_ids is defined else (r.equipment_id or '') }}</td><td>{{ r.chemical_refs|join('、') if r.chemical_refs is defined else (r.cas or '') }}</td><td>{{ r.course_id or '' }}</td><td>{{ r.actual_date or '' }}</td>
+      <td><button class="editish" type="button" data-fill-row>修改</button> <form class="inline" method="post" action="/wizard/row/delete"><input type="hidden" name="step" value="10"><input type="hidden" name="row_id" value="{{ r.row_id }}"><button class="linkish" type="submit">刪</button></form></td></tr>
+    {% endfor %}
+  </table>
+  <form class="grid card" method="post" action="/wizard/row" id="form-101" data-add-label="新增變更列" data-edit-label="更新變更列">
+    <input type="hidden" name="step" value="10"><input type="hidden" name="section" value="10.1">
+    <label>變更管理項次 <input name="change_id" data-edit-identity required placeholder="送件時自編，例如 MOC-2026-001"></label>
+    <label>變更管理名稱 <input name="name" required></label>
+    <label>涉及製程（至少一個，可複選）
+      <select name="process_ids" multiple required>{% for p in processes %}<option value="{{ p.process_id }}">{{ p.process_id }} {{ p.name }}</option>{% endfor %}</select>
+    </label>
+    <label>涉及設備（可複選或留空）
+      <select name="equipment_ids" multiple>{% for e in eq_all %}<option value="{{ e.equipment_id }}">{{ e.equipment_id }} {{ e.name }} / {{ e.process_id }}</option>{% endfor %}</select>
+    </label>
+    <label>涉及化學品（可複選或留空）
+      <select name="chemical_refs" multiple>{% for c in chemicals %}<option value="{{ c.cas }}|{{ c.process_id }}|{{ c.sds_id }}">{{ c.cas }} {{ c.name }} / {{ c.process_id }} / {{ c.sds_id }}</option>{% endfor %}</select>
+    </label>
+    <label>預期變更開始時間 <input name="start_time" type="date"></label>
+    <label>預定完成時間 <input name="due_date" type="date"></label>
+    <label>實際完成時間 <input name="actual_date" type="date"></label>
+    <label>變更項目說明 <input name="description" required></label>
+    <label>教育訓練紀錄（表5.1-1，可空白）
+      <select name="course_id">
+        <option value="">（可空白，可後補）</option>
+        {% for c in courses %}<option value="{{ c.course_id }}">{{ c.course_id }} {{ c.name }}</option>{% endfor %}
+      </select>
+    </label>
+    <label>追蹤稽核紀錄 <input name="follow_up"></label>
+    <button type="submit">新增變更列</button>
+  </form>
+  </div>
+  </div>
+</section>

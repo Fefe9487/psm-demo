@@ -1,0 +1,2600 @@
+{
+  "pack": {
+    "title": "PSM demo 架構包（schema 圖 + DEMO-SITE 實例圖）",
+    "source": {
+      "schema": "psm/db.py SCHEMA",
+      "instance": "psm/seed.py seed_demo",
+      "handbook": "docs/2026-09-07-V7.3-資料表結構.md"
+    },
+    "schema": {
+      "n_tables": 63,
+      "n_fk_edges": 111,
+      "tables": [
+        {
+          "table": "app_meta",
+          "pk": [
+            "k"
+          ],
+          "n_cols": 2,
+          "fk_count": 0,
+          "origin": "offgraph",
+          "undeclared_ref_cols": [],
+          "has_name": false
+        },
+        {
+          "table": "area",
+          "pk": [
+            "area_code"
+          ],
+          "n_cols": 15,
+          "fk_count": 2,
+          "origin": "space",
+          "undeclared_ref_cols": [
+            "drawing_no"
+          ],
+          "has_name": true
+        },
+        {
+          "table": "area_chemical",
+          "pk": [
+            "area_code",
+            "process_id",
+            "cas"
+          ],
+          "n_cols": 3,
+          "fk_count": 3,
+          "origin": "interaction",
+          "undeclared_ref_cols": [],
+          "has_name": false
+        },
+        {
+          "table": "area_equipment",
+          "pk": [
+            "area_code",
+            "equipment_id"
+          ],
+          "n_cols": 2,
+          "fk_count": 2,
+          "origin": "interaction",
+          "undeclared_ref_cols": [],
+          "has_name": false
+        },
+        {
+          "table": "area_process",
+          "pk": [
+            "area_code",
+            "process_id"
+          ],
+          "n_cols": 2,
+          "fk_count": 2,
+          "origin": "interaction",
+          "undeclared_ref_cols": [],
+          "has_name": false
+        },
+        {
+          "table": "assessment",
+          "pk": [
+            "assessment_id"
+          ],
+          "n_cols": 6,
+          "fk_count": 1,
+          "origin": "measure",
+          "undeclared_ref_cols": [],
+          "has_name": false
+        },
+        {
+          "table": "assessment_scope",
+          "pk": [
+            "assessment_id",
+            "process_id"
+          ],
+          "n_cols": 2,
+          "fk_count": 2,
+          "origin": "measure",
+          "undeclared_ref_cols": [],
+          "has_name": false
+        },
+        {
+          "table": "audit_checklist",
+          "pk": [
+            "item_no"
+          ],
+          "n_cols": 3,
+          "fk_count": 0,
+          "origin": "access",
+          "undeclared_ref_cols": [],
+          "has_name": false
+        },
+        {
+          "table": "audit_plan",
+          "pk": [
+            "site_id"
+          ],
+          "n_cols": 4,
+          "fk_count": 1,
+          "origin": "access",
+          "undeclared_ref_cols": [],
+          "has_name": false
+        },
+        {
+          "table": "change_request",
+          "pk": [
+            "change_id"
+          ],
+          "n_cols": 8,
+          "fk_count": 0,
+          "origin": "timeline",
+          "undeclared_ref_cols": [
+            "target_pk"
+          ],
+          "has_name": false
+        },
+        {
+          "table": "chem_compatibility",
+          "pk": [
+            "compat_id"
+          ],
+          "n_cols": 8,
+          "fk_count": 3,
+          "origin": "matter",
+          "undeclared_ref_cols": [],
+          "has_name": false
+        },
+        {
+          "table": "chem_handling",
+          "pk": [
+            "cas",
+            "process_id"
+          ],
+          "n_cols": 5,
+          "fk_count": 2,
+          "origin": "matter",
+          "undeclared_ref_cols": [],
+          "has_name": false
+        },
+        {
+          "table": "chem_hazard_check",
+          "pk": [
+            "cas",
+            "process_id"
+          ],
+          "n_cols": 12,
+          "fk_count": 2,
+          "origin": "matter",
+          "undeclared_ref_cols": [],
+          "has_name": false
+        },
+        {
+          "table": "chemical",
+          "pk": [
+            "cas",
+            "process_id"
+          ],
+          "n_cols": 16,
+          "fk_count": 4,
+          "origin": "matter",
+          "undeclared_ref_cols": [],
+          "has_name": true
+        },
+        {
+          "table": "chemical_cite",
+          "pk": [
+            "cas",
+            "process_id"
+          ],
+          "n_cols": 2,
+          "fk_count": 1,
+          "origin": "matter",
+          "undeclared_ref_cols": [
+            "cas"
+          ],
+          "has_name": false
+        },
+        {
+          "table": "consequence",
+          "pk": [
+            "consequence_id"
+          ],
+          "n_cols": 5,
+          "fk_count": 2,
+          "origin": "measure",
+          "undeclared_ref_cols": [],
+          "has_name": false
+        },
+        {
+          "table": "department",
+          "pk": [
+            "dept_id"
+          ],
+          "n_cols": 5,
+          "fk_count": 2,
+          "origin": "access",
+          "undeclared_ref_cols": [],
+          "has_name": true
+        },
+        {
+          "table": "design_code",
+          "pk": [
+            "code_id"
+          ],
+          "n_cols": 5,
+          "fk_count": 2,
+          "origin": "space",
+          "undeclared_ref_cols": [],
+          "has_name": false
+        },
+        {
+          "table": "drill",
+          "pk": [
+            "drill_id"
+          ],
+          "n_cols": 5,
+          "fk_count": 2,
+          "origin": "timeline",
+          "undeclared_ref_cols": [],
+          "has_name": false
+        },
+        {
+          "table": "emergency_org",
+          "pk": [
+            "site_id"
+          ],
+          "n_cols": 3,
+          "fk_count": 1,
+          "origin": "access",
+          "undeclared_ref_cols": [],
+          "has_name": false
+        },
+        {
+          "table": "equipment",
+          "pk": [
+            "equipment_id"
+          ],
+          "n_cols": 15,
+          "fk_count": 4,
+          "origin": "space",
+          "undeclared_ref_cols": [],
+          "has_name": true
+        },
+        {
+          "table": "equipment_content",
+          "pk": [
+            "equipment_id",
+            "cas"
+          ],
+          "n_cols": 3,
+          "fk_count": 1,
+          "origin": "interaction",
+          "undeclared_ref_cols": [
+            "cas"
+          ],
+          "has_name": false
+        },
+        {
+          "table": "equipment_limit",
+          "pk": [
+            "limit_id"
+          ],
+          "n_cols": 9,
+          "fk_count": 1,
+          "origin": "time",
+          "undeclared_ref_cols": [],
+          "has_name": false
+        },
+        {
+          "table": "equipment_material",
+          "pk": [
+            "equipment_id"
+          ],
+          "n_cols": 4,
+          "fk_count": 1,
+          "origin": "space",
+          "undeclared_ref_cols": [],
+          "has_name": false
+        },
+        {
+          "table": "esd_action",
+          "pk": [
+            "scenario_id",
+            "equipment_id"
+          ],
+          "n_cols": 2,
+          "fk_count": 2,
+          "origin": "space",
+          "undeclared_ref_cols": [],
+          "has_name": false
+        },
+        {
+          "table": "esd_scenario",
+          "pk": [
+            "scenario_id"
+          ],
+          "n_cols": 6,
+          "fk_count": 3,
+          "origin": "space",
+          "undeclared_ref_cols": [],
+          "has_name": true
+        },
+        {
+          "table": "explosion_area",
+          "pk": [
+            "area_code",
+            "cas",
+            "process_id"
+          ],
+          "n_cols": 4,
+          "fk_count": 3,
+          "origin": "space",
+          "undeclared_ref_cols": [],
+          "has_name": false
+        },
+        {
+          "table": "filing_flag",
+          "pk": [
+            "site_id",
+            "k"
+          ],
+          "n_cols": 3,
+          "fk_count": 1,
+          "origin": "offgraph",
+          "undeclared_ref_cols": [],
+          "has_name": false
+        },
+        {
+          "table": "filing_row",
+          "pk": [
+            "row_id"
+          ],
+          "n_cols": 4,
+          "fk_count": 1,
+          "origin": "offgraph",
+          "undeclared_ref_cols": [],
+          "has_name": false
+        },
+        {
+          "table": "hotwork_permit",
+          "pk": [
+            "permit_id"
+          ],
+          "n_cols": 5,
+          "fk_count": 2,
+          "origin": "timeline",
+          "undeclared_ref_cols": [],
+          "has_name": false
+        },
+        {
+          "table": "incident",
+          "pk": [
+            "incident_id"
+          ],
+          "n_cols": 8,
+          "fk_count": 2,
+          "origin": "timeline",
+          "undeclared_ref_cols": [
+            "cas"
+          ],
+          "has_name": false
+        },
+        {
+          "table": "info_access",
+          "pk": [
+            "access_id"
+          ],
+          "n_cols": 4,
+          "fk_count": 1,
+          "origin": "access",
+          "undeclared_ref_cols": [],
+          "has_name": false
+        },
+        {
+          "table": "inspection",
+          "pk": [
+            "inspection_id"
+          ],
+          "n_cols": 8,
+          "fk_count": 1,
+          "origin": "timeline",
+          "undeclared_ref_cols": [],
+          "has_name": false
+        },
+        {
+          "table": "interlock",
+          "pk": [
+            "interlock_id"
+          ],
+          "n_cols": 6,
+          "fk_count": 2,
+          "origin": "space",
+          "undeclared_ref_cols": [],
+          "has_name": true
+        },
+        {
+          "table": "inventory",
+          "pk": [
+            "cas",
+            "process_id"
+          ],
+          "n_cols": 5,
+          "fk_count": 3,
+          "origin": "matter",
+          "undeclared_ref_cols": [],
+          "has_name": false
+        },
+        {
+          "table": "loading_occupancy",
+          "pk": [
+            "occupancy_id"
+          ],
+          "n_cols": 7,
+          "fk_count": 4,
+          "origin": "timeline",
+          "undeclared_ref_cols": [],
+          "has_name": false
+        },
+        {
+          "table": "meeting",
+          "pk": [
+            "meeting_id"
+          ],
+          "n_cols": 5,
+          "fk_count": 2,
+          "origin": "access",
+          "undeclared_ref_cols": [],
+          "has_name": false
+        },
+        {
+          "table": "node",
+          "pk": [
+            "node_id"
+          ],
+          "n_cols": 11,
+          "fk_count": 2,
+          "origin": "measure",
+          "undeclared_ref_cols": [
+            "drawing_no"
+          ],
+          "has_name": false
+        },
+        {
+          "table": "node_chemical",
+          "pk": [
+            "node_id",
+            "cas",
+            "process_id"
+          ],
+          "n_cols": 3,
+          "fk_count": 3,
+          "origin": "interaction",
+          "undeclared_ref_cols": [],
+          "has_name": false
+        },
+        {
+          "table": "node_equipment",
+          "pk": [
+            "node_id",
+            "equipment_id"
+          ],
+          "n_cols": 2,
+          "fk_count": 2,
+          "origin": "interaction",
+          "undeclared_ref_cols": [],
+          "has_name": false
+        },
+        {
+          "table": "pec_map",
+          "pk": [
+            "process_id",
+            "equipment_id",
+            "cas"
+          ],
+          "n_cols": 10,
+          "fk_count": 2,
+          "origin": "interaction",
+          "undeclared_ref_cols": [
+            "cas"
+          ],
+          "has_name": false
+        },
+        {
+          "table": "pid_covering",
+          "pk": [
+            "drawing_no",
+            "revision",
+            "equipment_id"
+          ],
+          "n_cols": 3,
+          "fk_count": 3,
+          "origin": "space",
+          "undeclared_ref_cols": [],
+          "has_name": false
+        },
+        {
+          "table": "pid_drawing",
+          "pk": [
+            "drawing_no",
+            "revision"
+          ],
+          "n_cols": 8,
+          "fk_count": 1,
+          "origin": "space",
+          "undeclared_ref_cols": [
+            "drawing_no"
+          ],
+          "has_name": true
+        },
+        {
+          "table": "process",
+          "pk": [
+            "process_id"
+          ],
+          "n_cols": 10,
+          "fk_count": 2,
+          "origin": "time",
+          "undeclared_ref_cols": [],
+          "has_name": true
+        },
+        {
+          "table": "prompt_event",
+          "pk": [
+            "prompt_id"
+          ],
+          "n_cols": 9,
+          "fk_count": 2,
+          "origin": "measure",
+          "undeclared_ref_cols": [
+            "cas"
+          ],
+          "has_name": false
+        },
+        {
+          "table": "pssr",
+          "pk": [
+            "pssr_id"
+          ],
+          "n_cols": 6,
+          "fk_count": 3,
+          "origin": "timeline",
+          "undeclared_ref_cols": [],
+          "has_name": false
+        },
+        {
+          "table": "reaction_info",
+          "pk": [
+            "process_id"
+          ],
+          "n_cols": 5,
+          "fk_count": 1,
+          "origin": "time",
+          "undeclared_ref_cols": [],
+          "has_name": false
+        },
+        {
+          "table": "recommendation",
+          "pk": [
+            "rec_id"
+          ],
+          "n_cols": 11,
+          "fk_count": 2,
+          "origin": "other",
+          "undeclared_ref_cols": [
+            "target_pk"
+          ],
+          "has_name": false
+        },
+        {
+          "table": "relief_device",
+          "pk": [
+            "equipment_id"
+          ],
+          "n_cols": 8,
+          "fk_count": 1,
+          "origin": "space",
+          "undeclared_ref_cols": [
+            "pid_drawing_no",
+            "released_cas",
+            "released_process_id"
+          ],
+          "has_name": false
+        },
+        {
+          "table": "risk_score",
+          "pk": [
+            "risk_id"
+          ],
+          "n_cols": 10,
+          "fk_count": 1,
+          "origin": "measure",
+          "undeclared_ref_cols": [],
+          "has_name": false
+        },
+        {
+          "table": "safeguard",
+          "pk": [
+            "safeguard_id"
+          ],
+          "n_cols": 5,
+          "fk_count": 4,
+          "origin": "space",
+          "undeclared_ref_cols": [],
+          "has_name": false
+        },
+        {
+          "table": "sds",
+          "pk": [
+            "sds_id"
+          ],
+          "n_cols": 9,
+          "fk_count": 1,
+          "origin": "matter",
+          "undeclared_ref_cols": [],
+          "has_name": false
+        },
+        {
+          "table": "signoff",
+          "pk": [
+            "signoff_id"
+          ],
+          "n_cols": 5,
+          "fk_count": 1,
+          "origin": "access",
+          "undeclared_ref_cols": [],
+          "has_name": false
+        },
+        {
+          "table": "site",
+          "pk": [
+            "site_id"
+          ],
+          "n_cols": 11,
+          "fk_count": 0,
+          "origin": "dimension",
+          "undeclared_ref_cols": [],
+          "has_name": false
+        },
+        {
+          "table": "site_basic_doc",
+          "pk": [
+            "site_id",
+            "item_no"
+          ],
+          "n_cols": 7,
+          "fk_count": 1,
+          "origin": "dimension",
+          "undeclared_ref_cols": [],
+          "has_name": false
+        },
+        {
+          "table": "sop",
+          "pk": [
+            "sop_id"
+          ],
+          "n_cols": 7,
+          "fk_count": 2,
+          "origin": "time",
+          "undeclared_ref_cols": [],
+          "has_name": false
+        },
+        {
+          "table": "trade_secret",
+          "pk": [
+            "doc_id"
+          ],
+          "n_cols": 5,
+          "fk_count": 1,
+          "origin": "access",
+          "undeclared_ref_cols": [
+            "drawing_no"
+          ],
+          "has_name": false
+        },
+        {
+          "table": "training_course",
+          "pk": [
+            "course_id"
+          ],
+          "n_cols": 9,
+          "fk_count": 3,
+          "origin": "time",
+          "undeclared_ref_cols": [],
+          "has_name": true
+        },
+        {
+          "table": "training_record",
+          "pk": [
+            "record_id"
+          ],
+          "n_cols": 5,
+          "fk_count": 1,
+          "origin": "timeline",
+          "undeclared_ref_cols": [],
+          "has_name": false
+        },
+        {
+          "table": "unit_procedure",
+          "pk": [
+            "unit_no"
+          ],
+          "n_cols": 3,
+          "fk_count": 0,
+          "origin": "access",
+          "undeclared_ref_cols": [],
+          "has_name": false
+        },
+        {
+          "table": "unstructured_attachment",
+          "pk": [
+            "attachment_id"
+          ],
+          "n_cols": 6,
+          "fk_count": 1,
+          "origin": "dimension",
+          "undeclared_ref_cols": [],
+          "has_name": false
+        },
+        {
+          "table": "ventilation",
+          "pk": [
+            "vent_id"
+          ],
+          "n_cols": 5,
+          "fk_count": 2,
+          "origin": "space",
+          "undeclared_ref_cols": [],
+          "has_name": false
+        },
+        {
+          "table": "worker_activity",
+          "pk": [
+            "activity_id"
+          ],
+          "n_cols": 5,
+          "fk_count": 1,
+          "origin": "access",
+          "undeclared_ref_cols": [],
+          "has_name": false
+        }
+      ],
+      "fk_edges": [
+        {
+          "from_table": "area",
+          "from_col": "process_id",
+          "to_table": "process",
+          "to_col": "process_id"
+        },
+        {
+          "from_table": "area",
+          "from_col": "site_id",
+          "to_table": "site",
+          "to_col": "site_id"
+        },
+        {
+          "from_table": "area_chemical",
+          "from_col": "cas",
+          "to_table": "chemical_cite",
+          "to_col": "cas"
+        },
+        {
+          "from_table": "area_chemical",
+          "from_col": "process_id",
+          "to_table": "chemical_cite",
+          "to_col": "process_id"
+        },
+        {
+          "from_table": "area_chemical",
+          "from_col": "area_code",
+          "to_table": "area",
+          "to_col": "area_code"
+        },
+        {
+          "from_table": "area_equipment",
+          "from_col": "equipment_id",
+          "to_table": "equipment",
+          "to_col": "equipment_id"
+        },
+        {
+          "from_table": "area_equipment",
+          "from_col": "area_code",
+          "to_table": "area",
+          "to_col": "area_code"
+        },
+        {
+          "from_table": "area_process",
+          "from_col": "process_id",
+          "to_table": "process",
+          "to_col": "process_id"
+        },
+        {
+          "from_table": "area_process",
+          "from_col": "area_code",
+          "to_table": "area",
+          "to_col": "area_code"
+        },
+        {
+          "from_table": "assessment",
+          "from_col": "process_id",
+          "to_table": "process",
+          "to_col": "process_id"
+        },
+        {
+          "from_table": "assessment_scope",
+          "from_col": "process_id",
+          "to_table": "process",
+          "to_col": "process_id"
+        },
+        {
+          "from_table": "assessment_scope",
+          "from_col": "assessment_id",
+          "to_table": "assessment",
+          "to_col": "assessment_id"
+        },
+        {
+          "from_table": "audit_plan",
+          "from_col": "site_id",
+          "to_table": "site",
+          "to_col": "site_id"
+        },
+        {
+          "from_table": "chem_compatibility",
+          "from_col": "cas_a",
+          "to_table": "chemical_cite",
+          "to_col": "cas"
+        },
+        {
+          "from_table": "chem_compatibility",
+          "from_col": "process_id_a",
+          "to_table": "chemical_cite",
+          "to_col": "process_id"
+        },
+        {
+          "from_table": "chem_compatibility",
+          "from_col": "equipment_id",
+          "to_table": "equipment",
+          "to_col": "equipment_id"
+        },
+        {
+          "from_table": "chem_handling",
+          "from_col": "cas",
+          "to_table": "chemical_cite",
+          "to_col": "cas"
+        },
+        {
+          "from_table": "chem_handling",
+          "from_col": "process_id",
+          "to_table": "chemical_cite",
+          "to_col": "process_id"
+        },
+        {
+          "from_table": "chem_hazard_check",
+          "from_col": "cas",
+          "to_table": "chemical_cite",
+          "to_col": "cas"
+        },
+        {
+          "from_table": "chem_hazard_check",
+          "from_col": "process_id",
+          "to_table": "chemical_cite",
+          "to_col": "process_id"
+        },
+        {
+          "from_table": "chemical",
+          "from_col": "cas",
+          "to_table": "chemical_cite",
+          "to_col": "cas"
+        },
+        {
+          "from_table": "chemical",
+          "from_col": "process_id",
+          "to_table": "chemical_cite",
+          "to_col": "process_id"
+        },
+        {
+          "from_table": "chemical",
+          "from_col": "sds_id",
+          "to_table": "sds",
+          "to_col": "sds_id"
+        },
+        {
+          "from_table": "chemical",
+          "from_col": "process_id",
+          "to_table": "process",
+          "to_col": "process_id"
+        },
+        {
+          "from_table": "chemical_cite",
+          "from_col": "process_id",
+          "to_table": "process",
+          "to_col": "process_id"
+        },
+        {
+          "from_table": "consequence",
+          "from_col": "area_code",
+          "to_table": "area",
+          "to_col": "area_code"
+        },
+        {
+          "from_table": "consequence",
+          "from_col": "node_id",
+          "to_table": "node",
+          "to_col": "node_id"
+        },
+        {
+          "from_table": "department",
+          "from_col": "parent_dept_id",
+          "to_table": "department",
+          "to_col": "dept_id"
+        },
+        {
+          "from_table": "department",
+          "from_col": "site_id",
+          "to_table": "site",
+          "to_col": "site_id"
+        },
+        {
+          "from_table": "design_code",
+          "from_col": "equipment_id",
+          "to_table": "equipment",
+          "to_col": "equipment_id"
+        },
+        {
+          "from_table": "design_code",
+          "from_col": "process_id",
+          "to_table": "process",
+          "to_col": "process_id"
+        },
+        {
+          "from_table": "drill",
+          "from_col": "consequence_id",
+          "to_table": "consequence",
+          "to_col": "consequence_id"
+        },
+        {
+          "from_table": "drill",
+          "from_col": "process_id",
+          "to_table": "process",
+          "to_col": "process_id"
+        },
+        {
+          "from_table": "emergency_org",
+          "from_col": "site_id",
+          "to_table": "site",
+          "to_col": "site_id"
+        },
+        {
+          "from_table": "equipment",
+          "from_col": "area_code",
+          "to_table": "area",
+          "to_col": "area_code"
+        },
+        {
+          "from_table": "equipment",
+          "from_col": "maint_dept_id",
+          "to_table": "department",
+          "to_col": "dept_id"
+        },
+        {
+          "from_table": "equipment",
+          "from_col": "process_id",
+          "to_table": "process",
+          "to_col": "process_id"
+        },
+        {
+          "from_table": "equipment",
+          "from_col": "site_id",
+          "to_table": "site",
+          "to_col": "site_id"
+        },
+        {
+          "from_table": "equipment_content",
+          "from_col": "equipment_id",
+          "to_table": "equipment",
+          "to_col": "equipment_id"
+        },
+        {
+          "from_table": "equipment_limit",
+          "from_col": "equipment_id",
+          "to_table": "equipment",
+          "to_col": "equipment_id"
+        },
+        {
+          "from_table": "equipment_material",
+          "from_col": "equipment_id",
+          "to_table": "equipment",
+          "to_col": "equipment_id"
+        },
+        {
+          "from_table": "esd_action",
+          "from_col": "equipment_id",
+          "to_table": "equipment",
+          "to_col": "equipment_id"
+        },
+        {
+          "from_table": "esd_action",
+          "from_col": "scenario_id",
+          "to_table": "esd_scenario",
+          "to_col": "scenario_id"
+        },
+        {
+          "from_table": "esd_scenario",
+          "from_col": "maint_dept_id",
+          "to_table": "department",
+          "to_col": "dept_id"
+        },
+        {
+          "from_table": "esd_scenario",
+          "from_col": "esd_equipment_id",
+          "to_table": "equipment",
+          "to_col": "equipment_id"
+        },
+        {
+          "from_table": "esd_scenario",
+          "from_col": "process_id",
+          "to_table": "process",
+          "to_col": "process_id"
+        },
+        {
+          "from_table": "explosion_area",
+          "from_col": "cas",
+          "to_table": "chemical_cite",
+          "to_col": "cas"
+        },
+        {
+          "from_table": "explosion_area",
+          "from_col": "process_id",
+          "to_table": "chemical_cite",
+          "to_col": "process_id"
+        },
+        {
+          "from_table": "explosion_area",
+          "from_col": "area_code",
+          "to_table": "area",
+          "to_col": "area_code"
+        },
+        {
+          "from_table": "filing_flag",
+          "from_col": "site_id",
+          "to_table": "site",
+          "to_col": "site_id"
+        },
+        {
+          "from_table": "filing_row",
+          "from_col": "site_id",
+          "to_table": "site",
+          "to_col": "site_id"
+        },
+        {
+          "from_table": "hotwork_permit",
+          "from_col": "area_code",
+          "to_table": "area",
+          "to_col": "area_code"
+        },
+        {
+          "from_table": "hotwork_permit",
+          "from_col": "equipment_id",
+          "to_table": "equipment",
+          "to_col": "equipment_id"
+        },
+        {
+          "from_table": "incident",
+          "from_col": "equipment_id",
+          "to_table": "equipment",
+          "to_col": "equipment_id"
+        },
+        {
+          "from_table": "incident",
+          "from_col": "process_id",
+          "to_table": "process",
+          "to_col": "process_id"
+        },
+        {
+          "from_table": "info_access",
+          "from_col": "process_id",
+          "to_table": "process",
+          "to_col": "process_id"
+        },
+        {
+          "from_table": "inspection",
+          "from_col": "equipment_id",
+          "to_table": "equipment",
+          "to_col": "equipment_id"
+        },
+        {
+          "from_table": "interlock",
+          "from_col": "scenario_id",
+          "to_table": "esd_scenario",
+          "to_col": "scenario_id"
+        },
+        {
+          "from_table": "interlock",
+          "from_col": "equipment_id",
+          "to_table": "equipment",
+          "to_col": "equipment_id"
+        },
+        {
+          "from_table": "inventory",
+          "from_col": "cas",
+          "to_table": "chemical_cite",
+          "to_col": "cas"
+        },
+        {
+          "from_table": "inventory",
+          "from_col": "process_id",
+          "to_table": "chemical_cite",
+          "to_col": "process_id"
+        },
+        {
+          "from_table": "inventory",
+          "from_col": "area_code",
+          "to_table": "area",
+          "to_col": "area_code"
+        },
+        {
+          "from_table": "loading_occupancy",
+          "from_col": "cas",
+          "to_table": "chemical_cite",
+          "to_col": "cas"
+        },
+        {
+          "from_table": "loading_occupancy",
+          "from_col": "process_id",
+          "to_table": "chemical_cite",
+          "to_col": "process_id"
+        },
+        {
+          "from_table": "loading_occupancy",
+          "from_col": "process_id",
+          "to_table": "process",
+          "to_col": "process_id"
+        },
+        {
+          "from_table": "loading_occupancy",
+          "from_col": "equipment_id",
+          "to_table": "equipment",
+          "to_col": "equipment_id"
+        },
+        {
+          "from_table": "meeting",
+          "from_col": "process_id",
+          "to_table": "process",
+          "to_col": "process_id"
+        },
+        {
+          "from_table": "meeting",
+          "from_col": "assessment_id",
+          "to_table": "assessment",
+          "to_col": "assessment_id"
+        },
+        {
+          "from_table": "node",
+          "from_col": "process_id",
+          "to_table": "process",
+          "to_col": "process_id"
+        },
+        {
+          "from_table": "node",
+          "from_col": "assessment_id",
+          "to_table": "assessment",
+          "to_col": "assessment_id"
+        },
+        {
+          "from_table": "node_chemical",
+          "from_col": "cas",
+          "to_table": "chemical_cite",
+          "to_col": "cas"
+        },
+        {
+          "from_table": "node_chemical",
+          "from_col": "process_id",
+          "to_table": "chemical_cite",
+          "to_col": "process_id"
+        },
+        {
+          "from_table": "node_chemical",
+          "from_col": "node_id",
+          "to_table": "node",
+          "to_col": "node_id"
+        },
+        {
+          "from_table": "node_equipment",
+          "from_col": "equipment_id",
+          "to_table": "equipment",
+          "to_col": "equipment_id"
+        },
+        {
+          "from_table": "node_equipment",
+          "from_col": "node_id",
+          "to_table": "node",
+          "to_col": "node_id"
+        },
+        {
+          "from_table": "pec_map",
+          "from_col": "equipment_id",
+          "to_table": "equipment",
+          "to_col": "equipment_id"
+        },
+        {
+          "from_table": "pec_map",
+          "from_col": "process_id",
+          "to_table": "process",
+          "to_col": "process_id"
+        },
+        {
+          "from_table": "pid_covering",
+          "from_col": "drawing_no",
+          "to_table": "pid_drawing",
+          "to_col": "drawing_no"
+        },
+        {
+          "from_table": "pid_covering",
+          "from_col": "revision",
+          "to_table": "pid_drawing",
+          "to_col": "revision"
+        },
+        {
+          "from_table": "pid_covering",
+          "from_col": "equipment_id",
+          "to_table": "equipment",
+          "to_col": "equipment_id"
+        },
+        {
+          "from_table": "pid_drawing",
+          "from_col": "process_id",
+          "to_table": "process",
+          "to_col": "process_id"
+        },
+        {
+          "from_table": "process",
+          "from_col": "operating_dept_id",
+          "to_table": "department",
+          "to_col": "dept_id"
+        },
+        {
+          "from_table": "process",
+          "from_col": "site_id",
+          "to_table": "site",
+          "to_col": "site_id"
+        },
+        {
+          "from_table": "prompt_event",
+          "from_col": "equipment_id",
+          "to_table": "equipment",
+          "to_col": "equipment_id"
+        },
+        {
+          "from_table": "prompt_event",
+          "from_col": "process_id",
+          "to_table": "process",
+          "to_col": "process_id"
+        },
+        {
+          "from_table": "pssr",
+          "from_col": "change_id",
+          "to_table": "change_request",
+          "to_col": "change_id"
+        },
+        {
+          "from_table": "pssr",
+          "from_col": "process_id",
+          "to_table": "process",
+          "to_col": "process_id"
+        },
+        {
+          "from_table": "pssr",
+          "from_col": "equipment_id",
+          "to_table": "equipment",
+          "to_col": "equipment_id"
+        },
+        {
+          "from_table": "reaction_info",
+          "from_col": "process_id",
+          "to_table": "process",
+          "to_col": "process_id"
+        },
+        {
+          "from_table": "recommendation",
+          "from_col": "consequence_id",
+          "to_table": "consequence",
+          "to_col": "consequence_id"
+        },
+        {
+          "from_table": "recommendation",
+          "from_col": "assessment_id",
+          "to_table": "assessment",
+          "to_col": "assessment_id"
+        },
+        {
+          "from_table": "relief_device",
+          "from_col": "equipment_id",
+          "to_table": "equipment",
+          "to_col": "equipment_id"
+        },
+        {
+          "from_table": "risk_score",
+          "from_col": "consequence_id",
+          "to_table": "consequence",
+          "to_col": "consequence_id"
+        },
+        {
+          "from_table": "safeguard",
+          "from_col": "sop_id",
+          "to_table": "sop",
+          "to_col": "sop_id"
+        },
+        {
+          "from_table": "safeguard",
+          "from_col": "scenario_id",
+          "to_table": "esd_scenario",
+          "to_col": "scenario_id"
+        },
+        {
+          "from_table": "safeguard",
+          "from_col": "equipment_id",
+          "to_table": "equipment",
+          "to_col": "equipment_id"
+        },
+        {
+          "from_table": "safeguard",
+          "from_col": "consequence_id",
+          "to_table": "consequence",
+          "to_col": "consequence_id"
+        },
+        {
+          "from_table": "sds",
+          "from_col": "site_id",
+          "to_table": "site",
+          "to_col": "site_id"
+        },
+        {
+          "from_table": "signoff",
+          "from_col": "assessment_id",
+          "to_table": "assessment",
+          "to_col": "assessment_id"
+        },
+        {
+          "from_table": "site_basic_doc",
+          "from_col": "site_id",
+          "to_table": "site",
+          "to_col": "site_id"
+        },
+        {
+          "from_table": "sop",
+          "from_col": "equipment_id",
+          "to_table": "equipment",
+          "to_col": "equipment_id"
+        },
+        {
+          "from_table": "sop",
+          "from_col": "process_id",
+          "to_table": "process",
+          "to_col": "process_id"
+        },
+        {
+          "from_table": "trade_secret",
+          "from_col": "process_id",
+          "to_table": "process",
+          "to_col": "process_id"
+        },
+        {
+          "from_table": "training_course",
+          "from_col": "sop_id",
+          "to_table": "sop",
+          "to_col": "sop_id"
+        },
+        {
+          "from_table": "training_course",
+          "from_col": "equipment_id",
+          "to_table": "equipment",
+          "to_col": "equipment_id"
+        },
+        {
+          "from_table": "training_course",
+          "from_col": "process_id",
+          "to_table": "process",
+          "to_col": "process_id"
+        },
+        {
+          "from_table": "training_record",
+          "from_col": "course_id",
+          "to_table": "training_course",
+          "to_col": "course_id"
+        },
+        {
+          "from_table": "unstructured_attachment",
+          "from_col": "process_id",
+          "to_table": "process",
+          "to_col": "process_id"
+        },
+        {
+          "from_table": "ventilation",
+          "from_col": "equipment_id",
+          "to_table": "equipment",
+          "to_col": "equipment_id"
+        },
+        {
+          "from_table": "ventilation",
+          "from_col": "area_code",
+          "to_table": "area",
+          "to_col": "area_code"
+        },
+        {
+          "from_table": "worker_activity",
+          "from_col": "process_id",
+          "to_table": "process",
+          "to_col": "process_id"
+        }
+      ],
+      "topo_layers_depends_on": [
+        [
+          "app_meta",
+          "area_chemical",
+          "area_equipment",
+          "area_process",
+          "assessment_scope",
+          "audit_checklist",
+          "audit_plan",
+          "chem_compatibility",
+          "chem_handling",
+          "chem_hazard_check",
+          "chemical",
+          "design_code",
+          "drill",
+          "emergency_org",
+          "equipment_content",
+          "equipment_limit",
+          "equipment_material",
+          "esd_action",
+          "explosion_area",
+          "filing_flag",
+          "filing_row",
+          "hotwork_permit",
+          "incident",
+          "info_access",
+          "inspection",
+          "interlock",
+          "inventory",
+          "loading_occupancy",
+          "meeting",
+          "node_chemical",
+          "node_equipment",
+          "pec_map",
+          "pid_covering",
+          "prompt_event",
+          "pssr",
+          "reaction_info",
+          "recommendation",
+          "relief_device",
+          "risk_score",
+          "safeguard",
+          "signoff",
+          "site_basic_doc",
+          "trade_secret",
+          "training_record",
+          "unit_procedure",
+          "unstructured_attachment",
+          "ventilation",
+          "worker_activity"
+        ],
+        [
+          "change_request",
+          "chemical_cite",
+          "consequence",
+          "esd_scenario",
+          "pid_drawing",
+          "sds",
+          "training_course"
+        ],
+        [
+          "node",
+          "sop"
+        ],
+        [
+          "assessment",
+          "equipment"
+        ],
+        [
+          "area"
+        ],
+        [
+          "process"
+        ],
+        [
+          "department",
+          "site"
+        ]
+      ],
+      "origin_groups": {
+        "offgraph": [
+          "app_meta",
+          "filing_flag",
+          "filing_row"
+        ],
+        "space": [
+          "area",
+          "design_code",
+          "equipment",
+          "equipment_material",
+          "esd_action",
+          "esd_scenario",
+          "explosion_area",
+          "interlock",
+          "pid_covering",
+          "pid_drawing",
+          "relief_device",
+          "safeguard",
+          "ventilation"
+        ],
+        "interaction": [
+          "area_chemical",
+          "area_equipment",
+          "area_process",
+          "equipment_content",
+          "node_chemical",
+          "node_equipment",
+          "pec_map"
+        ],
+        "measure": [
+          "assessment",
+          "assessment_scope",
+          "consequence",
+          "node",
+          "prompt_event",
+          "risk_score"
+        ],
+        "access": [
+          "audit_checklist",
+          "audit_plan",
+          "department",
+          "emergency_org",
+          "info_access",
+          "meeting",
+          "signoff",
+          "trade_secret",
+          "unit_procedure",
+          "worker_activity"
+        ],
+        "timeline": [
+          "change_request",
+          "drill",
+          "hotwork_permit",
+          "incident",
+          "inspection",
+          "loading_occupancy",
+          "pssr",
+          "training_record"
+        ],
+        "matter": [
+          "chem_compatibility",
+          "chem_handling",
+          "chem_hazard_check",
+          "chemical",
+          "chemical_cite",
+          "inventory",
+          "sds"
+        ],
+        "time": [
+          "equipment_limit",
+          "process",
+          "reaction_info",
+          "sop",
+          "training_course"
+        ],
+        "other": [
+          "recommendation"
+        ],
+        "dimension": [
+          "site",
+          "site_basic_doc",
+          "unstructured_attachment"
+        ]
+      },
+      "core_pack": {
+        "nodes": [
+          {
+            "id": "site",
+            "label": "site 場所",
+            "kind": "dimension"
+          },
+          {
+            "id": "department",
+            "label": "department 部門",
+            "kind": "access"
+          },
+          {
+            "id": "process",
+            "label": "process 製程",
+            "kind": "time"
+          },
+          {
+            "id": "equipment",
+            "label": "equipment 設備",
+            "kind": "space"
+          },
+          {
+            "id": "chemical",
+            "label": "chemical 化學品列",
+            "kind": "matter"
+          },
+          {
+            "id": "area",
+            "label": "area 區域",
+            "kind": "space"
+          },
+          {
+            "id": "pec_map",
+            "label": "pec_map 對應表",
+            "kind": "interaction"
+          },
+          {
+            "id": "pid_drawing",
+            "label": "pid_drawing P&ID",
+            "kind": "space"
+          },
+          {
+            "id": "sds_missing",
+            "label": "sds（規劃有、demo 無）",
+            "kind": "missing"
+          }
+        ],
+        "edges": [
+          {
+            "from": "site",
+            "to": "department",
+            "rel": "1:N"
+          },
+          {
+            "from": "site",
+            "to": "process",
+            "rel": "1:N"
+          },
+          {
+            "from": "site",
+            "to": "area",
+            "rel": "1:N"
+          },
+          {
+            "from": "department",
+            "to": "process",
+            "rel": "操作"
+          },
+          {
+            "from": "department",
+            "to": "equipment",
+            "rel": "維護"
+          },
+          {
+            "from": "process",
+            "to": "equipment",
+            "rel": "所屬"
+          },
+          {
+            "from": "process",
+            "to": "chemical",
+            "rel": "使用"
+          },
+          {
+            "from": "process",
+            "to": "pec_map",
+            "rel": "掛載"
+          },
+          {
+            "from": "equipment",
+            "to": "pec_map",
+            "rel": "掛載"
+          },
+          {
+            "from": "chemical",
+            "to": "pec_map",
+            "rel": "掛載"
+          },
+          {
+            "from": "equipment",
+            "to": "area",
+            "rel": "所在（demo 函數依賴）"
+          },
+          {
+            "from": "process",
+            "to": "pid_drawing",
+            "rel": "現況圖"
+          },
+          {
+            "from": "sds_missing",
+            "to": "chemical",
+            "rel": "V7.3 應連"
+          }
+        ]
+      }
+    },
+    "instance": {
+      "counts": {
+        "site": 1,
+        "department": 2,
+        "process": 4,
+        "area": 2,
+        "equipment": 7,
+        "chemical": 4,
+        "pec_map": 7,
+        "pid_drawing": 1,
+        "pid_covering": 4,
+        "node": 3
+      },
+      "n_vertices": 24,
+      "n_edges": 69,
+      "nodes": [
+        {
+          "id": "area:AREA-A",
+          "kind": "area",
+          "key": "AREA-A",
+          "label": "儲槽區"
+        },
+        {
+          "id": "area:AREA-B",
+          "kind": "area",
+          "key": "AREA-B",
+          "label": "裝卸場"
+        },
+        {
+          "id": "chemical:108-88-3@P-LOAD",
+          "kind": "chemical",
+          "key": "108-88-3@P-LOAD",
+          "label": "甲苯"
+        },
+        {
+          "id": "chemical:108-88-3@P-TANK",
+          "kind": "chemical",
+          "key": "108-88-3@P-TANK",
+          "label": "甲苯"
+        },
+        {
+          "id": "chemical:7647-01-0@P-ACID",
+          "kind": "chemical",
+          "key": "7647-01-0@P-ACID",
+          "label": "氯化氫水溶液"
+        },
+        {
+          "id": "chemical:7722-84-1@P-SCRUB",
+          "kind": "chemical",
+          "key": "7722-84-1@P-SCRUB",
+          "label": "過氧化氫"
+        },
+        {
+          "id": "department:D-MAINT",
+          "kind": "department",
+          "key": "D-MAINT",
+          "label": "保養課"
+        },
+        {
+          "id": "department:D-OPS",
+          "kind": "department",
+          "key": "D-OPS",
+          "label": "操作課"
+        },
+        {
+          "id": "equipment:ESD-101",
+          "kind": "equipment",
+          "key": "ESD-101",
+          "label": "緊急停車系統"
+        },
+        {
+          "id": "equipment:LA-101",
+          "kind": "equipment",
+          "key": "LA-101",
+          "label": "鶴管"
+        },
+        {
+          "id": "equipment:P-101",
+          "kind": "equipment",
+          "key": "P-101",
+          "label": "泵浦"
+        },
+        {
+          "id": "equipment:PL-201",
+          "kind": "equipment",
+          "key": "PL-201",
+          "label": "酸液輸送管線"
+        },
+        {
+          "id": "equipment:PSV-101",
+          "kind": "equipment",
+          "key": "PSV-101",
+          "label": "安全閥"
+        },
+        {
+          "id": "equipment:S-201",
+          "kind": "equipment",
+          "key": "S-201",
+          "label": "洗滌塔"
+        },
+        {
+          "id": "equipment:T-101",
+          "kind": "equipment",
+          "key": "T-101",
+          "label": "儲槽"
+        },
+        {
+          "id": "hazop:N-01",
+          "kind": "hazop",
+          "key": "N-01",
+          "label": "N-01"
+        },
+        {
+          "id": "hazop:N-02",
+          "kind": "hazop",
+          "key": "N-02",
+          "label": "N-02"
+        },
+        {
+          "id": "hazop:N-ACID-01",
+          "kind": "hazop",
+          "key": "N-ACID-01",
+          "label": "N-ACID-01"
+        },
+        {
+          "id": "pid:PID-TANK-001@B",
+          "kind": "pid",
+          "key": "PID-TANK-001@B",
+          "label": "儲槽區管線儀表圖"
+        },
+        {
+          "id": "process:P-ACID",
+          "kind": "process",
+          "key": "P-ACID",
+          "label": "酸液輸送"
+        },
+        {
+          "id": "process:P-LOAD",
+          "kind": "process",
+          "key": "P-LOAD",
+          "label": "裝卸"
+        },
+        {
+          "id": "process:P-SCRUB",
+          "kind": "process",
+          "key": "P-SCRUB",
+          "label": "後段處理單元"
+        },
+        {
+          "id": "process:P-TANK",
+          "kind": "process",
+          "key": "P-TANK",
+          "label": "儲槽"
+        },
+        {
+          "id": "site:DEMO-SITE",
+          "kind": "site",
+          "key": "DEMO-SITE",
+          "label": "示範甲類工作場所（溶劑儲存及裝卸）"
+        }
+      ],
+      "edges": [
+        {
+          "from": "department:D-OPS",
+          "to": "site:DEMO-SITE",
+          "rel": "belongs"
+        },
+        {
+          "from": "department:D-MAINT",
+          "to": "site:DEMO-SITE",
+          "rel": "belongs"
+        },
+        {
+          "from": "process:P-TANK",
+          "to": "site:DEMO-SITE",
+          "rel": "belongs"
+        },
+        {
+          "from": "process:P-TANK",
+          "to": "department:D-OPS",
+          "rel": "operated_by"
+        },
+        {
+          "from": "process:P-LOAD",
+          "to": "site:DEMO-SITE",
+          "rel": "belongs"
+        },
+        {
+          "from": "process:P-LOAD",
+          "to": "department:D-OPS",
+          "rel": "operated_by"
+        },
+        {
+          "from": "process:P-SCRUB",
+          "to": "site:DEMO-SITE",
+          "rel": "belongs"
+        },
+        {
+          "from": "process:P-SCRUB",
+          "to": "department:D-OPS",
+          "rel": "operated_by"
+        },
+        {
+          "from": "process:P-ACID",
+          "to": "site:DEMO-SITE",
+          "rel": "belongs"
+        },
+        {
+          "from": "process:P-ACID",
+          "to": "department:D-OPS",
+          "rel": "operated_by"
+        },
+        {
+          "from": "area:AREA-A",
+          "to": "process:P-TANK",
+          "rel": "primary_process"
+        },
+        {
+          "from": "area:AREA-A",
+          "to": "site:DEMO-SITE",
+          "rel": "belongs"
+        },
+        {
+          "from": "area:AREA-B",
+          "to": "process:P-LOAD",
+          "rel": "primary_process"
+        },
+        {
+          "from": "area:AREA-B",
+          "to": "site:DEMO-SITE",
+          "rel": "belongs"
+        },
+        {
+          "from": "equipment:T-101",
+          "to": "area:AREA-A",
+          "rel": "located_in"
+        },
+        {
+          "from": "equipment:T-101",
+          "to": "chemical:108-88-3@P-TANK",
+          "rel": "contains"
+        },
+        {
+          "from": "equipment:T-101",
+          "to": "process:P-TANK",
+          "rel": "belongs"
+        },
+        {
+          "from": "equipment:T-101",
+          "to": "site:DEMO-SITE",
+          "rel": "belongs"
+        },
+        {
+          "from": "equipment:T-101",
+          "to": "department:D-MAINT",
+          "rel": "maintained_by"
+        },
+        {
+          "from": "equipment:P-101",
+          "to": "area:AREA-A",
+          "rel": "located_in"
+        },
+        {
+          "from": "equipment:P-101",
+          "to": "chemical:108-88-3@P-TANK",
+          "rel": "contains"
+        },
+        {
+          "from": "equipment:P-101",
+          "to": "process:P-TANK",
+          "rel": "belongs"
+        },
+        {
+          "from": "equipment:P-101",
+          "to": "site:DEMO-SITE",
+          "rel": "belongs"
+        },
+        {
+          "from": "equipment:P-101",
+          "to": "department:D-MAINT",
+          "rel": "maintained_by"
+        },
+        {
+          "from": "equipment:PSV-101",
+          "to": "area:AREA-A",
+          "rel": "located_in"
+        },
+        {
+          "from": "equipment:PSV-101",
+          "to": "chemical:108-88-3@P-TANK",
+          "rel": "contains"
+        },
+        {
+          "from": "equipment:PSV-101",
+          "to": "process:P-TANK",
+          "rel": "belongs"
+        },
+        {
+          "from": "equipment:PSV-101",
+          "to": "site:DEMO-SITE",
+          "rel": "belongs"
+        },
+        {
+          "from": "equipment:PSV-101",
+          "to": "department:D-MAINT",
+          "rel": "maintained_by"
+        },
+        {
+          "from": "equipment:ESD-101",
+          "to": "process:P-TANK",
+          "rel": "belongs"
+        },
+        {
+          "from": "equipment:ESD-101",
+          "to": "department:D-MAINT",
+          "rel": "maintained_by"
+        },
+        {
+          "from": "equipment:ESD-101",
+          "to": "area:AREA-A",
+          "rel": "located_in"
+        },
+        {
+          "from": "equipment:ESD-101",
+          "to": "site:DEMO-SITE",
+          "rel": "belongs"
+        },
+        {
+          "from": "equipment:LA-101",
+          "to": "chemical:108-88-3@P-LOAD",
+          "rel": "contains"
+        },
+        {
+          "from": "equipment:LA-101",
+          "to": "area:AREA-B",
+          "rel": "located_in"
+        },
+        {
+          "from": "equipment:LA-101",
+          "to": "process:P-LOAD",
+          "rel": "belongs"
+        },
+        {
+          "from": "equipment:LA-101",
+          "to": "site:DEMO-SITE",
+          "rel": "belongs"
+        },
+        {
+          "from": "equipment:LA-101",
+          "to": "department:D-MAINT",
+          "rel": "maintained_by"
+        },
+        {
+          "from": "equipment:S-201",
+          "to": "area:AREA-A",
+          "rel": "located_in"
+        },
+        {
+          "from": "equipment:S-201",
+          "to": "chemical:7722-84-1@P-SCRUB",
+          "rel": "contains"
+        },
+        {
+          "from": "equipment:S-201",
+          "to": "process:P-SCRUB",
+          "rel": "belongs"
+        },
+        {
+          "from": "equipment:S-201",
+          "to": "site:DEMO-SITE",
+          "rel": "belongs"
+        },
+        {
+          "from": "equipment:S-201",
+          "to": "department:D-MAINT",
+          "rel": "maintained_by"
+        },
+        {
+          "from": "equipment:PL-201",
+          "to": "chemical:7647-01-0@P-ACID",
+          "rel": "contains"
+        },
+        {
+          "from": "equipment:PL-201",
+          "to": "area:AREA-A",
+          "rel": "located_in"
+        },
+        {
+          "from": "equipment:PL-201",
+          "to": "process:P-ACID",
+          "rel": "belongs"
+        },
+        {
+          "from": "equipment:PL-201",
+          "to": "site:DEMO-SITE",
+          "rel": "belongs"
+        },
+        {
+          "from": "equipment:PL-201",
+          "to": "department:D-MAINT",
+          "rel": "maintained_by"
+        },
+        {
+          "from": "chemical:108-88-3@P-TANK",
+          "to": "process:P-TANK",
+          "rel": "used_in"
+        },
+        {
+          "from": "chemical:108-88-3@P-LOAD",
+          "to": "process:P-LOAD",
+          "rel": "used_in"
+        },
+        {
+          "from": "chemical:7647-01-0@P-ACID",
+          "to": "process:P-ACID",
+          "rel": "used_in"
+        },
+        {
+          "from": "chemical:7722-84-1@P-SCRUB",
+          "to": "process:P-SCRUB",
+          "rel": "used_in"
+        },
+        {
+          "from": "pid:PID-TANK-001@B",
+          "to": "equipment:P-101",
+          "rel": "covers"
+        },
+        {
+          "from": "pid:PID-TANK-001@B",
+          "to": "process:P-TANK",
+          "rel": "depicts"
+        },
+        {
+          "from": "pid:PID-TANK-001@B",
+          "to": "equipment:ESD-101",
+          "rel": "covers"
+        },
+        {
+          "from": "pid:PID-TANK-001@B",
+          "to": "equipment:T-101",
+          "rel": "covers"
+        },
+        {
+          "from": "pid:PID-TANK-001@B",
+          "to": "equipment:PSV-101",
+          "rel": "covers"
+        },
+        {
+          "from": "hazop:N-01",
+          "to": "process:P-TANK",
+          "rel": "on_process"
+        },
+        {
+          "from": "hazop:N-01",
+          "to": "pid:PID-TANK-001@B",
+          "rel": "uses_drawing"
+        },
+        {
+          "from": "hazop:N-01",
+          "to": "equipment:T-101",
+          "rel": "disturbs"
+        },
+        {
+          "from": "hazop:N-01",
+          "to": "chemical:108-88-3@P-TANK",
+          "rel": "disturbs"
+        },
+        {
+          "from": "hazop:N-02",
+          "to": "chemical:108-88-3@P-TANK",
+          "rel": "disturbs"
+        },
+        {
+          "from": "hazop:N-02",
+          "to": "equipment:P-101",
+          "rel": "disturbs"
+        },
+        {
+          "from": "hazop:N-02",
+          "to": "pid:PID-TANK-001@B",
+          "rel": "uses_drawing"
+        },
+        {
+          "from": "hazop:N-02",
+          "to": "process:P-TANK",
+          "rel": "on_process"
+        },
+        {
+          "from": "hazop:N-02",
+          "to": "equipment:ESD-101",
+          "rel": "disturbs"
+        },
+        {
+          "from": "hazop:N-ACID-01",
+          "to": "equipment:PL-201",
+          "rel": "disturbs"
+        },
+        {
+          "from": "hazop:N-ACID-01",
+          "to": "chemical:7647-01-0@P-ACID",
+          "rel": "disturbs"
+        },
+        {
+          "from": "hazop:N-ACID-01",
+          "to": "process:P-ACID",
+          "rel": "on_process"
+        }
+      ]
+    }
+  },
+  "findings": [
+    {
+      "id": "S1-schema-dag",
+      "name": "schema 外鍵圖近乎 DAG（僅部門上級自環）",
+      "ok": true,
+      "detail": {
+        "cycles": [
+          [
+            "department",
+            "department"
+          ]
+        ],
+        "expected_self_loop": "department.parent_dept_id"
+      },
+      "severity": "pass"
+    },
+    {
+      "id": "S2-connected",
+      "name": "弱連通：主檔與掛件應在同一分量",
+      "ok": true,
+      "detail": {
+        "n_components": 4,
+        "largest": 60,
+        "isolated_tables": [
+          "app_meta",
+          "audit_checklist",
+          "unit_procedure"
+        ]
+      },
+      "severity": "warn"
+    },
+    {
+      "id": "S3-hubs",
+      "name": "割點／樞紐應是場所、製程、設備（三原＋次元）",
+      "ok": true,
+      "detail": {
+        "top_degree": {
+          "process": {
+            "in": 25,
+            "out": 2
+          },
+          "equipment": {
+            "in": 23,
+            "out": 4
+          },
+          "area": {
+            "in": 9,
+            "out": 2
+          },
+          "site": {
+            "in": 10,
+            "out": 0
+          },
+          "chemical_cite": {
+            "in": 9,
+            "out": 1
+          },
+          "esd_scenario": {
+            "in": 3,
+            "out": 3
+          },
+          "assessment": {
+            "in": 5,
+            "out": 1
+          },
+          "consequence": {
+            "in": 4,
+            "out": 2
+          }
+        },
+        "articulation_points": [
+          "assessment",
+          "chemical_cite",
+          "consequence",
+          "equipment",
+          "process",
+          "pssr",
+          "site",
+          "training_course"
+        ]
+      },
+      "severity": "pass"
+    },
+    {
+      "id": "S4-v73-homomorphism",
+      "name": "demo schema 對 V7.3 規劃圖的頂點／邊覆蓋",
+      "ok": true,
+      "detail": {
+        "missing_vertices": [
+          "chem_hazard_detail",
+          "chem_usage",
+          "legal_certificate",
+          "process_flow_block",
+          "process_overview"
+        ],
+        "core_missing": [],
+        "view_layer_still_in_filing_row": [
+          "chem_hazard_detail",
+          "chem_usage",
+          "legal_certificate",
+          "process_flow_block",
+          "process_overview"
+        ],
+        "extra_or_renamed": [
+          "app_meta",
+          "assessment",
+          "assessment_scope",
+          "audit_checklist",
+          "audit_plan",
+          "change_request",
+          "chem_compatibility",
+          "chem_handling",
+          "chem_hazard_check",
+          "chemical",
+          "chemical_cite",
+          "consequence",
+          "drill",
+          "emergency_org",
+          "equipment_material",
+          "esd_action",
+          "esd_scenario",
+          "explosion_area",
+          "filing_flag",
+          "filing_row",
+          "hotwork_permit",
+          "incident",
+          "info_access",
+          "inspection",
+          "interlock",
+          "inventory",
+          "loading_occupancy",
+          "meeting",
+          "node",
+          "node_chemical",
+          "node_equipment",
+          "prompt_event",
+          "pssr",
+          "reaction_info",
+          "recommendation",
+          "risk_score",
+          "safeguard",
+          "signoff",
+          "site_basic_doc",
+          "sop",
+          "trade_secret",
+          "training_course",
+          "training_record",
+          "unit_procedure",
+          "unstructured_attachment",
+          "ventilation",
+          "worker_activity"
+        ],
+        "missing_v73_edges": [
+          {
+            "from": "chemical_component",
+            "to": "process",
+            "col": "process_id"
+          },
+          {
+            "from": "chemical_component",
+            "to": "sds",
+            "col": "sds_id"
+          },
+          {
+            "from": "area_chemical",
+            "to": "chemical_component",
+            "col": "process_id+cas"
+          }
+        ]
+      },
+      "severity": "pass"
+    },
+    {
+      "id": "S5-undeclared-fk",
+      "name": "看起來像邊、但沒宣告外鍵的欄（多型／字串邊）",
+      "ok": false,
+      "detail": [
+        {
+          "table": "area",
+          "cols": [
+            "drawing_no"
+          ]
+        },
+        {
+          "table": "change_request",
+          "cols": [
+            "target_pk"
+          ]
+        },
+        {
+          "table": "chemical_cite",
+          "cols": [
+            "cas"
+          ]
+        },
+        {
+          "table": "equipment_content",
+          "cols": [
+            "cas"
+          ]
+        },
+        {
+          "table": "incident",
+          "cols": [
+            "cas"
+          ]
+        },
+        {
+          "table": "node",
+          "cols": [
+            "drawing_no"
+          ]
+        },
+        {
+          "table": "pec_map",
+          "cols": [
+            "cas"
+          ]
+        },
+        {
+          "table": "pid_drawing",
+          "cols": [
+            "drawing_no"
+          ]
+        },
+        {
+          "table": "prompt_event",
+          "cols": [
+            "cas"
+          ]
+        },
+        {
+          "table": "recommendation",
+          "cols": [
+            "target_pk"
+          ]
+        },
+        {
+          "table": "relief_device",
+          "cols": [
+            "pid_drawing_no",
+            "released_cas",
+            "released_process_id"
+          ]
+        },
+        {
+          "table": "trade_secret",
+          "cols": [
+            "drawing_no"
+          ]
+        }
+      ],
+      "severity": "warn"
+    },
+    {
+      "id": "S6-sds-vertex",
+      "name": "SDS 應是獨立頂點，化學品列不得把檔路徑當屬性",
+      "ok": true,
+      "detail": "sds 表存在；化學品列以 sds_id 連同一 SDS 頂點",
+      "severity": "pass"
+    },
+    {
+      "id": "S7-area-incidence",
+      "name": "區域–設備應是關聯邊（area_equipment），不是設備上的必填屬性",
+      "ok": true,
+      "detail": "area_equipment 為所在區域真相；equipment.area_code 僅廠區圖快取、可空",
+      "severity": "pass"
+    },
+    {
+      "id": "S8-offgraph",
+      "name": "事實應在圖上，不應只活在 JSON 列",
+      "ok": false,
+      "detail": {
+        "tables": [
+          "app_meta",
+          "filing_flag",
+          "filing_row"
+        ],
+        "note": "filing_row 把混合物／1.4 反應等列成 payload JSON，HAZOP 與 pec 圖讀不到這些頂點"
+      },
+      "severity": "warn"
+    },
+    {
+      "id": "G1-triangle",
+      "name": "對應表三角形閉合（設備屬製程 且 化學品屬製程）",
+      "ok": true,
+      "detail": "全部 pec_map 列滿足設備與化學品同屬該製程",
+      "severity": "pass"
+    },
+    {
+      "id": "G2-not-cartesian",
+      "name": "對應表不是設備×化學品全配對",
+      "ok": true,
+      "detail": [
+        {
+          "process_id": "P-ACID",
+          "equip": 1,
+          "chem": 1,
+          "pec": 1,
+          "empty": 0,
+          "full_cartesian": 1,
+          "density": 1.0
+        },
+        {
+          "process_id": "P-LOAD",
+          "equip": 1,
+          "chem": 1,
+          "pec": 1,
+          "empty": 0,
+          "full_cartesian": 1,
+          "density": 1.0
+        },
+        {
+          "process_id": "P-SCRUB",
+          "equip": 1,
+          "chem": 1,
+          "pec": 1,
+          "empty": 0,
+          "full_cartesian": 1,
+          "density": 1.0
+        },
+        {
+          "process_id": "P-TANK",
+          "equip": 4,
+          "chem": 1,
+          "pec": 3,
+          "empty": 1,
+          "full_cartesian": 4,
+          "density": 0.75
+        }
+      ],
+      "severity": "pass"
+    },
+    {
+      "id": "G3-equip-covered",
+      "name": "每台設備至少一列對應表（有化學品或聲明無）",
+      "ok": true,
+      "detail": "全部設備已掛 pec_map",
+      "severity": "pass"
+    },
+    {
+      "id": "G4-hazop-neighborhood",
+      "name": "HAZOP 節點設備是對應表誘導子圖",
+      "ok": true,
+      "detail": "節點只擾動已在 pec_map 上的設備",
+      "severity": "pass"
+    },
+    {
+      "id": "G5-hazop-leftover",
+      "name": "P-TANK 故意留未進 HAZOP 的設備（涵蓋檢查用）",
+      "ok": true,
+      "detail": [
+        "PSV-101"
+      ],
+      "severity": "pass"
+    },
+    {
+      "id": "G6-fk-pragma",
+      "name": "SQLite 外鍵實例全部可解",
+      "ok": true,
+      "detail": "foreign_key_check 空",
+      "severity": "pass"
+    },
+    {
+      "id": "G7-no-cross-process",
+      "name": "禁止跨製程配對（含 P-ACID 化學品不得掛 T-101）",
+      "ok": true,
+      "detail": "無跨製程邊",
+      "severity": "pass"
+    },
+    {
+      "id": "G8-name-on-vertex",
+      "name": "名稱只活在主檔頂點（子表無複製 name 欄）",
+      "ok": true,
+      "detail": "equipment/process/chemical/department/area 各有自己的 name；pec_map、node_equipment、pid_covering 無名稱欄",
+      "severity": "pass"
+    }
+  ],
+  "summary": {
+    "pass": 13,
+    "fail": 0,
+    "warn": 3,
+    "verdict": "核心三原圖已對齊 V7.3；視圖層長表仍有部分在 filing_row"
+  }
+}

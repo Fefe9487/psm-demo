@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>3.9 動火許可</h2>
+{% include "_proc.html" %}
+<h3>表9.1-1　動火許可區域</h3>
+<table class="data">
+  <tr><th>區域</th><th>名稱</th><th>防爆</th><th>防爆說明</th><th>防護原因</th></tr>
+  {% for z in zones %}
+  <tr>
+    <td>{{ z.area_code }}</td>
+    <td>{{ z.area_name }}</td>
+    <td>{{ '是' if z.is_explosion_zone else '否' }}</td>
+    <td>{{ z.explosion_note or '' }}</td>
+    <td>{{ z.protection_reason }}</td>
+  </tr>
+  {% else %}
+  <tr><td colspan="5">（尚未列舉動火管制區域）</td></tr>
+  {% endfor %}
+</table>
+<form class="grid card" method="post" action="/hotwork/zone">
+  <label>管制區域
+    <select name="area_code" required>
+      {% for a in areas %}<option value="{{ a.area_code }}">{{ a.area_code }} {{ a.name }}</option>{% endfor %}
+    </select>
+  </label>
+  <label>列舉動火區域防護原因 <input name="protection_reason" required></label>
+  <button type="submit">新增管制區域</button>
+</form>
+<h3>動火許可紀錄</h3>
+<table class="data">
+  <tr><th>許可</th><th>設備編號</th><th>區域</th><th>日期</th><th>措施</th></tr>
+  {% for p in permits %}
+  <tr><td>{{ p.permit_id }}</td><td>{{ p.equipment_id }}</td><td>{{ p.area_code or '' }}</td>
+      <td>{{ p.permit_date }}</td><td>{{ p.measures }}</td></tr>
+  {% endfor %}
+  {% if not permits %}
+  <tr><td>（空白格式）</td><td>（必選 equipment_id）</td><td></td><td></td><td></td></tr>
+  {% endif %}
+</table>
+<form class="grid card" method="post">
+  <label>許可編號 <input name="permit_id" required></label>
+  <label>對象設備
+    <select name="equipment_id" required>
+      {% for e in equipment %}<option value="{{ e.equipment_id }}">{{ e.equipment_id }}</option>{% endfor %}
+    </select>
+  </label>
+  <label>區域
+    <select name="area_code"><option value=""></option>
+      {% for a in areas %}<option value="{{ a.area_code }}">{{ a.area_code }}</option>{% endfor %}
+    </select>
+  </label>
+  <label>日期 <input name="permit_date" required></label>
+  <label>防火措施 <input name="measures"></label>
+  <button type="submit">新增許可</button>
+</form>
+{% endblock %}

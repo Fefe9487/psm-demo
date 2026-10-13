@@ -1,0 +1,29 @@
+{% macro hazard_picker(field_name) %}
+<div class="hazard-picker" data-hazard-picker aria-required="true">
+  <input type="hidden" name="{{ field_name }}" class="hazard-codes">
+  <div class="hazard-selected" aria-live="polite"><span class="muted">尚未選擇</span></div>
+  <details class="hazard-options">
+    <summary>選擇中文危害說明（依 SDS，可複選）</summary>
+    <label class="hazard-search-label">搜尋代碼或中文說明
+      <input class="hazard-search" type="search" autocomplete="off" placeholder="例如：H225、易燃、腐蝕">
+    </label>
+    <div class="hazard-list">
+      {% for group, statements in HAZARD_STATEMENT_GROUPS %}
+      <fieldset class="hazard-category">
+        <legend>{{ group }}</legend>
+        {% for code, description in statements %}
+        <label class="hazard-option">
+          <input type="checkbox" value="{{ code }}">
+          <span>{{ description }} <small>{{ code }}</small></span>
+        </label>
+        {% endfor %}
+      </fieldset>
+      {% endfor %}
+      <p class="hazard-empty muted" hidden>沒有符合的危害說明。</p>
+    </div>
+    <label class="hazard-extra-label">清單未列出的 H 代碼（選填）
+      <input class="hazard-extra" type="text" autocomplete="off" placeholder="依 SDS 輸入，例如 H350I">
+    </label>
+  </details>
+</div>
+{% endmacro %}

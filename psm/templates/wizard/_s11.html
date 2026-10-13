@@ -1,0 +1,55 @@
+{% set fl = flags if flags is defined else {} %}
+{% set yn11_help = yn11_help if yn11_help is defined else {} %}
+<section class="sec">
+  <h3>彙整近五年的事故與虛驚 <small class="table-ref">表11.2-1</small></h3>
+  <p class="note">制度確認改上傳事故調查程序書，不另開確認長表。成立未滿五年者以成立至送審件數為準。無案件據實註明。</p>
+  <form class="card" method="post" action="/wizard/flags">
+    <input type="hidden" name="step" value="11">
+    <input type="hidden" name="inc_zero" value="0">
+    <label class="chk"><input type="checkbox" name="inc_zero" value="1" data-gate="inc-zero" {% if fl.get('inc_zero')=='1' %}checked{% endif %}> 近五年 0 件（據實註明）</label>
+    <button type="submit">存註明</button>
+  </form>
+  <table class="data">
+    <tr><th>日期</th><th>類型</th><th>特性</th><th>摘要</th><th>製程</th><th>設備</th><th>化學品</th><th>矯正</th><th></th></tr>
+    {% for r in rows.get('11.2', []) %}
+    <tr data-fill-form="form-112" data-json="{{ r | tojson | forceescape }}">
+      <td>{{ r.when }}</td><td>{{ r.incident_type }}</td><td>{{ r.traits }}</td>
+      <td>{{ r.summary }}</td><td>{{ r.process_id }}</td><td>{{ r.equipment_id }}</td><td>{{ r.cas or '' }}</td><td>{{ r.corrective }}</td>
+      <td><button class="editish" type="button" data-fill-row>修改</button> <form class="inline" method="post" action="/wizard/11/incident/delete"><input type="hidden" name="incident_id" value="{{ r.incident_id }}"><button class="linkish" type="submit">刪除</button></form></td>
+    </tr>
+    {% endfor %}
+  </table>
+  <form class="grid card" method="post" action="/wizard/row" id="form-112" data-add-label="新增 11.2 列" data-edit-label="更新 11.2 列" data-panel="inc-zero" data-show="0" hidden>
+    <input type="hidden" name="step" value="11"><input type="hidden" name="section" value="11.2">
+    <label>事故項次 <input name="incident_id" data-edit-identity required placeholder="例如 INC-2026-001"></label>
+    <label>事故發生日期 <input name="when" type="date" required></label>
+    <label>事故類型
+      <select name="incident_type" data-gate="inc-kind"><option>職業災害</option><option>虛驚</option></select>
+    </label>
+    <label>事故特性（可複選）
+      <select name="traits" multiple>
+        <option>火災</option><option>爆炸</option><option>化學品洩漏</option><option>其他</option>
+      </select>
+    </label>
+    <label>事故摘要 <input name="summary" required></label>
+    <div data-panel="inc-kind" data-show="職業災害">
+    <label>傷亡
+      <select name="casualty"><option value=""></option><option>死亡</option><option>失能</option><option>非失能</option></select>
+    </label>
+    <label>損失日數 <input name="lost_days"></label>
+    </div>
+    <label>原因 <input name="cause"></label>
+    <label>所涉製程
+      <select name="process_id"><option value=""></option>{% for p in processes %}<option value="{{ p.process_id }}">{{ p.process_id }} {{ p.name }}</option>{% endfor %}</select>
+    </label>
+    <label>所涉設備
+      <select name="equipment_id"><option value=""></option>{% for e in eq_all %}<option value="{{ e.equipment_id }}">{{ e.equipment_id }} {{ e.name }}</option>{% endfor %}</select>
+    </label>
+    <label>所涉及化學品
+      <select name="cas"><option value=""></option>{% for c in chemicals %}<option value="{{ c.cas }}">{{ c.cas }} {{ c.name }}</option>{% endfor %}</select>
+    </label>
+    <label>矯正措施 <input name="corrective"></label>
+    <label>佐證 <input name="evidence" placeholder="文件名稱"></label>
+    <button type="submit">新增 11.2 列</button>
+  </form>
+</section>

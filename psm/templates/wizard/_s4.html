@@ -1,0 +1,119 @@
+{% set fl = flags if flags is defined else {} %}
+<section class="sec">
+  <h3>為設備建立標準作業程序 <small class="table-ref">表4.1-1</small></h3>
+  <p class="note">先選製程，再選這份程序實際涵蓋的設備；一份程序可涵蓋多台設備及多種設備類型。同編號可重新儲存以修正關聯；舊資料須由人員核對後重新儲存。</p>
+  <table class="data">
+    <tr><th>設備類型</th><th>程序編號</th><th>程序名稱</th><th>修訂日期</th><th>所屬製程</th><th>關聯設備</th><th>範圍確認</th><th></th></tr>
+    {% for s in sops %}
+    <tr data-fill-form="form-41" data-json="{{ s | tojson | forceescape }}">
+      <td>{{ s.equipment_types or '' }}</td>
+      <td>{{ s.procedure_no or s.sop_id }}</td>
+      <td>{{ s.title }}</td>
+      <td>{{ s.updated_on or '' }}</td>
+      <td>{{ s.process_id }}</td>
+      <td>{{ s.equipment_refs or '' }}</td>
+      <td>{{ '已確認' if s.scope_confirmed else '待確認' }}</td>
+      <td>
+        <button class="editish" type="button" data-fill-row>修改</button>
+        <form class="inline" method="post" action="/wizard/4/sop/delete" data-confirm="刪除這筆作業程序？相關引用會更新。">
+          <input type="hidden" name="sop_id" value="{{ s.sop_id }}">
+          <button class="linkish" type="submit">刪</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+  <form class="grid card" method="post" action="/wizard/4/sop" id="form-41" data-add-label="儲存 SOP" data-edit-label="更新 SOP">
+    <label>程序 ID <input name="sop_id" data-edit-identity required></label>
+    <label>程序書文管編號 <input name="procedure_no" required></label>
+    <label>程序名稱 <input name="title" required></label>
+    <label>最後修訂日期 <input name="updated_on" type="date" required></label>
+    <label>所屬製程
+      <select name="process_id" id="sop-process" required>{% for p in processes %}<option value="{{ p.process_id }}">{{ p.process_id }} {{ p.name }}</option>{% endfor %}</select>
+    </label>
+    <label>關聯設備（可複選，至少一台）
+      <select name="equipment_ids" id="sop-equipment" multiple required>
+        {% for e in eq_all %}<option value="{{ e.equipment_id }}" data-process="{{ e.process_id }}">{{ e.equipment_id }} {{ e.name }}（{{ e.equipment_type }}／{{ e.process_id }}）</option>{% endfor %}
+      </select>
+    </label>
+    <button type="submit">儲存 SOP</button>
+  </form>
+</section>
+<section class="sec">
+  <h3>記錄臨時操作方式 <small class="table-ref">表4.2-1</small></h3>
+  <form class="card" method="post" action="/wizard/flags">
+    <input type="hidden" name="step" value="4">
+    <label class="chk"><input type="checkbox" name="sop_no_temp" value="1" data-gate="sop-temp" {% if fl.get('sop_no_temp')=='1' %}checked{% endif %}> 無臨時操作</label>
+    <button type="submit">存聲明</button>
+  </form>
+  <table class="data">
+    <tr><th>設備編號</th><th>設備名稱</th><th>設備類型</th><th>所屬製程</th><th>臨時性操作項目</th><th></th></tr>
+    {% for r in rows.get('4.2', []) %}
+    <tr data-fill-form="form-42" data-json="{{ r | tojson | forceescape }}">
+      <td>{{ r.equipment_id }}</td><td>{{ r.equipment_name }}</td><td>{{ r.equipment_type }}</td>
+      <td>{{ r.process_id }}</td><td>{{ r.item }}</td>
+      <td><button class="editish" type="button" data-fill-row>修改</button> <form class="inline" method="post" action="/wizard/row/delete"><input type="hidden" name="step" value="4"><input type="hidden" name="row_id" value="{{ r.row_id }}"><button class="linkish" type="submit">刪</button></form></td>
+    </tr>
+    {% endfor %}
+  </table>
+  <form class="grid card" method="post" action="/wizard/row" id="form-42" data-add-label="新增 4.2" data-edit-label="更新 4.2" data-panel="sop-temp" data-show="0" hidden>
+    <input type="hidden" name="step" value="4"><input type="hidden" name="section" value="4.2">
+    <label>設備編號
+      <select name="equipment_id">{% for e in eq_all %}<option value="{{ e.equipment_id }}">{{ e.equipment_id }} {{ e.name }}（{{ e.equipment_type }}／{{ e.process_id }}）</option>{% endfor %}</select>
+    </label>
+    <label>臨時性操作項目 <input name="item" required></label>
+    <button type="submit">新增 4.2</button>
+  </form>
+</section>
+<section class="sec">
+  <h3>說明緊急停車與處置方式 <small class="table-ref">表4.3-1</small></h3>
+  <p class="note">緊急停車條件與緊急操作寫在同一張表。設備編號選表1.0-3，帶出名稱、類型及所屬製程。連鎖可後補表1.10-1。</p>
+  <table class="data">
+    <tr><th>設備編號</th><th>設備名稱</th><th>設備類型</th><th>所屬製程</th><th>緊急停車條件</th><th>緊急操作</th><th></th></tr>
+    {% for r in rows.get('4.3', []) %}
+    <tr data-fill-form="form-43" data-json="{{ r | tojson | forceescape }}">
+      <td>{{ r.equipment_id }}</td><td>{{ r.equipment_name }}</td><td>{{ r.equipment_type }}</td>
+      <td>{{ r.process_id }}</td><td>{{ r.item }}</td><td>{{ r.emergency or '' }}</td>
+      <td><button class="editish" type="button" data-fill-row>修改</button> <form class="inline" method="post" action="/wizard/row/delete"><input type="hidden" name="step" value="4"><input type="hidden" name="row_id" value="{{ r.row_id }}"><button class="linkish" type="submit">刪</button></form></td>
+    </tr>
+    {% endfor %}
+  </table>
+  <form class="grid card" method="post" action="/wizard/row" id="form-43" data-add-label="新增 4.3" data-edit-label="更新 4.3">
+    <input type="hidden" name="step" value="4"><input type="hidden" name="section" value="4.3">
+    <label>設備編號
+      <select name="equipment_id">{% for e in eq_all %}<option value="{{ e.equipment_id }}">{{ e.equipment_id }} {{ e.name }}（{{ e.equipment_type }}／{{ e.process_id }}）</option>{% endfor %}</select>
+    </label>
+    <label>緊急停車條件 <input name="item" required></label>
+    <label>緊急操作 <input name="emergency"></label>
+    <button type="submit">新增 4.3</button>
+  </form>
+</section>
+<section class="sec">
+  <h3>設定安全操作界限 <small class="table-ref">表4.4-1</small></h3>
+  <p class="note">依表1.5-1 的壓力、溫度、流量或組成界限逐項建立。超上限與低於下限須各自寫偏移後果和矯正程序；某方向不適用時寫具體理由。舊式合併列保留顯示，但須刪除後重填。</p>
+  <table class="data">
+    <tr><th>設備與參數</th><th>安全上／下限</th><th>超上限</th><th>低於下限</th><th></th></tr>
+    {% for r in rows.get('4.4', []) %}
+    <tr {% if r.limit_id is defined %}data-fill-form="form-44" data-json="{{ r | tojson | forceescape }}"{% endif %}>
+      <td>{{ r.equipment_id }}／{{ r.parameter if r.limit_id is defined else '舊式合併列，須重填' }}</td>
+      <td>{% if r.limit_id is defined %}{{ r.safety_high or '未設定' }}／{{ r.safety_low or '未設定' }} {{ r.unit or '' }}{% else %}{{ r.limits or '' }}{% endif %}</td>
+      <td>{% if r.limit_id is defined %}{% if r.high_na_reason %}不適用：{{ r.high_na_reason }}{% else %}後果：{{ r.high_consequence }}<br>矯正：{{ r.high_correct }}{% endif %}{% else %}{{ r.consequence or '' }}{% endif %}</td>
+      <td>{% if r.limit_id is defined %}{% if r.low_na_reason %}不適用：{{ r.low_na_reason }}{% else %}後果：{{ r.low_consequence }}<br>矯正：{{ r.low_correct }}{% endif %}{% else %}{{ r.correct or '' }}{% endif %}</td>
+      <td>{% if r.limit_id is defined %}<button class="editish" type="button" data-fill-row>修改</button> {% endif %}<form class="inline" method="post" action="/wizard/row/delete"><input type="hidden" name="step" value="4"><input type="hidden" name="row_id" value="{{ r.row_id }}"><button class="linkish" type="submit">刪</button></form></td>
+    </tr>
+    {% endfor %}
+  </table>
+  <form class="grid card" method="post" action="/wizard/row" id="form-44" data-add-label="新增 4.4" data-edit-label="更新 4.4">
+    <input type="hidden" name="step" value="4"><input type="hidden" name="section" value="4.4">
+    <label>1.5 設備與操作參數
+      <select name="limit_id" data-edit-identity required>{% for l in limits if l.parameter in ['壓力', '溫度', '流量', '組成'] %}<option value="{{ l.limit_id }}">{{ l.equipment_id }}／{{ l.parameter }}（上限 {{ l.safety_high or '未設定' }}、下限 {{ l.safety_low or '未設定' }} {{ l.unit or '' }}）</option>{% endfor %}</select>
+    </label>
+    <label>超上限後果 <input name="high_consequence"></label>
+    <label>超上限矯正程序 <input name="high_correct"></label>
+    <label>超上限不適用理由 <input name="high_na_reason"></label>
+    <label>低於下限後果 <input name="low_consequence"></label>
+    <label>低於下限矯正程序 <input name="low_correct"></label>
+    <label>低於下限不適用理由 <input name="low_na_reason"></label>
+    <button type="submit">新增 4.4</button>
+  </form>
+</section>

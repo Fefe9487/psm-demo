@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>PSM 十四項核心全景</title>
+<style>
+:root {
+  --bg:#f4f2ec; --paper:#fffcf7; --ink:#1c1917; --muted:#57534e;
+  --line:#d6d3cd; --accent:#1e3a5f; --accent2:#c45c26;
+  --danger:#9f1239; --warn:#9a3412; --info:#0e4d6b; --chip:#ece8df;
+}
+* { box-sizing:border-box; }
+html,body { margin:0; background:var(--bg); color:var(--ink);
+  font:15px/1.55 "IwanMincho","Source Han Serif TC","Noto Serif TC","PMingLiU",serif; }
+.wrap { max-width:1120px; margin:0 auto; padding:32px 20px 72px; }
+h1 { font-size:28px; font-weight:650; margin:0 0 8px; }
+h2 { font-size:20px; font-weight:650; margin:36px 0 12px; border-bottom:1px solid var(--line); padding-bottom:6px; }
+h3 { font-size:15px; font-weight:650; margin:0 0 8px; }
+.lead { color:var(--muted); margin:0 0 20px; max-width:70ch; }
+.note { color:var(--muted); font-size:13px; margin:8px 0 0; }
+.stats { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin:20px 0 8px; }
+.stat { background:var(--paper); border:1px solid var(--line); padding:14px 16px; }
+.stat b { display:block; font-size:26px; font-weight:650; }
+.stat span { color:var(--muted); font-size:13px; }
+.stat.danger b { color:var(--danger); }
+.stat.info b { color:var(--info); }
+.stat.warn b { color:var(--warn); }
+.callout { background:var(--paper); border-left:3px solid var(--accent); padding:12px 16px; margin:12px 0; }
+.callout strong { display:block; margin-bottom:4px; }
+table { width:100%; border-collapse:collapse; background:var(--paper); font-size:13px; }
+th,td { text-align:left; vertical-align:top; padding:8px 10px; border-bottom:1px solid var(--line); }
+th { font-weight:650; background:#efece4; position:sticky; top:0; z-index:1; }
+tr:nth-child(even) td { background:#faf8f3; }
+.scroll { overflow:auto; max-height:520px; border:1px solid var(--line); }
+.chips { display:flex; flex-wrap:wrap; gap:6px; margin:8px 0 12px; }
+button.chip {
+  font:inherit; font-size:13px; border:1px solid var(--line); background:var(--chip);
+  color:var(--ink); padding:4px 10px; cursor:pointer; border-radius:999px;
+}
+button.chip.on { background:var(--accent); color:#fff; border-color:var(--accent); }
+button.nav { font:inherit; padding:6px 12px; border:1px solid var(--line); background:var(--paper); cursor:pointer; margin-right:6px; }
+.grid3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
+.grid4 { display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:12px; }
+.card { background:var(--paper); border:1px solid var(--line); padding:12px 14px; }
+.card.added { border-color:var(--accent2); background:#fff8f3; }
+.muted { color:var(--muted); font-size:13px; }
+.tiny { font-size:12px; color:var(--muted); }
+svg { display:block; width:100%; height:auto; background:var(--paper); border:1px solid var(--line); }
+.eff-擋 { color:var(--danger); font-weight:650; }
+.eff-失效 { color:var(--warn); font-weight:650; }
+.eff-禁止代判 { color:var(--info); font-weight:650; }
+@media (max-width:900px) {
+  .stats,.grid3,.grid4 { grid-template-columns:1fr; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>PSM 系統全景</h1>
+  <p class="lead">先建製程、設備、化學品三張核心表；交乘之後由規則引擎依既有資料提示。本頁把目前能想到的規則收進來，供內部對規則庫，不是手冊正文。單檔 HTML，可離線開啟。</p>
+  <div class="stats" id="stats"></div>
+
+  <h2>四層：主檔、交乘、規則、十四項</h2>
+  <svg viewBox="0 0 960 428" role="img" aria-label="PSM 系統四層">
+    <text x="16" y="22" fill="#78716c" font-size="11">支撐（不是核心表）</text>
+    <rect x="16" y="32" width="168" height="52" rx="5" fill="#ece8df" stroke="#d6d3cd"/>
+    <text x="28" y="54" font-size="13" font-weight="600">場所／部門</text>
+    <text x="28" y="72" fill="#57534e" font-size="10">操作權責／維護權責</text>
+    <rect x="200" y="32" width="176" height="52" rx="5" fill="#ece8df" stroke="#d6d3cd"/>
+    <text x="212" y="54" font-size="13" font-weight="600">SDS／基本資料表</text>
+    <text x="212" y="72" fill="#57534e" font-size="10">帶入後確認，不取代化學品列</text>
+    <rect x="392" y="32" width="168" height="52" rx="5" fill="#ece8df" stroke="#d6d3cd"/>
+    <text x="404" y="54" font-size="13" font-weight="600">廠區／P&amp;ID</text>
+    <text x="404" y="72" fill="#57534e" font-size="10">設備必填區域；現況圖號</text>
+    <rect x="576" y="32" width="176" height="52" rx="5" fill="#ece8df" stroke="#d6d3cd"/>
+    <text x="588" y="54" font-size="13" font-weight="600">緊急停車方案</text>
+    <text x="588" y="72" fill="#57534e" font-size="10">動作設備＝該製程設備</text>
+    <rect x="768" y="32" width="176" height="52" rx="5" fill="#ece8df" stroke="#d6d3cd"/>
+    <text x="780" y="54" font-size="13" font-weight="600">送審第二章</text>
+    <text x="780" y="72" fill="#57534e" font-size="10">計畫上傳；清單用同一編號</text>
+    <text x="16" y="112" fill="#78716c" font-size="11">三張核心表（全廠編號之源）</text>
+    <rect x="120" y="122" width="220" height="64" rx="5" fill="#fff8f3" stroke="#1e3a5f"/>
+    <text x="136" y="148" fill="#1e3a5f" font-size="15" font-weight="700">製程</text>
+    <text x="136" y="168" fill="#57534e" font-size="11">製造流程表 · 製程編號</text>
+    <rect x="370" y="122" width="220" height="64" rx="5" fill="#fff8f3" stroke="#1e3a5f"/>
+    <text x="386" y="148" fill="#1e3a5f" font-size="15" font-weight="700">設備</text>
+    <text x="386" y="168" fill="#57534e" font-size="11">設備總表 · 必屬一製程</text>
+    <rect x="620" y="122" width="220" height="64" rx="5" fill="#fff8f3" stroke="#1e3a5f"/>
+    <text x="636" y="148" fill="#1e3a5f" font-size="15" font-weight="700">化學品</text>
+    <text x="636" y="168" fill="#57534e" font-size="11">代號＋製程 · 危害說明</text>
+    <text x="16" y="222" fill="#78716c" font-size="11">交乘（附表一主表，不是第四張核心表）</text>
+    <rect x="120" y="232" width="720" height="52" rx="5" fill="#fffcf7" stroke="#1e3a5f"/>
+    <text x="136" y="254" fill="#1e3a5f" font-size="14" font-weight="700">交乘表</text>
+    <text x="220" y="254" font-size="12">製程 × 設備 × 化學品　疊加 H 代碼、建造材料、存量、是否可能殘留</text>
+    <text x="136" y="272" fill="#57534e" font-size="10">應檢討事項由人員填寫。列之產生：該製程已建設備對該製程已建化學品；內容物不明仍須列出。</text>
+    <text x="16" y="318" fill="#78716c" font-size="11">規則引擎（依既有資料計算，不代評分）</text>
+    <rect x="120" y="328" width="720" height="44" rx="5" fill="#ece8df" stroke="#1c1917"/>
+    <text x="136" y="355" font-size="13" font-weight="600">規則引擎</text>
+    <text x="220" y="355" fill="#57534e" font-size="12">偏離　·　不相容　·　引入前檢查　·　旁通　·　高風險改善　　同處一套資料</text>
+    <rect x="120" y="392" width="720" height="28" rx="5" fill="#ece8df" stroke="#d6d3cd"/>
+    <text x="136" y="411" font-size="12">附表一至十四　只引用同一套編號，再寫該項才有的資料（矩陣、許可、改善關閉、演練……）</text>
+  </svg>
+  <p class="note">職安署手冊只寫「有規則引擎」；判定明細留在本全景。</p>
+
+  <h2>規則引擎導向哪五件事</h2>
+  <div id="routes"></div>
+  <div class="callout">
+    <strong>手冊舉例只留一則；規則庫仍列出同類假設</strong>
+    氯化氫水溶液（7647-01-0）／P-ACID／碳鋼管線 PL-201／可能殘留 → 提示附表二「停車未排淨」，附表八後續腐蝕對照。提示不逕改風險等級。
+  </div>
+
+  <h2>規則庫</h2>
+  <p class="note">擋＝拒絕存檔或不得標示完成。提示＝列出給人確認，可寫不適用。失效＝原評量 stale，同一套矩陣重評。禁止代判＝引擎停在這裡。</p>
+  <div class="chips" id="cats"></div>
+  <div class="chips" id="effects"></div>
+  <div id="rules"></div>
+  <p class="note" id="ruleCount"></p>
+
+  <h2>八種交乘（規則從這裡長出來）</h2>
+  <div id="joins"></div>
+
+  <h2>三張核心表：本表欄位與關聯</h2>
+  <div class="grid3" id="cores"></div>
+  <div class="callout">
+    <strong>不是第四張核心表</strong>
+    部門、SDS 資料庫、特化／優管基本資料表、廠區區域、P&amp;ID 登錄、緊急停車方案、裝卸佔用都是支撐或掛載。車牌只寫在佔用列。設備類型必選其一。控制與 ESD 分列。
+  </div>
+
+  <h2>十四項：點一項看引用與新增</h2>
+  <div class="chips" id="units"></div>
+  <p>
+    <button class="nav" type="button" id="prev">上一項</button>
+    <button class="nav" type="button" id="next">下一項</button>
+  </p>
+  <div id="unitDetail"></div>
+
+  <h2>十四項對照一覽</h2>
+  <div id="unitTable"></div>
+</div>
+<script>
+const CORES = [
+  {
+    id: "process",
+    title: "製程",
+    key: "製造流程表｜製程編號（場所內唯一）",
+    fields: [
+      "製程編號、名稱",
+      "操作權責部門",
+      "連續或批次",
+      "有無化學反應",
+      "有無過壓／需超壓保護",
+      "是否特殊製程",
+      "是否裝卸或輸送／後段處理（建議）",
+    ],
+    related: [
+      "設備（所屬製程，必填）",
+      "化學品（代號＋所屬製程，分列）",
+      "交乘表（同一製程之設備×化學品）",
+      "P&ID 登錄、緊急停車方案",
+      "評估案／節點、SOP 清單",
+      "臨時操作／緊急停車條件／緊急操作",
+    ],
+  },
+  {
+    id: "equipment",
+    title: "設備",
+    key: "設備總表｜設備編號＝現場位號",
+    fields: [
+      "設備編號、名稱、俗稱",
+      "所屬製程（必填）",
+      "維護權責部門",
+      "設備類型（必選其一，不得複選）",
+      "動力型式（動力來源時）",
+      "操作分類：液體／氣體／後段處理",
+      "是否安全關鍵、是否職安法第 16 條",
+      "所在區域；建造材料（建議，交乘用）",
+    ],
+    related: [
+      "安全上下限、建造材料正式表 3.1-3",
+      "釋壓、連鎖（控制與 ESD 分列）",
+      "P&ID 涵蓋設備、緊急停車動作設備",
+      "檢查／測試、動火對象",
+      "裝卸佔用（車牌不進本表）",
+      "表 2.4-1 危險性機械清冊（同一編號）",
+    ],
+  },
+  {
+    id: "chemical",
+    title: "化學品",
+    key: "化學品代號＋所屬製程（同一物質不同製程分列）",
+    fields: [
+      "化學品代號（即 CAS No.）",
+      "所屬製程",
+      "名稱、角色（原料／中間／產物／副產／觸媒／清洗劑）",
+      "危害說明（GHS H 代碼，得複選）",
+      "SDS 代號（自資料庫選取，須與代號相符）",
+    ],
+    related: [
+      "SDS 資料庫（檔在此；經代號連結）",
+      "特化／優管基本資料表（帶入後確認，不是第四張核心表）",
+      "交乘表：存量或持有、殘留、應檢討事項",
+      "表 2.2-1 運作量與存放（同一套，不另建品名）",
+      "表 2.2-6／2.2-7（優管／管制，指明代號與區域）",
+      "裝卸佔用",
+    ],
+  },
+];
+
+const UNITS = [
+  {
+    id: "1",
+    annex: "附表一",
+    name: "製程安全資訊",
+    cite: {
+      process: ["編號、名稱、連續／批次、有無反應、過壓、特殊製程", "流程圖／反應／質能平衡掛此編號（附件）"],
+      equipment: ["編號、類型、所屬製程、區域、材質", "上下限、材料、釋壓、連鎖、P&ID 涵蓋"],
+      chemical: ["代號＋製程、名稱、角色、危害說明、現況 SDS", "火災／腐蝕／毒性由 H 代碼帶入後確認，不另勾選"],
+    },
+    added: [
+      "交乘表：同一製程設備×化學品、殘留、應檢討事項（人員填）",
+      "最大存量、安全上下限、建造材料",
+      "現況 P&ID、防爆區域、釋壓、連鎖",
+      "方塊流程圖、化學反應、質能平衡、計算書（附件）",
+    ],
+    logic: "三張核心表未完成，無法產生交乘表。無現況 P&ID 不得供評估勾稽。上下限不得填品質界限。",
+  },
+  {
+    id: "2",
+    annex: "附表二",
+    name: "製程危害控制措施",
+    cite: {
+      process: ["評估先選製程；節點只屬一個製程", "該製程未進節點之設備要列出"],
+      equipment: ["節點設備僅能選該製程所屬編號", "防護＝設備編號或緊急停車方案（展開動作設備）"],
+      chemical: ["節點物質僅能選該製程已建代號", "後果方向應對危害說明，小組仍評嚴重度"],
+    },
+    added: [
+      "評估案、方法、風險準則矩陣",
+      "節點、偏移、後果、嚴重度／可能性／風險等級",
+      "高嚴重度／高風險篩選與改善審核、追蹤、關閉條件",
+      "簽認、會議、事故納入、重新評量時機",
+    ],
+    logic: "規則引擎得依交乘提示偏離，不代填 S／L。不得另建脫鉤風險表。防護禁止純文字。更換矩陣則原評量失效。",
+  },
+  {
+    id: "3",
+    annex: "附表三",
+    name: "勞工參與",
+    cite: {
+      process: ["執行紀錄所涉製程或評估編號"],
+      equipment: ["不直接引用（除非該次活動針對特定設備）"],
+      chemical: ["不直接引用"],
+    },
+    added: ["當年度勞工參與計畫（附件）", "至少二份不同項目之執行紀錄：日期、項目、人員、摘要"],
+    logic: "協商須能對到製程危害分析，不得只交與製程無關的一般職安活動。",
+  },
+  {
+    id: "4",
+    annex: "附表四",
+    name: "標準作業程序",
+    cite: {
+      process: ["每份 SOP 所屬製程", "操作界限對表 3.1-2 及高風險偏移"],
+      equipment: ["旁通之安全系統編號", "緊急停車方案或設備、連鎖"],
+      chemical: ["安全及健康考量引用該製程化學品與交乘表"],
+    },
+    added: [
+      "SOP 清單、七階段是否涵蓋",
+      "臨時操作項目（首次填報即列；待料、待機、旁通等）",
+      "緊急停車條件、緊急操作程序項目",
+      "工作安全衛生標準清單；程序全文為附件",
+    ],
+    logic: "臨時操作不是變更管理（變更走附表十）。旁通必須填被旁通系統且有期限；期滿未復原，評估不得再視該防護為可用。",
+  },
+  {
+    id: "5",
+    annex: "附表五",
+    name: "教育訓練",
+    cite: {
+      process: ["課程所屬製程，應對交乘表"],
+      equipment: ["操作對象可對應該製程設備（間接）"],
+      chemical: ["課程內容含該製程物質危害（引用，不另建品名）"],
+    },
+    added: ["初次／在職課程名稱、對象、時數、頻率", "年度計畫進度", "一份初次及一份在職紀錄（教材、簽到、測驗為附件）"],
+    logic: "本項是製程操作人員執行紀錄；送審第二章是全廠訓練計畫，得註明參閱。",
+  },
+  {
+    id: "6",
+    annex: "附表六",
+    name: "承攬管理",
+    cite: {
+      process: ["危害告知所涉製程"],
+      equipment: ["作業範圍可掛設備編號"],
+      chemical: ["告知之危害物質代號"],
+    },
+    added: ["選商及告知做法（附件）", "工作安全衛生標準清冊", "近五年承攬職災（無事故仍列表）", "共同作業辦理事項"],
+    logic: "無承攬則場所聲明。告知不得只寫概括性安全須知。",
+  },
+  {
+    id: "7",
+    annex: "附表七",
+    name: "啟動前安全檢查",
+    cite: {
+      process: ["案件所涉製程"],
+      equipment: ["新建或修改之設備編號"],
+      chemical: ["引入前之化學品代號"],
+    },
+    added: ["案件編號、檢查日期及項目", "缺失與改善", "引入化學品前是否關閉", "重大修改判斷準則（附件）"],
+    logic: "影響安全且未關閉者，該製程不得標示得引入該化學品。規則引擎得提示引入前應辦，不代簽開車。",
+  },
+  {
+    id: "8",
+    annex: "附表八",
+    name: "機械完整性",
+    cite: {
+      process: ["製程區域、所屬製程"],
+      equipment: ["分類清單＝設備表同一列", "類型、安全關鍵、檢查掛編號"],
+      chemical: ["內容物＝化學品代號；交乘殘留列供腐蝕對照"],
+    },
+    added: [
+      "安全關鍵清單：頻率、程序書編號（不得以分類清單代替）",
+      "腐蝕劣化（後續）；可對照劣化機制查詢資料庫",
+      "年度檢查計畫、檢查紀錄、異常改善、入廠檢驗／PMI",
+    ],
+    logic: "安全關鍵逾期或缺陷未矯正 → 相關風險讀數失效。資料庫比對不得取代附表二評分。",
+  },
+  {
+    id: "9",
+    annex: "附表九",
+    name: "動火許可",
+    cite: {
+      process: ["區域對應之製程"],
+      equipment: ["動火對象必須是設備編號，不可只寫廠區"],
+      chemical: ["鄰近物質代號"],
+    },
+    added: ["許可日期時間、防火措施、核准與完工簽認", "展延或每日再確認", "氣體測定儀器清冊與校正（附件）"],
+    logic: "無動火則聲明。對象空白或只填區域名稱視為未完成。",
+  },
+  {
+    id: "10",
+    annex: "附表十",
+    name: "變更管理",
+    cite: {
+      process: ["被變更之製程編號"],
+      equipment: ["被變更之設備編號"],
+      chemical: ["被變更之化學品代號＋製程"],
+    },
+    added: [
+      "變更類型及定義（含同型替換、暫時／緊急）",
+      "執行前五事項：技術依據、安衛評估、程序修改、期限、授權",
+      "影響之評估節點清單；關閉前是否已重評",
+    ],
+    logic: "申請單必須指明被改的那一列。只改名稱文字、未掛編號者不得關閉。",
+  },
+  {
+    id: "11",
+    annex: "附表十一",
+    name: "事故調查",
+    cite: {
+      process: ["能對到則掛製程"],
+      equipment: ["能對到則掛設備"],
+      chemical: ["能對到則掛化學品代號"],
+    },
+    added: ["近五年類型及件數", "調查報告（日期、經過、管理面原因、矯正）", "矯正追蹤、檢討溝通；回饋評估節點"],
+    logic: "無事故仍列表，並得附空白報告。矯正須回到同一製程之評量，不得另寫一套災害名。",
+  },
+  {
+    id: "12",
+    annex: "附表十二",
+    name: "緊急應變",
+    cite: {
+      process: ["演練對應評估後果所屬製程"],
+      equipment: ["應變中心圖資涵蓋之設備、緊急停車動作設備"],
+      chemical: ["物質控制、中心置備之 SDS、適用化學品；防護具得自 SDS 第 8 項帶入"],
+    },
+    added: [
+      "組織職掌、各階段指揮官",
+      "應變中心置備清單",
+      "搶救物資／應變資產：種類、數量、地點、保養",
+      "現場防護裝備配置",
+      "集合點、演練清冊與年度計畫（情境須對到評估後果）",
+    ],
+    logic: "計畫全文可上傳。演練不得另寫與評估無關的災害。中心須能取到與現場相同編號的圖資。",
+  },
+  {
+    id: "13",
+    annex: "附表十三",
+    name: "符合性稽核",
+    cite: {
+      process: ["查核結果應對回製程編號"],
+      equipment: ["應對回設備編號"],
+      chemical: ["應對回化學品代號"],
+    },
+    added: ["稽核計畫（或預定計畫）", "稽核員清單", "查核表題項及結果", "不符合事項之因應措施"],
+    logic: "一次報告＝十四項都稽過。符合但對不到現場編號，不得視為完成。",
+  },
+  {
+    id: "14",
+    annex: "附表十四",
+    name: "商業機密",
+    cite: {
+      process: ["機密文件所涉製程編號仍須可供有權者選取"],
+      equipment: ["圖號所涵蓋設備編號不因機密而消失"],
+      chemical: ["代號仍供評估／操作選取；內容得列機密"],
+    },
+    added: ["屬機密之文件清單", "有權取得者之取得方式", "保密協議範本（附件）"],
+    logic: "列機密的是內容，不是編號。停止編號對應視為未完成。",
+  },
+];
+
+const ROUTES = [
+  ["偏離", "交乘提示可帶入附表二節點，小組決定列不列、打幾分"],
+  ["不相容", "材質 × H 代碼 × 殘留寫在應檢討事項，人員確認或不適用"],
+  ["引入前檢查", "新化學品／新設備未關閉，不得標示得引入"],
+  ["旁通", "臨時操作列安全系統編號與期限；期滿未復原則防護不可用"],
+  ["高風險改善", "達矩陣切點必須追蹤；關閉要回寫被改的那一列並重評"],
+];
+
+const JOINS = [
+  ["製程 × 設備", "這段時間裡有哪些空間", "有反應／過壓卻無釋壓或 ESD；裝卸製程無裝卸設備；氣體製程無釋放排放"],
+  ["製程 × 化學品", "這段時間裡走哪些物質", "同一代號儲槽與裝卸分列；有反應未列反應物／產物；優管／特化未觸發法定表"],
+  ["設備 × 化學品", "這個空間裝什麼、材質吃不吃得下", "H314 進碳鋼；內容物與建造材料不相容；安全關鍵未填代號"],
+  ["化學品 × 化學品", "會不會加錯、共管、共排放", "氧化劑與易燃；酸鹼；共用排氣或地坑；裝卸位接錯鶴管"],
+  ["化學品 × 條件", "同一物質在不同溫度、停留下變另一種危害", "停車積液腐蝕；超溫聚合；含水後全面腐蝕；伴熱失效蒸氣"],
+  ["設備 × 區域 × 化學品", "洩了傷誰、算不算防爆區", "易燃在非防爆區；毒性靠近控制室；集合點下風；棧橋鄰近點火源"],
+  ["防護 × 物質", "防護還在不在", "管線有料卻旁通連鎖；安全關鍵逾期仍當防護；釋壓設定與內容物不符"],
+  ["時間", "現場改了，紙有沒有跟上", "引入前 PSSR 未關；改材質未重評；SDS 換版未重讀 H 代碼；檢查逾期"],
+];
+
+const RULES = [
+  { id: "S01", cat: "結構", effect: "擋", ifs: "要把部門、SDS 庫、區域、P&ID、ESD 方案、佔用或運輸當第四張核心表", then: "拒絕。核心只有製程、設備、化學品", to: "全系統" },
+  { id: "S02", cat: "結構", effect: "擋", ifs: "設備無製程編號或無維護權責部門", then: "不得存檔", to: "設備總表" },
+  { id: "S03", cat: "結構", effect: "擋", ifs: "製程無操作權責部門；部門尚未建立", then: "製程及設備不得完成", to: "製造流程表" },
+  { id: "S04", cat: "結構", effect: "擋", ifs: "化學品未同時有代號與所屬製程", then: "不得存檔。同一物質不同製程必須分列", to: "化學品" },
+  { id: "S05", cat: "結構", effect: "擋", ifs: "細表自由輸入設備名、品名、課室名", then: "拒絕。只能選已有編號或 SDS 代號", to: "各單元" },
+  { id: "S06", cat: "結構", effect: "擋", ifs: "三張核心表未完成就要產生交乘或開始評分", then: "不得產生交乘表；不得開始附表二評分", to: "交乘／附表二" },
+  { id: "S07", cat: "結構", effect: "擋", ifs: "填報順序顛倒（未建製程先建設備；未建交乘先評分）", then: "下一步停用。順序可合併畫面，不可顛倒", to: "精靈" },
+  { id: "S08", cat: "結構", effect: "擋", ifs: "製程仍有下屬設備或化學品卻要刪製程", then: "拒絕刪除", to: "製造流程表" },
+  { id: "S09", cat: "結構", effect: "擋", ifs: "子表複製父表名稱欄（製程名稱、部門名稱寫進設備列）", then: "禁止。畫面 JOIN 顯示，儲存只存 ID", to: "資料庫" },
+  { id: "S10", cat: "結構", effect: "擋", ifs: "另造運輸表，或把過境未接製程的車輛建進核心表並評分", then: "拒絕。車牌只寫裝卸佔用；過境不建檔、不評分", to: "裝卸" },
+  { id: "S11", cat: "結構", effect: "擋", ifs: "在化學品列上傳 SDS 孤檔，或連結代號與庫內代號不符", then: "拒絕。檔只在 SDS 庫，經代號表連結，三方代號須相同", to: "SDS" },
+  { id: "S12", cat: "結構", effect: "擋", ifs: "設備類型複選，或以控制系統代替緊急停車系統", then: "拒絕。必選其一；控制與 ESD 分列", to: "設備總表" },
+  { id: "S13", cat: "結構", effect: "擋", ifs: "槽組含儲槽與泵卻只建一筆", then: "應分列兩筆設備", to: "設備總表" },
+  { id: "S14", cat: "結構", effect: "擋", ifs: "類型為動力來源但未填泵浦／氣動／其他", then: "不得存檔", to: "設備總表" },
+  { id: "S15", cat: "結構", effect: "提示", ifs: "多製程共用洗滌塔等後段處理，卻掛在其中一個反應製程下", then: "應另立後段處理製程，設備指該製程", to: "製造流程表" },
+  { id: "S16", cat: "結構", effect: "擋", ifs: "場所已聲明無某設備類型／無承攬／無動火，又建該類列", then: "有聲明者不得虛構", to: "場所" },
+  { id: "S17", cat: "結構", effect: "擋", ifs: "導讀所列應填欄位未完成", then: "不得標示該單元完成", to: "各單元" },
+  { id: "S18", cat: "結構", effect: "擋", ifs: "平面配置另填危險性機械名稱或化學品名稱，不從設備／存量帶出", then: "前兩項由設備及化學品存量帶出，不得另填名稱", to: "廠區" },
+  { id: "S19", cat: "結構", effect: "擋", ifs: "集合點少於二處", then: "不得標示廠區完成", to: "廠區" },
+  { id: "S20", cat: "結構", effect: "擋", ifs: "僅有圖檔，未填圖號、版次、所屬製程、涵蓋設備；或非現況版", then: "該圖不得用於評估勾稽", to: "P&ID" },
+  { id: "S21", cat: "結構", effect: "擋", ifs: "壓力、溫度、材質、釋壓、連鎖只存在圖檔裡", then: "須分別記入上下限、材料、釋壓、連鎖表", to: "附表一" },
+  { id: "S22", cat: "結構", effect: "擋", ifs: "表 2.2-1、表 3.1-1、交乘表各寫一個噸數，或另建一套品名清冊", then: "同一套代號；最大存量應對得上", to: "存量" },
+  { id: "S23", cat: "結構", effect: "擋", ifs: "火災、爆炸、腐蝕、毒性另建勾選表，不從危害說明帶入", then: "H 代碼能帶的不再另勾；帶入後人員確認", to: "交乘" },
+  { id: "S24", cat: "結構", effect: "擋", ifs: "交乘不依「該製程設備 × 該製程化學品」產生；內容物不明的設備被略過", then: "列必須產生；不明者標「本設備無製程化學品」或補代號。同一化學品多台設備分列", to: "交乘" },
+  { id: "S25", cat: "結構", effect: "擋", ifs: "建造材料未填卻標示材質檢討完成；交乘材料與表 3.1-3 不同", then: "未填不得標完成；兩表須相同", to: "交乘／3.1-3" },
+  { id: "S26", cat: "結構", effect: "提示", ifs: "應檢討事項空白，卻期待系統自動寫不相容結論", then: "應檢討事項由人員填；可參考 H 代碼與基本資料表", to: "交乘" },
+  { id: "S27", cat: "結構", effect: "擋", ifs: "安全上下限填品質管制用操作界限，或另填一套習慣值給 SOP／HAZOP", then: "上下限是設計範圍；偏離、SOP、節點都引用本表", to: "3.1-2" },
+  { id: "S28", cat: "結構", effect: "提示", ifs: "設備未填安全上下限卻要填偏離", then: "評估工作表偏離欄應提示", to: "附表二" },
+  { id: "S29", cat: "結構", effect: "擋", ifs: "評估未選製程就要填節點設備或化學品；或手打設備名", then: "路徑：評估→製程→該製程下設備／化學品", to: "附表二" },
+  { id: "S30", cat: "結構", effect: "擋", ifs: "節點選了其他製程的設備或化學品", then: "設備.process_id 與化學品製程必須等於評估製程", to: "附表二" },
+  { id: "S31", cat: "結構", effect: "提示", ifs: "該製程尚有設備未進入任一節點", then: "列出供小組確認是否遺漏", to: "附表二" },
+  { id: "S32", cat: "結構", effect: "擋", ifs: "現有防護只寫「安全閥」「連鎖」等純文字", then: "未完成。須設備編號、ESD 方案或 SOP 編號", to: "附表二" },
+  { id: "S33", cat: "結構", effect: "擋", ifs: "ESD 動作設備不屬於該製程，或 esd 設備類型不是緊急停車系統", then: "拒絕。無方案及動作清單則該製程緊急停車不得標示完備", to: "ESD" },
+  { id: "S34", cat: "結構", effect: "擋", ifs: "風險準則矩陣只上傳圖片、未登錄為可計算基準", then: "不得僅上傳圖片。更換矩陣則既有評量全部失效", to: "附表二" },
+  { id: "S35", cat: "結構", effect: "擋", ifs: "達高嚴重度／高風險切點，未提改善也未載明接受理由", then: "不得標示評估完成", to: "附表二" },
+  { id: "S36", cat: "結構", effect: "擋", ifs: "改善只勾「已改善」，未指明將改哪一列、列未更新、節點未重評", then: "不得關閉。合格人員記載無須重評者除外", to: "高風險改善" },
+  { id: "S37", cat: "結構", effect: "擋", ifs: "另建無法對應製程設備化學品的風險表，或另立災害名稱", then: "禁止。後果為共用物件，演練／LOPA／改善都指同一筆", to: "附表二" },
+  { id: "S38", cat: "結構", effect: "擋", ifs: "後果只寫「安全閥已排放即無危害」", then: "應描述控制失效後合理且最嚴重之結果", to: "附表二" },
+  { id: "S39", cat: "結構", effect: "擋", ifs: "評估用 P&ID 圖號版次不等於現況登錄", then: "不得勾該圖", to: "附表二" },
+  { id: "S40", cat: "結構", effect: "擋", ifs: "把臨時操作當成變更管理結案", then: "臨時操作首次填報即列項目；變更走附表十", to: "附表四／十" },
+  { id: "S41", cat: "結構", effect: "擋", ifs: "變更申請只改名稱文字、未掛被改列的編號", then: "不得關閉", to: "附表十" },
+  { id: "S42", cat: "結構", effect: "擋", ifs: "動火對象只寫廠區名稱或空白", then: "視為未完成。必須是設備編號", to: "附表九" },
+  { id: "S43", cat: "結構", effect: "擋", ifs: "化學品無現況 SDS 連結卻標示送審 2.2 完成", then: "不得標示完成", to: "送審第二章" },
+  { id: "S44", cat: "結構", effect: "擋", ifs: "屬優管或管制性化學品，未填 2.2-6／2.2-7，或未指明代號與存放區域", then: "應另填並掛同一套代號", to: "送審第二章" },
+  { id: "S45", cat: "結構", effect: "擋", ifs: "機械完整性分類清單另建一套位號，或以分類清單代替安全關鍵清單", then: "分類清單＝設備表同一列；關鍵清單不得替代，頻率及程序書必填", to: "附表八" },
+  { id: "S46", cat: "結構", effect: "擋", ifs: "商業機密把製程編號、設備編號、化學品代號藏起來不給評估選", then: "列機密的是內容不是編號；停止編號對應視為未完成", to: "附表十四" },
+  { id: "S47", cat: "結構", effect: "擋", ifs: "稽核結論為符合，但對不到現場製程／設備／化學品編號", then: "不得視為完成", to: "附表十三" },
+  { id: "S48", cat: "結構", effect: "擋", ifs: "作業環境監測只寫「有機溶劑」，無化學品代號或作業位置", then: "因子應能對到第二章化學品或物理性危害", to: "送審第二章" },
+  { id: "S49", cat: "結構", effect: "提示", ifs: "場所無控制室區域也無控制系統設備，或無消防標示", then: "至少一處控制室或控制系統、一處消防", to: "廠區" },
+  { id: "S50", cat: "結構", effect: "提示", ifs: "有害作業主管列未帶出所涉化學品代號", then: "由該部門使用之化學品列帶出，供檢查對照", to: "2.2-4" },
+
+  { id: "M01", cat: "缺件", effect: "提示", ifs: "製程勾有化學反應或需超壓保護，該製程設備類型沒有釋放及排放系統，也沒有緊急停車系統／方案", then: "評分前列缺件。HAZOP 仍要做失控，但缺釋壓不必等研討會", to: "製程 × 設備" },
+  { id: "M02", cat: "缺件", effect: "提示", ifs: "製程標示裝卸或輸送，該製程無「裝卸及輸送」類型設備", then: "列出缺件", to: "製程 × 設備" },
+  { id: "M03", cat: "缺件", effect: "提示", ifs: "操作分類為氣體，該製程無釋放排放或通風設備", then: "提示是否缺件", to: "製程 × 設備" },
+  { id: "M04", cat: "缺件", effect: "提示", ifs: "製程有化學反應，化學品角色未列反應物或產物", then: "提示缺角色", to: "製程 × 化學品" },
+  { id: "M05", cat: "缺件", effect: "提示", ifs: "安全關鍵設備在交乘上無化學品代號（亦未標無製程化學品）", then: "提示內容物未填", to: "設備 × 化學品" },
+  { id: "M06", cat: "缺件", effect: "擋", ifs: "設備類型為緊急停車系統，卻無方案或無動作清單", then: "該製程緊急停車資料不得標示完備", to: "ESD" },
+  { id: "M07", cat: "缺件", effect: "提示", ifs: "有化學反應或需超壓保護，釋壓彙整無對應釋放物化學品代號", then: "釋壓列應填釋放物代號", to: "3.1-6" },
+  { id: "M08", cat: "缺件", effect: "提示", ifs: "評估既有防護選連鎖，對不到表 3.1-9 編號", then: "應能指到連鎖編號；所屬類型須為控制或 ESD", to: "3.1-9" },
+
+  { id: "L01", cat: "法規", effect: "提示", ifs: "化學品代號屬優先管理或管制／特化（視公告與濃度）", then: "提示應填 2.2-6／2.2-7、引入前檢查、特定防護；人員確認是否適用", to: "法規身分" },
+  { id: "L02", cat: "法規", effect: "提示", ifs: "危害說明含易燃（H224／H225／H226 等），防爆區域未列該代號為指標物質", then: "由交乘易燃列帶入閃火點、沸點、爆炸界限，人員確認劃分", to: "3.1-5" },
+  { id: "L03", cat: "法規", effect: "提示", ifs: "危害說明含急性毒性、致癌或特化相關", then: "提示監測、特別危害健康檢查、應變偵測是否已對代號", to: "送審第二章／應變" },
+  { id: "L04", cat: "法規", effect: "擋", ifs: "職安法第 16 條危險性機械或設備為是，無合格證號碼及有效期限", then: "是者須有證號及期限；列入表 2.4-1 同一編號", to: "設備總表" },
+  { id: "L05", cat: "法規", effect: "提示", ifs: "教育訓練課程所屬製程對不到交乘表", then: "課程應能對應交乘；內容含 SOP、偏移後果、物質危害、安全系統", to: "附表五" },
+  { id: "L06", cat: "法規", effect: "提示", ifs: "承攬告知只有概括性安全須知，未對製程／設備／化學品危害", then: "危害方向得自交乘危害說明帶出後，由告知文件確認", to: "附表六" },
+
+  { id: "C01", cat: "材質", effect: "提示", ifs: "交乘：建造材料為碳鋼（或基本表列為不適材質）＋危害說明含 H314＋可能殘留或積液＝是", then: "提示材質條件不相容；建議附表二列入「停車未排淨」；附表八列後續腐蝕對照。不逕改風險等級。例：7647-01-0／P-ACID／PL-201", to: "設備 × 化學品 × 殘留" },
+  { id: "C02", cat: "材質", effect: "提示", ifs: "基本資料表「可能不適材質」與該設備建造材料相符", then: "帶入應檢討事項供確認；是否不相容視濃度、溫度、停留，人員判定", to: "交乘" },
+  { id: "C03", cat: "材質", effect: "提示", ifs: "氫氟酸類與玻璃／矽酸鹽材質同列，或乾燥氯與碳鋼且可能含水", then: "提示不相容假設，人員確認。未寫進設備的墊片、視鏡推不出", to: "設備 × 化學品" },
+  { id: "C04", cat: "材質", effect: "提示", ifs: "操作溫度接近安全上限，且交乘標示可能殘留、內容物具腐蝕性", then: "系統得提示腐蝕速率可能上升；不改風險等級", to: "化學品 × 條件" },
+  { id: "C05", cat: "材質", effect: "擋", ifs: "以劣化機制查詢資料庫結果代替附表二嚴重度或可能性", then: "禁止。資料庫比對得記入，不得取代風險讀數", to: "附表八" },
+
+  { id: "X01", cat: "相容", effect: "提示", ifs: "同一製程兩筆化學品，基本表或 SDS 載明不相容（酸鹼、氧化劑與易燃等）", then: "提示加錯料、共管；可供 HAZOP 偏離清單，小組決定列不列", to: "化學品 × 化學品" },
+  { id: "X02", cat: "相容", effect: "提示", ifs: "同一區域或同一裝卸位出現不相容代號", then: "提示共排放、接錯鶴管、共用圍堰／地坑", to: "區域 × 化學品" },
+  { id: "X03", cat: "相容", effect: "提示", ifs: "交乘之排氣、釋壓、除污有對應設備", then: "填設備編號；無則於應檢討事項註明本場所無或檢附說明", to: "交乘" },
+
+  { id: "T01", cat: "狀態", effect: "提示", ifs: "交乘「是否可能殘留或積液」＝是，且危害說明具腐蝕或毒性", then: "建議偏離：停車未排淨、低點積液；SOP 沖吹／排淨是否已列", to: "化學品 × 條件" },
+  { id: "T02", cat: "狀態", effect: "提示", ifs: "製程為批次", then: "提示待料、開車停車頻繁、取樣等臨時操作是否已列", to: "製程 × SOP" },
+  { id: "T03", cat: "狀態", effect: "提示", ifs: "有反應製程且溫度接近上限", then: "提示超溫聚合、失控反應偏離", to: "化學品 × 條件" },
+  { id: "T04", cat: "狀態", effect: "提示", ifs: "易燃液體且有伴熱或蒸氣空間，區域為非防爆或鄰近點火源", then: "提示伴熱失效蒸氣聚積、靜電、氮封是否應檢討", to: "設備 × 區域 × 化學品" },
+  { id: "T05", cat: "狀態", effect: "提示", ifs: "裝卸佔用進行中（車牌已掛），該鶴管交乘另有不相容代號或殘留＝是", then: "提示接錯料、未排淨即換料", to: "裝卸" },
+
+  { id: "H01", cat: "後果", effect: "提示", ifs: "節點化學品危害說明含 H314，後果只寫洩漏", then: "後果方向應能對腐蝕與人員接觸；小組仍評嚴重度", to: "附表二" },
+  { id: "H02", cat: "後果", effect: "提示", ifs: "危害說明含 H224／H225／H226，後果未對火災爆炸", then: "提示後果方向；不代填分數", to: "附表二" },
+  { id: "H03", cat: "後果", effect: "提示", ifs: "危害說明含吸入或皮膚急性毒性（H330／H331／H310／H311 等），後果未對暴露途徑", then: "提示後果方向", to: "附表二" },
+  { id: "H04", cat: "後果", effect: "禁止代判", ifs: "要把嚴重度、可能性自動填入矩陣", then: "禁止。引擎只提示該討論什麼，S／L 由小組填", to: "附表二" },
+
+  { id: "P01", cat: "防護", effect: "失效", ifs: "臨時操作類型為旁通，未填被旁通安全系統編號或有效期限", then: "旁通列未完成", to: "附表四" },
+  { id: "P02", cat: "防護", effect: "失效", ifs: "旁通有效期限已過且未復原，評估仍將該系統視為可用防護", then: "該製程相關評估不得再視該防護為可用；相關讀數 stale", to: "旁通" },
+  { id: "P03", cat: "防護", effect: "提示", ifs: "交乘殘留＝是或佔用中，且該設備所屬連鎖／ESD 處於旁通", then: "提示管線有料卻防護被拿掉", to: "防護 × 物質" },
+  { id: "P04", cat: "防護", effect: "失效", ifs: "曾列為防護的安全關鍵設備檢查逾期，或缺陷未矯正仍操作", then: "相關風險讀數失效", to: "附表八 → 附表二" },
+  { id: "P05", cat: "防護", effect: "提示", ifs: "釋壓設定與表 3.1-2 或釋放物代號不符", then: "提示設定與內容物／上下限不一致", to: "3.1-6" },
+  { id: "P06", cat: "防護", effect: "擋", ifs: "PSSR：影響製程安全之缺失尚未關閉，卻標示得引入該化學品", then: "該製程不得標示得引入", to: "附表七" },
+  { id: "P07", cat: "防護", effect: "提示", ifs: "將引入特化或高腐蝕／高毒性化學品，材質、訓練、應變物資未關", then: "引入前檢查清單提示；不代簽開車", to: "附表七" },
+
+  { id: "F01", cat: "失效", effect: "失效", ifs: "變更已改製程、設備或化學品任一列", then: "列出掛在該 PK 的節點／後果，設 stale；同一套矩陣重評", to: "附表十" },
+  { id: "F02", cat: "失效", effect: "失效", ifs: "現況 SDS 改掛，或 SDS 版次／附件變更", then: "提示重讀危害說明；相關評量 stale", to: "SDS" },
+  { id: "F03", cat: "失效", effect: "失效", ifs: "PSSR 發現影響安全缺失", then: "相關評量 stale", to: "附表七" },
+  { id: "F04", cat: "失效", effect: "失效", ifs: "事故或虛驚結案且能對到製程", then: "納入評估並 stale，用來修正可能性或防護，不另存統計表", to: "附表十一" },
+  { id: "F05", cat: "失效", effect: "失效", ifs: "裝卸位新增化學品代號或運輸分類變更", then: "相關評量 stale", to: "裝卸" },
+  { id: "F06", cat: "失效", effect: "失效", ifs: "更換矩陣或可接受基準，或定期評估屆期", then: "既有評量全部視為失效，或正式載明適用日期及範圍", to: "附表二" },
+  { id: "F07", cat: "失效", effect: "禁止代判", ifs: "評量失效後由系統決定能否繼續操作", then: "是否繼續操作由事業單位依法令及程序辦理；系統只提示", to: "總則" },
+
+  { id: "E01", cat: "應變", effect: "提示", ifs: "SDS 第 8 項或基本表可帶出防護衣等級、濾罐，應變表未登錄或該區域無對應存量", then: "帶入後人員填數量與位置；不得僅上傳 SDS。未帶入者仍須人員填", to: "附表十二" },
+  { id: "E02", cat: "應變", effect: "提示", ifs: "搶救物資「適用化學品」對不到交乘表代號", then: "種類、數量、地點、保養應對交乘；演練或應變後應檢點補足", to: "附表十二" },
+  { id: "E03", cat: "應變", effect: "擋", ifs: "應變中心只有組織圖，取不到與現場相同編號之圖資及 SDS", then: "中心須能取得相同編號圖資與化學品說明", to: "附表十二" },
+  { id: "E04", cat: "應變", effect: "擋", ifs: "演練情境另寫與評估無關的災害名稱", then: "演練須對到評估後果所屬製程", to: "附表十二" },
+  { id: "E05", cat: "應變", effect: "提示", ifs: "毒性或腐蝕物質洩漏路徑上，集合點位於合理下風或緊鄰控制室", then: "設備 × 區域 × 化學品提示人員暴露", to: "廠區" },
+  { id: "E06", cat: "應變", effect: "提示", ifs: "易燃代號在非防爆區，或裝卸棧橋鄰近點火源", then: "提示防爆劃分與點火源", to: "3.1-5" },
+  { id: "E07", cat: "應變", effect: "提示", ifs: "醫療機構傷害種類與本場所交乘危害無關", then: "應能對應交乘危害，不填一般就醫充數", to: "附表十二" },
+  { id: "E08", cat: "應變", effect: "提示", ifs: "動火許可鄰近物質未對化學品代號", then: "鄰近物質應對應代號", to: "附表九" },
+
+  { id: "B01", cat: "邊界", effect: "禁止代判", ifs: "自動填嚴重度、可能性或風險等級", then: "禁止。提示是缺件與假設清單", to: "總則 1.5" },
+  { id: "B02", cat: "邊界", effect: "禁止代判", ifs: "以完成率、缺件清零宣告現場安全，或自動停機／不准開車", then: "禁止。開車與停機由事業單位依法令辦理", to: "總則" },
+  { id: "B03", cat: "邊界", effect: "禁止代判", ifs: "提示不可駁回、不留不適用理由", then: "提示須人員確認、修正或敘明不適用，理由應留存", to: "總則 1.5" },
+  { id: "B04", cat: "邊界", effect: "禁止代判", ifs: "墊片、伴熱、共用圍堰未進設備或區域，卻要求交乘看見", then: "沒有的列推不出來。健檢上限＝三張表填得有多像現場", to: "交乘" },
+  { id: "B05", cat: "邊界", effect: "禁止代判", ifs: "把「可能全面腐蝕」當成測厚結論或本週停機指令", then: "速率與是否改材屬 MI 後續與經驗，不能當自動指令", to: "附表八" },
+  { id: "B06", cat: "邊界", effect: "禁止代判", ifs: "碳鋼＋鹽酸但濃度極低且乾燥，仍當確定不相容", then: "可能誤報。條件由人員判定；規則本表先收假設不收斂成唯一答案", to: "材質" },
+  { id: "B07", cat: "邊界", effect: "禁止代判", ifs: "Agent 自動推論、自動派工、OCR 把 P&ID 轉成主檔，當成本期完成條件", then: "非開站完成條件；主檔須人工確認結構化欄位", to: "產品邊界" },
+  { id: "B08", cat: "邊界", effect: "禁止代判", ifs: "把本規則庫全文寫進職安署手冊當菜單", then: "手冊只寫有規則引擎、三表交乘、提示不代評。判定明細留在本全景／產品", to: "3.5.1／產品" },
+];
+
+
+
+const CATS = ["全部","結構","缺件","法規","材質","相容","狀態","後果","防護","失效","應變","邊界"];
+const EFFECTS = ["全部","擋","提示","失效","禁止代判","禁止代判"];
+let cat = "全部";
+let eff = "全部";
+let selected = "2";
+
+function esc(s) {
+  return String(s).replace(/[&<>"]/g, function(c) {
+    return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];
+  });
+}
+function table(headers, rows) {
+  var th = headers.map(function(h){ return "<th>"+esc(h)+"</th>"; }).join("");
+  var tr = rows.map(function(r){
+    return "<tr>"+r.map(function(c){ return "<td>"+esc(c)+"</td>"; }).join("")+"</tr>";
+  }).join("");
+  return '<div class="scroll"><table><thead><tr>'+th+"</tr></thead><tbody>"+tr+"</tbody></table></div>";
+}
+
+document.getElementById("stats").innerHTML =
+  '<div class="stat"><b>'+RULES.length+'</b><span>規則則數（工作稿）</span></div>'+
+  '<div class="stat danger"><b>'+RULES.filter(function(r){return r.effect==="擋";}).length+'</b><span>擋：不得存檔或不得標完成</span></div>'+
+  '<div class="stat info"><b>'+RULES.filter(function(r){return r.effect==="提示";}).length+'</b><span>提示：人員確認或不適用</span></div>'+
+  '<div class="stat warn"><b>'+RULES.filter(function(r){return r.effect==="失效";}).length+"／"+RULES.filter(function(r){return r.effect==="禁止代判";}).length+'</b><span>失效／禁止代判</span></div>';
+
+document.getElementById("routes").innerHTML = table(["節點","在同一套資料上做什麼"], ROUTES);
+document.getElementById("joins").innerHTML = table(["交乘","在問什麼","可以假設出的細節"], JOINS);
+document.getElementById("cores").innerHTML = CORES.map(function(c){
+  return '<div class="card"><h3>'+esc(c.title)+' <span class="tiny">'+esc(c.key)+"</span></h3>"+
+    '<p class="tiny">本表欄位</p>'+c.fields.map(function(f){return '<div class="muted">'+esc(f)+"</div>";}).join("")+
+    '<p class="tiny" style="margin-top:10px">關聯</p>'+c.related.map(function(f){return '<div class="muted">'+esc(f)+"</div>";}).join("")+
+    "</div>";
+}).join("");
+
+function renderChips() {
+  document.getElementById("cats").innerHTML = CATS.map(function(c){
+    var n = c==="全部" ? RULES.length : RULES.filter(function(r){return r.cat===c;}).length;
+    return '<button type="button" class="chip'+(cat===c?" on":"")+'" data-cat="'+esc(c)+'">'+esc(c)+" "+n+"</button>";
+  }).join("");
+  document.getElementById("effects").innerHTML = EFFECTS.map(function(e){
+    return '<button type="button" class="chip'+(eff===e?" on":"")+'" data-eff="'+esc(e)+'">'+esc(e)+"</button>";
+  }).join("");
+}
+document.getElementById("cats").addEventListener("click", function(ev){
+  var b = ev.target.closest("[data-cat]"); if (!b) return;
+  cat = b.getAttribute("data-cat"); renderChips(); renderRules();
+});
+document.getElementById("effects").addEventListener("click", function(ev){
+  var b = ev.target.closest("[data-eff]"); if (!b) return;
+  eff = b.getAttribute("data-eff"); renderChips(); renderRules();
+});
+
+function renderRules() {
+  var filtered = RULES.filter(function(r){ return (cat==="全部"||r.cat===cat) && (eff==="全部"||r.effect===eff); });
+  document.getElementById("rules").innerHTML = table(
+    ["編號","類","效力","若","則","落到"],
+    filtered.map(function(r){ return [r.id, r.cat, r.effect, r.ifs, r.then, r.to]; })
+  );
+  document.getElementById("ruleCount").textContent = "顯示 "+filtered.length+"／"+RULES.length+" 則。來源：手冊勾稽、開站 SPEC 硬檢核與 stale、交乘健檢假設。";
+  Array.prototype.forEach.call(document.querySelectorAll("#rules td:nth-child(3)"), function(td){
+    td.className = "eff-"+td.textContent;
+  });
+}
+
+function renderUnits() {
+  document.getElementById("units").innerHTML = UNITS.map(function(u){
+    return '<button type="button" class="chip'+(selected===u.id?" on":"")+'" data-unit="'+u.id+'">'+u.id+" "+esc(u.name)+"</button>";
+  }).join("");
+  document.getElementById("unitTable").innerHTML = table(
+    ["項","名稱","引用製程","引用設備","引用化學品","本項新增（摘要）"],
+    UNITS.map(function(u){ return [u.id, u.name, u.cite.process[0], u.cite.equipment[0], u.cite.chemical[0], u.added[0]]; })
+  );
+}
+document.getElementById("units").addEventListener("click", function(ev){
+  var b = ev.target.closest("[data-unit]"); if (!b) return;
+  selected = b.getAttribute("data-unit"); renderUnits(); renderUnitDetail();
+});
+
+function renderUnitDetail() {
+  var unit = UNITS.filter(function(u){return u.id===selected;})[0] || UNITS[1];
+  var cores = [{id:"process",title:"引用製程"},{id:"equipment",title:"引用設備"},{id:"chemical",title:"引用化學品"}];
+  document.getElementById("unitDetail").innerHTML =
+    "<p><strong>"+esc(unit.annex)+"　"+esc(unit.name)+"</strong>"+
+    '<span class="muted">　左三欄只選核心表已有編號；右欄才是本項新寫進去的資料。</span></p>'+
+    '<div class="grid4">'+cores.map(function(c){
+      return '<div class="card"><h3>'+esc(c.title)+"</h3>"+unit.cite[c.id].map(function(line){return '<div class="muted">'+esc(line)+"</div>";}).join("")+"</div>";
+    }).join("")+
+    '<div class="card added"><h3 style="color:var(--accent2)">本項新增</h3>'+unit.added.map(function(line){return '<div class="muted">'+esc(line)+"</div>";}).join("")+"</div></div>"+
+    '<div class="callout"><strong>表單邏輯</strong>'+esc(unit.logic)+"</div>";
+}
+
+document.getElementById("prev").onclick = function(){
+  var i = UNITS.findIndex(function(u){return u.id===selected;});
+  selected = UNITS[i<=0 ? UNITS.length-1 : i-1].id;
+  renderUnits(); renderUnitDetail();
+};
+document.getElementById("next").onclick = function(){
+  var i = UNITS.findIndex(function(u){return u.id===selected;});
+  selected = UNITS[i<0 || i>=UNITS.length-1 ? 0 : i+1].id;
+  renderUnits(); renderUnitDetail();
+};
+
+renderChips();
+renderRules();
+renderUnits();
+renderUnitDetail();
+</script>
+</body>
+</html>

@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>5 設備（JOIN 顯示製程名、部門名；表內無名稱複製欄）</h2>
+<p class="note">只填甲類範圍內須申報的設備與管線，不要把廠內其他迴路一併建進來。</p>
+{% for pid, st in esd.items() %}
+  <p class="note">{{ pid }} 緊急停車：{{ st.label }}</p>
+{% endfor %}
+<table class="data">
+  <tr>
+    <th>設備編號</th><th>名稱</th><th>類型</th><th>動力</th><th>操作分類</th>
+    <th>製程編號</th><th>製程名稱</th><th>操作權責</th><th>維護權責</th><th>區域</th><th>危險性機械或設備</th><th>高壓氣體特定設備或容器</th>
+  </tr>
+  {% for e in equipment %}
+  <tr>
+    <td>{{ e.equipment_id }}</td><td>{{ e.name }}</td><td>{{ e.equipment_type }}</td>
+    <td>{{ e.power_kind or '' }}</td><td>{{ e.phase_class }}</td>
+    <td>{{ e.process_id }}</td><td>{{ e.process_name }}</td>
+    <td>{{ e.operating_dept_id }} {{ e.operating_dept_name }}</td>
+    <td>{{ e.maint_dept_id }} {{ e.maint_dept_name }}</td>
+    <td>{{ e.area_code }}</td><td>{{ '是' if e.is_regulated_machinery else '否' }}</td><td>{{ '是' if e.is_high_pressure_gas else '否' }}</td>
+  </tr>
+  {% endfor %}
+</table>
+<form class="grid card" method="post" action="/equipment">
+  <label>設備編號（位號） <input name="equipment_id" required></label>
+  <label>名稱 <input name="name" required></label>
+  <label>俗稱 <input name="alias"></label>
+  <label>所屬製程編號
+    <select name="process_id" required>
+      <option value="">（必選）</option>
+      {% for p in processes %}<option value="{{ p.process_id }}">{{ p.process_id }}</option>{% endfor %}
+    </select>
+  </label>
+  <label>維護權責部門編號
+    <select name="maint_dept_id" required>
+      <option value="">（必選）</option>
+      {% for d in departments %}<option value="{{ d.dept_id }}">{{ d.dept_id }}</option>{% endfor %}
+    </select>
+  </label>
+  <label>設備類型
+    <select name="equipment_type">{% for t in EQUIPMENT_TYPES %}<option>{{ t }}</option>{% endfor %}</select>
+  </label>
+  <label>動力型式（僅動力來源）
+    <select name="power_kind"><option value="">（非動力來源留空）</option>{% for k in POWER_KINDS %}<option>{{ k }}</option>{% endfor %}</select>
+  </label>
+  <label>操作分類
+    <select name="phase_class">{% for p in PHASE_CLASSES %}<option>{{ p }}</option>{% endfor %}</select>
+  </label>
+  <label>區域代碼
+    <select name="area_code">{% for a in areas %}<option value="{{ a.area_code }}">{{ a.area_code }}</option>{% endfor %}</select>
+  </label>
+  <p class="note">建造材料填附表1.6-1。安全關鍵性只在附表8.1-1篩選，不在設備建檔勾選。</p>
+  <label>法令證明備註（選填） <input name="legal_cert_type"></label>
+  <label class="chk"><input type="checkbox" name="is_regulated_machinery"> 危險性機械或設備</label>
+  <label class="chk"><input type="checkbox" name="is_high_pressure_gas"> 高壓氣體特定設備或容器</label>
+  <p class="note">勾選任一類別的設備會列入表1.11-1，合格證號碼及有效期限於該表填寫。</p>
+  <button type="submit">新增設備</button>
+</form>
+
+<h3>緊急停車方案（掛載，不是主檔）</h3>
+<table class="data">
+  <tr><th>方案</th><th>製程</th><th>系統設備</th><th>名稱</th><th>條件</th><th>動作設備</th></tr>
+  {% for s in scenarios %}
+  <tr>
+    <td>{{ s.scenario_id }}</td><td>{{ s.process_id }}</td><td>{{ s.esd_equipment_id }}</td>
+    <td>{{ s.name }}</td><td>{{ s.trigger_conditions }}</td><td>{{ s.actions }}</td>
+  </tr>
+  {% endfor %}
+</table>
+<form class="grid card" method="post" action="/esd">
+  <label>方案編號 <input name="scenario_id" required></label>
+  <label>製程
+    <select name="process_id">{% for p in processes %}<option value="{{ p.process_id }}">{{ p.process_id }}</option>{% endfor %}</select>
+  </label>
+  <label>緊急停車系統設備
+    <select name="esd_equipment_id">
+      {% for e in eq_all if e.equipment_type == '緊急停車系統' %}
+        <option value="{{ e.equipment_id }}">{{ e.equipment_id }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>名稱 <input name="name" required></label>
+  <label>啟動條件 <input name="trigger_conditions" required></label>
+  <label>維護部門
+    <select name="maint_dept_id"><option value=""></option>{% for d in departments %}<option value="{{ d.dept_id }}">{{ d.dept_id }}</option>{% endfor %}</select>
+  </label>
+  <label>動作設備（同製程）
+    <select name="action_ids" multiple size="4">
+      {% for e in eq_all %}<option value="{{ e.equipment_id }}">{{ e.equipment_id }} {{ e.process_id }}</option>{% endfor %}
+    </select>
+  </label>
+  <button type="submit">新增方案</button>
+</form>
+{% endblock %}

@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>3.10 變更管理</h2>
+{% include "_proc.html" %}
+<p>必須指明被改主檔表名 + PK。不得只寫廠區名或自由輸入設備名。</p>
+<table class="data">
+  <tr><th>變更案</th><th>表</th><th>PK</th><th>類型</th><th>狀態</th><th>說明</th></tr>
+  {% for c in changes %}
+  <tr><td>{{ c.change_id }}</td><td>{{ c.target_table }}</td><td>{{ c.target_pk }}</td>
+      <td>{{ c.change_type }}</td><td>{{ c.status }}</td><td>{{ c.description }}</td></tr>
+  {% endfor %}
+</table>
+<form class="grid card" method="post">
+  <label>變更編號 <input name="change_id" required></label>
+  <label>被改表
+    <select name="target_table">
+      <option>Equipment</option><option>Process</option><option>Chemical</option>
+    </select>
+  </label>
+  <label>PK
+    <select name="target_pk" id="pk">
+      {% for e in equipment %}<option value="{{ e.equipment_id }}">Equipment {{ e.equipment_id }}</option>{% endfor %}
+      {% for p in processes %}<option value="{{ p.process_id }}">Process {{ p.process_id }}</option>{% endfor %}
+      {% for c in chemicals %}<option value="{{ c.cas }}|{{ c.process_id }}">Chemical {{ c.cas }}|{{ c.process_id }}</option>{% endfor %}
+    </select>
+  </label>
+  <label>類型 <input name="change_type" value="製程修改／永久"></label>
+  <label>說明 <input name="description" required></label>
+  <label><input type="checkbox" name="approved" checked> 已核准</label>
+  <button type="submit">新增變更</button>
+</form>
+{% endblock %}

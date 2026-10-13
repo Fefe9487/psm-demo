@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>3.11 事故調查</h2>
+{% include "_proc.html" %}
+<p class="note">近五年事故共通資料只登在本表。承攬事故由附表6.2-1關聯項次，不另寫一份摘要。</p>
+{% if site and site.declare_no_incident_5y %}
+<p>本場所無此情形：近五年 0 件。空白格式可新增虛驚，能掛則選製程／設備／CAS。</p>
+{% endif %}
+<div class="table-bar"><a class="btn" href="#incident-add">新增</a></div>
+<table class="data" data-no-auto-add>
+  <tr><th>類型</th><th>件數</th></tr>
+  <tr><td>火災／爆炸／洩漏／虛驚</td><td>{{ incidents | length }}</td></tr>
+</table>
+<table class="data">
+  <tr><th>編號</th><th>日期</th><th>製程</th><th>設備</th><th>CAS</th><th>摘要</th><th>虛驚</th></tr>
+  {% for i in incidents %}
+  <tr><td>{{ i.incident_id }}</td><td>{{ i.incident_date }}</td><td>{{ i.process_id or '' }}</td>
+      <td>{{ i.equipment_id or '' }}</td><td>{{ i.cas or '' }}</td><td>{{ i.summary }}</td>
+      <td>{{ '是' if i.is_near_miss else '否' }}</td></tr>
+  {% endfor %}
+  {% if not incidents %}
+  <tr><td>（空白格式）</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+  {% endif %}
+</table>
+<form id="incident-add" class="grid card" method="post">
+  <label>編號 <input name="incident_id" required></label>
+  <label>摘要 <input name="summary" required></label>
+  <label>日期 <input name="incident_date"></label>
+  <label>製程
+    <select name="process_id"><option value=""></option>
+      {% for p in processes %}<option value="{{ p.process_id }}">{{ p.process_id }}</option>{% endfor %}
+    </select>
+  </label>
+  <label>設備
+    <select name="equipment_id"><option value=""></option>
+      {% for e in equipment %}<option value="{{ e.equipment_id }}">{{ e.equipment_id }}</option>{% endfor %}
+    </select>
+  </label>
+  <label>CAS
+    <select name="cas"><option value=""></option>
+      {% for c in chemicals %}<option value="{{ c.cas }}">{{ c.cas }} / {{ c.process_id }}</option>{% endfor %}
+    </select>
+  </label>
+  <label><input type="checkbox" name="is_near_miss"> 虛驚</label>
+  <button type="submit">新增事故</button>
+</form>
+{% endblock %}

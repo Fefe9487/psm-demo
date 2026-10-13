@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>3.7 啟動前安全檢查</h2>
+{% include "_proc.html" %}
+<table class="data">
+  <tr><th>PSSR</th><th>設備編號</th><th>製程</th><th>變更案</th><th>日期</th><th>發現</th></tr>
+  {% for p in pssrs %}
+  <tr><td>{{ p.pssr_id }}</td><td>{{ p.equipment_id or '' }}</td><td>{{ p.process_id or '' }}</td>
+      <td>{{ p.change_id or '' }}</td><td>{{ p.pssr_date }}</td><td>{{ p.findings }}</td></tr>
+  {% endfor %}
+</table>
+<form class="grid card" method="post">
+  <label>編號 <input name="pssr_id" required></label>
+  <label>日期 <input name="pssr_date" required></label>
+  <label>設備
+    <select name="equipment_id"><option value=""></option>
+      {% for e in equipment %}<option value="{{ e.equipment_id }}">{{ e.equipment_id }}</option>{% endfor %}
+    </select>
+  </label>
+  <label>製程
+    <select name="process_id"><option value=""></option>
+      {% for p in processes %}<option value="{{ p.process_id }}">{{ p.process_id }}</option>{% endfor %}
+    </select>
+  </label>
+  <label>變更案
+    <select name="change_id"><option value=""></option>
+      {% for c in changes %}<option value="{{ c.change_id }}">{{ c.change_id }} {{ c.target_pk }}</option>{% endfor %}
+    </select>
+  </label>
+  <label>發現 <input name="findings"></label>
+  <button type="submit">新增檢查</button>
+</form>
+{% endblock %}

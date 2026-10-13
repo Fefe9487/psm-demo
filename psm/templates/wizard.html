@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block content %}
+{% set pf = prefill if prefill is defined else {} %}
+<div class="wizard" data-core-ready="{{ '1' if core_ready else '0' }}">
+  <div class="wiz-progress" aria-label="申報章節">
+    <div class="wiz-progress-head">
+      <span class="eyebrow">初次填報導覽</span>
+      <strong>第 {{ step }}／{{ n_steps }} 章</strong>
+      <span class="muted">{% if core_ready %}核心清單已建立，可選擇章節填寫{% else %}先建立第一章的核心清單{% endif %}</span>
+    </div>
+    <nav class="wiz-pills" aria-label="十四章導覽">
+      {% for s in steps %}
+        {% if s.n == 1 or core_ready %}
+          <a class="wiz-pill{% if s.n == step %} on{% endif %}{% if s.done %} done{% endif %}"
+             href="/wizard/{{ s.n }}" title="第 {{ s.n }} 章 {{ s.title }}" {% if s.n == step %}aria-current="step"{% endif %}><span>{{ s.n }}</span><span>{{ s.title }}</span>{% if s.done %}<span class="wiz-state">基本檢核通過</span>{% endif %}</a>
+        {% else %}
+          <span class="wiz-pill locked" title="請先建立核心清單"><span>{{ s.n }}</span><span>{{ s.title }}</span></span>
+        {% endif %}
+      {% endfor %}
+    </nav>
+  </div>
+
+  <header class="wiz-head">
+    <span class="eyebrow">第 {{ step }} 章</span>
+    <h2>{{ info.title }}</h2>
+    <p class="task"><strong>這一頁只要做：</strong>{{ info.task }}</p>
+    <details class="chapter-help"><summary>為什麼要填這章</summary><p>{{ info.why }}</p></details>
+  </header>
+
+  <details class="sample-tools">
+    <summary>試用範例資料｜目前：{{ '石化業 HF 催化烷基化' if sample_case == 'petrochemical' else 'HF 密閉供料' }}</summary>
+    <p><strong>選擇案例：</strong><a class="btn secondary" href="/wizard/sample/hf">HF 密閉供料</a> <a class="btn secondary" href="/wizard/sample/petrochemical">石化業 HF 催化烷基化（全表範例）</a></p>
+    {% if sample_case == 'petrochemical' %}
+    <p><strong>目前：石化業全表範例。</strong>涵蓋異丁烷與丁烯進料、HF 催化烷基化、產品分離及尾氣處理，各章表格已有連貫的示範紀錄。數量、設備界限與文件均為教學假設，不可直接作為正式申報或操作依據。可逐表編輯；切回 HF 案例後，這套資料會保留。製程脈絡參考 <a href="https://www.osha.gov/publications/hib19931119" target="_blank" rel="noopener">OSHA 的 HF 烷基化說明</a>。</p>
+    {% else %}
+    <p><strong>HF 案例：</strong>無水氟化氫在接收區密閉卸收，經汽化後進入氣態供料系統，含氟尾氣由氫氧化鈉鹼洗塔處理。表1.0-4 分開記錄液態接收與氣態供料；後續章節沿用同一批製程、設備、區域及 CAS 編號。</p>
+    <p>氣態供料段 1,200 kg、液態接收段 2,000 kg 為教學假設。設備材質、操作界限及設計數值須以現場核准文件核對。</p>
+    <p>範例會寫入目前填報內容，包含示範場所與表列。SDS、區域位置圖、PFD／P&amp;ID 與評估紀錄仍須上傳實際檔案。第十四章附示範程序草稿，正式申報前須替換。已有資料時請先確認再載入。</p>
+  <form method="post" action="/wizard/defaults" class="defaults-bar" data-confirm="範例資料會寫入目前填報內容。確定載入？">
+    <input type="hidden" name="step" value="{{ step }}">
+    <button type="submit">用預設值存這一頁</button>
+    <span class="muted">無水 HF 密閉供料與尾氣鹼洗案例</span>
+  </form>
+    {% endif %}
+  </details>
+
+  {% if not core_ready %}
+    <div class="banner warn" id="wiz-block"><strong>請先建立核心清單</strong><ul>{% for item in core_missing %}<li>{{ item }}</li>{% endfor %}</ul></div>
+  {% elif missing %}
+    <details class="banner {{ 'pending' if attachment_only else 'warn' }} chapter-missing" {% if missing|length <= 3 %}open{% endif %}><summary>{{ '附件待上傳' if attachment_only else '本章尚待補齊' }}（{{ missing|length }} 項）</summary>{% if attachment_only %}<p>範例檔名只是填寫示意；上傳實際文件後，這些待辦會自動消失。</p>{% endif %}<ul>{% for item in missing %}<li>{{ item }}</li>{% endfor %}</ul></details>
+  {% else %}
+    <div class="banner ok" role="status">本章基本檢核通過；請再核對程序全文、資料正確性與現行審查要求。</div>
+  {% endif %}
+
+  <nav class="chapter-index" id="chapter-index" aria-label="本章段落" hidden></nav>
+
+  {% if step == 1 %}{% include "wizard/_s1.html" %}
+  {% elif step == 2 %}{% include "wizard/_s2.html" %}
+  {% elif step == 3 %}{% include "wizard/_s3.html" %}
+  {% elif step == 4 %}{% include "wizard/_s4.html" %}
+  {% elif step == 5 %}{% include "wizard/_s5.html" %}
+  {% elif step == 6 %}{% include "wizard/_s6.html" %}
+  {% elif step == 7 %}{% include "wizard/_s7.html" %}
+  {% elif step == 8 %}{% include "wizard/_s8.html" %}
+  {% elif step == 9 %}{% include "wizard/_s9.html" %}
+  {% elif step == 10 %}{% include "wizard/_s10.html" %}
+  {% elif step == 11 %}{% include "wizard/_s11.html" %}
+  {% elif step == 12 %}{% include "wizard/_s12.html" %}
+  {% elif step == 13 %}{% include "wizard/_s13.html" %}
+  {% elif step == 14 %}{% include "wizard/_s14.html" %}
+  {% endif %}
+
+  {% include "wizard/_documents.html" %}
+
+  <nav class="wiz-nav" aria-label="章節操作">
+    {% if step > 1 %}
+      <a class="btn secondary" href="/wizard/{{ step - 1 }}">上一章</a>
+    {% else %}
+      <a class="btn secondary" href="/">離開精靈</a>
+    {% endif %}
+    {% if can_next and step < n_steps %}
+      <a class="btn" id="wiz-next" href="/wizard/{{ step + 1 }}">下一章</a>
+    {% elif step < n_steps %}
+      <button class="btn" id="wiz-next" type="button" disabled>下一章</button>
+    {% endif %}
+  </nav>
+</div>
+{% endblock %}

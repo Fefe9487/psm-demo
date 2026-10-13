@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% from "_hazard_picker.html" import hazard_picker %}
+{% block content %}
+<h2>6 化學品（複合鍵 CAS + 製程編號）</h2>
+<p class="note">化學品可自行新增。名稱僅在勞動檢查法施行細則危險物／有害物清單有列時自動帶入。混合物以操作量×重量百分比換成純物質，再對規定數量。</p>
+<table class="data">
+  <tr><th>CAS</th><th>製程編號</th><th>製程名稱</th><th>品名</th><th>角色</th><th>UN</th><th>運輸分類</th><th>濃度</th><th>危害說明</th><th>相態</th></tr>
+  {% for c in chemicals %}
+  <tr>
+    <td>{{ c.cas }}</td><td>{{ c.process_id }}</td><td>{{ c.process_name }}</td>
+    <td>{{ c.name }}</td><td>{{ c.role }}</td><td>{{ c.un_number or '' }}</td>
+    <td>{{ c.transport_hazard_class or '' }}</td><td>{{ c.concentration_range or '' }}</td>
+    <td>{{ hazard_display_labels(c.h_codes)|join('、') }}</td><td>{{ c.phase_state or '' }}</td>
+  </tr>
+  {% endfor %}
+</table>
+<form class="grid card" method="post" id="chemicals-form">
+  <label>從危險物／有害物清單帶入（選填）
+    <select id="annex-pick">
+      <option value="">（自行填 CAS／名稱，或選清單帶入）</option>
+      {% for a in annex_catalog %}
+      <option value="{{ a.cas }}" data-name-zh="{{ a.name_zh }}" data-name-en="{{ a.name_en }}" data-limit="{{ a.limit_kg }}">{{ a.name_zh }}（{{ a.cas }}，規定數量 {{ a.limit_kg }} kg）</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>CAS <input name="cas" id="chem-cas" required></label>
+  <label>製程編號
+    <select name="process_id" required>
+      {% for p in processes %}<option value="{{ p.process_id }}">{{ p.process_id }}</option>{% endfor %}
+    </select>
+  </label>
+  <label>名稱 <input name="name" id="chem-name"></label>
+  <label>角色
+    <select name="role">{% for r in CHEMICAL_ROLES %}<option>{{ r }}</option>{% endfor %}</select>
+  </label>
+  <label>UN 編號 <input name="un_number"></label>
+  <label>運輸危害分類 <input name="transport_hazard_class"></label>
+  <label>濃度或組成範圍 <input name="concentration_range"></label>
+  <div class="hazard-field"><span class="field-title">危害說明</span>{{ hazard_picker('h_codes') }}</div>
+  <label>常用狀況相態
+    <select name="phase_state">
+      <option value="">（未填）</option>
+      <option>固態</option>
+      <option>液態</option>
+      <option>氣態</option>
+    </select>
+  </label>
+  <button type="submit">新增化學品</button>
+</form>
+{% endblock %}

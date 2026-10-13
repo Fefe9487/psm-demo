@@ -1,0 +1,177 @@
+{% set fl = flags if flags is defined else {} %}
+{% set mi_fail_grid = mi_fail_grid if mi_fail_grid is defined else [] %}
+{% set mi_legacy_fail_rows = mi_legacy_fail_rows if mi_legacy_fail_rows is defined else [] %}
+{% set mi_category_rates = mi_category_rates if mi_category_rates is defined else [] %}
+{% set mi_uploads = mi_uploads if mi_uploads is defined else [] %}
+{% set damage_mechs = damage_mechs if damage_mechs is defined else [] %}
+{% set inspect_methods = inspect_methods if inspect_methods is defined else [] %}
+<p class="note">材質類別與選用材質來自表1.6-1，此處不可另填。本署「設備管線劣化機制查詢」要先有材質類別、表1.5 操作溫度與內容物，才可到查詢頁勾選介質發生條件、保溫等。查詢結果僅作建議，由人填損壞機制，不連線匯入、不代替風險評分。設備八類與六大類之對應：壓力容器與儲槽；管線系統對管線(包括管線組件如閥)；釋放及排放系統對釋放及排放系統和設備；緊急停車系統；控制系統對控制系統（包括監測設備、感應器，警報及連鎖系統）；動力來源／泵浦對泵浦(轉動設備)；裝卸及輸送、其他由人員歸入六類之一。</p>
+<section class="sec">
+  <h3>挑選安全關鍵設備並安排檢查保養 <small class="table-ref">表8.1-1</small></h3>
+  <p class="note">完整設備清單須逐台判定安全關鍵性。填「否」須留下依據；填「是」後，仍須在下方填檢查測試明細與失效率。即使全部填否，也須逐台確認。</p>
+  <form class="card" method="post" action="/wizard/flags">
+    <input type="hidden" name="step" value="8">
+    <input type="hidden" name="no_critical" value="0">
+    <label class="chk"><input type="checkbox" name="no_critical" value="1" data-gate="mi-none" {% if fl.get('no_critical')=='1' %}checked{% endif %}> 本場所無安全關鍵設備</label>
+    <label data-panel="mi-none" data-show="1" hidden>理由 <input name="no_critical_reason" value="{{ fl.get('no_critical_reason','') }}"></label>
+    <button type="submit">存聲明</button>
+  </form>
+  <div class="table-wrap"><table class="data" data-add-form="form-mi-screen" data-add-label="填寫判定">
+    <tr><th>製程</th><th>設備編號</th><th>設備名稱</th><th>設備類型</th><th>安全關鍵性</th><th>判定依據</th><th>操作</th></tr>
+    {% for e in mi_screen_rows %}
+    <tr data-fill-form="form-mi-screen" data-json="{{ {'equipment_id': e.equipment_id, 'is_critical': ('1' if e.is_critical else ('0' if e.is_critical is not none else '')), 'basis': e.basis or ''} | tojson | forceescape }}"><td>{{ e.process_id }}</td><td>{{ e.equipment_id }}</td><td>{{ e.name }}</td><td>{{ e.equipment_type }}</td>
+      <td>{% if e.is_critical is none %}待確認{% elif e.is_critical %}是{% else %}否{% endif %}</td><td>{{ e.basis or '' }}</td><td><button class="editish" type="button" data-fill-row>修改</button></td></tr>
+    {% endfor %}
+  </table></div>
+  <form class="grid card" method="post" action="/wizard/8/screen" id="form-mi-screen" data-add-label="儲存設備篩選" data-edit-label="更新設備篩選">
+    <label>設備編號 <select name="equipment_id" data-edit-identity required>{% for e in mi_screen_rows %}<option value="{{ e.equipment_id }}">{{ e.equipment_id }} {{ e.name }}</option>{% endfor %}</select></label>
+    <label>是否安全關鍵 <select name="is_critical" required><option value="">（請選）</option><option value="1">是，待填下方明細</option><option value="0">否</option></select></label>
+    <label>判定依據（填否必填） <input name="basis" data-error-terms="依據"></label>
+    <button type="submit">儲存設備篩選</button>
+  </form>
+  <div class="table-wrap">
+  <table class="data" data-add-form="form-81" data-add-label="新增檢查明細">
+    <tr><th>製程</th><th>區域</th><th>設備名稱</th><th>設備編號</th><th>六大類</th><th>材質類別</th><th>選用材質</th><th>損壞機制／功能檢查項目</th><th>檢查方式</th><th>頻率</th><th>程序書</th><th>P&amp;ID</th><th>確認</th><th></th></tr>
+    {% for r in mi_details %}
+    <tr data-fill-form="form-81" data-json="{{ {'detail_id': r.detail_id, 'equipment_id': r.equipment_id, 'mi_type': r.mi_type, 'damage': r.damage_mechanism, 'inspection_item': r.inspection_item, 'method': r.inspect_method, 'freq': r.inspect_frequency, 'proc_no': r.procedure_ref, 'pid_no': r.pid_drawing_no} | tojson | forceescape }}">
+      <td>{{ r.process_id }}</td><td>{{ r.area_code }}</td>
+      <td>{{ r.equipment_name }}</td><td>{{ r.equipment_id }}</td>
+      <td>{{ r.mi_type or '待確認' }}</td>
+      <td>{{ r.material_category }}</td><td>{{ r.material }}</td>
+      <td>{{ r.damage_mechanism or r.inspection_item }}</td><td>{{ r.inspect_method }}</td><td>{{ r.inspect_frequency }}</td>
+      <td>{{ r.procedure_ref }}</td><td>{{ r.pid_drawing_no }}</td><td>{{ '已確認' if r.confirmed else '舊資料待確認' }}</td>
+      <td><button class="editish" type="button" data-fill-row>編輯／確認</button> <form class="inline" method="post" action="/wizard/8/detail/delete" data-confirm="刪除這項檢查明細？"><input type="hidden" name="detail_id" value="{{ r.detail_id }}"><button class="linkish" type="submit">刪除</button></form></td>
+    </tr>
+    {% endfor %}
+  </table>
+  </div>
+  <div data-panel="mi-none" data-show="0">
+  <form class="grid card" method="post" action="/wizard/row" id="form-81" data-add-label="新增檢查明細" data-edit-label="更新檢查明細">
+    <input type="hidden" name="step" value="8"><input type="hidden" name="section" value="8.1"><input type="hidden" name="detail_id" value="">
+    <label>單位／製程
+      <select name="process_id">{% for p in processes %}<option value="{{ p.process_id }}">{{ p.process_id }} {{ p.name }}</option>{% endfor %}</select>
+    </label>
+    <label>區域／系統
+      <select name="area_code">{% for a in areas %}<option value="{{ a.area_code }}">{{ a.area_code }} {{ a.name }}</option>{% endfor %}</select>
+    </label>
+    <label>設備編號
+      <select name="equipment_id" id="mi-eq" required>
+        {% for e in eq_all %}
+        <option value="{{ e.equipment_id }}"
+                data-process="{{ e.process_id }}"
+                data-area="{{ e.area_code }}"
+                data-material="{{ e.material or '' }}"
+                data-matcat="{{ e.material_category or '' }}"
+                data-query="{{ '1' if e.query and e.query.ready else '0' }}"
+                data-missing="{{ (e.query.missing | join('、')) if e.query else '' }}"
+                data-name="{{ e.name }}"
+                data-mi="{{ e.mi_type or '' }}"
+                data-contents="{{ e.contents or '' }}"
+                data-pid="{{ e.pid_no or '' }}">{{ e.equipment_id }} {{ e.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>設備類型（六大類）
+      <select name="mi_type" id="mi-type">{% for t in mi_six %}<option>{{ t }}</option>{% endfor %}</select>
+    </label>
+    <label>內容物
+      <select name="cas" id="mi-cas">
+        <option value=""></option>
+        {% for c in chemicals %}<option value="{{ c.cas }}|{{ c.process_id }}" data-process="{{ c.process_id }}">{{ c.cas }} {{ c.name }} / {{ c.process_id }}</option>{% endfor %}
+      </select>
+    </label>
+    <label>材質類別（表1.6-1）
+      <input name="material_category" id="mi-matcat" readonly>
+    </label>
+    <label>選用材質（表1.6-1） <input name="material" id="mi-material" readonly></label>
+    <p class="note" id="mi-query-note"></p>
+    <p class="note">每列只填一個損壞機制或一個功能檢查項目，並分別指定檢查方式、頻率、程序書及 P&amp;ID。舊資料須逐列編輯確認。</p>
+    <label>損壞機制（每列一項；可自訂） <input name="damage" list="mi-damage-options"></label>
+    <datalist id="mi-damage-options">{% for d in damage_mechs %}<option value="{{ d }}">{% endfor %}</datalist>
+    <label>功能檢查項目（未選損壞機制時填） <input name="inspection_item"></label>
+    <label>檢查及測試方式（可自訂） <input name="method" list="mi-method-options"></label>
+    <datalist id="mi-method-options">{% for m in inspect_methods %}<option value="{{ m }}">{% endfor %}</datalist>
+    <label>檢查及測試頻率 <input name="freq"></label>
+    <label>檢查測試程序書編號 <input name="proc_no"></label>
+    <label>P&amp;ID 圖號
+      <select name="pid_no" id="mi-pid"><option value=""></option>{% for d in drawings %}<option value="{{ d.drawing_no }}">{{ d.drawing_no }} {{ d.revision }}</option>{% endfor %}</select>
+    </label>
+    <button type="submit">新增檢查明細</button>
+  </form>
+  <h4>書面程序及檢查測試紀錄</h4>
+  <table class="data">
+    <tr><th>製程</th><th>檔名</th><th>設備編號</th><th>操作</th></tr>
+    {% for u in mi_uploads %}
+    <tr data-fill-form="form-mi-upload" data-json="{{ {'attachment_id': u.attachment_id, 'process_id': u.process_id, 'equipment_id': u.note or '', 'file_name': u.original_name} | tojson | forceescape }}"><td>{{ u.process_id }}</td><td>{{ u.original_name }}</td><td>{{ u.note }}</td><td><button class="editish" type="button" data-fill-row>修改</button> <form class="inline" method="post" action="/wizard/item/delete" data-confirm="刪除這份檢查測試紀錄？"><input type="hidden" name="kind" value="mi_upload"><input type="hidden" name="attachment_id" value="{{ u.attachment_id }}"><button class="linkish" type="submit">刪除</button></form></td></tr>
+    {% endfor %}
+  </table>
+  <form class="grid card" method="post" action="/wizard/8/upload" id="form-mi-upload" data-add-label="登錄附件" data-edit-label="更新附件" enctype="multipart/form-data">
+    <input type="hidden" name="attachment_id" value="">
+    <label>所屬製程
+      <select name="process_id">{% for p in processes %}<option value="{{ p.process_id }}">{{ p.process_id }} {{ p.name }}</option>{% endfor %}</select>
+    </label>
+    <label>設備編號
+      <select name="equipment_id"><option value=""></option>{% for e in eq_all %}<option value="{{ e.equipment_id }}">{{ e.equipment_id }} {{ e.name }}</option>{% endfor %}</select>
+    </label>
+    <label>檔名 <input name="file_name" value="MI-ITPM.pdf"></label>
+    <label>上傳 <input type="file" name="file"></label>
+    <button type="submit">登錄附件</button>
+  </form>
+  </div>
+</section>
+<section class="sec" data-panel="mi-none" data-show="0">
+  <h3>計算安全關鍵設備的失效率 <small class="table-ref">表8.2-1</small></h3>
+  <p class="note">只列附表8.1-1 已篩選為是的設備。失效率＝失效事件數÷累計使用時間×1,000,000（次/百萬小時）。運行時間為零時不計算並須填原因；缺少原始資料時改用下方「資料不足」表單，不要填虛構的零值。資料不足會留待人工確認。</p>
+  {% if not mi_detail_equipment %}<p class="note">先在上方確認安全關鍵設備的檢查項目，才能填寫失效率。</p>{% endif %}
+  {% if mi_fail_grid %}
+    <div class="table-wrap">
+    <table class="data">
+      <tr><th>設備名稱</th><th>設備編號</th><th>六大類</th><th>統計起</th><th>統計迄</th><th>累計使用時間（小時）</th><th>失效事件數</th><th>失效率（次/百萬小時）</th><th>說明</th><th>確認</th><th>操作</th></tr>
+      {% for r in mi_fail_grid %}
+      <tr data-fill-form="form-mi-fail" data-json="{{ {'equipment_id': r.equipment_id, 'period_start': r.period_start, 'period_end': r.period_end, 'hours': r.hours, 'repair': r.repair, 'note': r.note} | tojson | forceescape }}">
+        <td>{{ r.equipment_name }}</td><td>{{ r.equipment_id }}</td><td>{{ r.mi_type or '待確認' }}</td>
+        <td>{{ r.period_start }}</td><td>{{ r.period_end }}</td><td>{{ r.hours }}</td><td>{{ r.repair }}</td><td>{{ r.rate }}</td><td>{{ r.note }}</td>
+        <td>{{ '已確認' if r.confirmed else '舊資料待確認' }}</td>
+        <td><button class="editish" type="button" data-fill-row>編輯</button> <form class="inline" method="post" action="/wizard/8/fail/delete" data-confirm="刪除這筆失效率紀錄？"><input type="hidden" name="equipment_id" value="{{ r.equipment_id }}"><button class="linkish" type="submit">刪除</button></form></td>
+      </tr>
+      {% endfor %}
+    </table>
+    </div>
+  {% endif %}
+  {% if mi_failure_gaps %}
+  <h4>資料不足且待人工確認</h4>
+  <table class="data"><tr><th>設備</th><th>統計起</th><th>統計迄</th><th>資料不足原因</th><th>操作</th></tr>
+    {% for r in mi_failure_gaps %}<tr data-fill-form="form-mi-fail-gap" data-json="{{ r | tojson | forceescape }}"><td>{{ r.equipment_id }} {{ r.equipment_name }}</td><td>{{ r.period_start }}</td><td>{{ r.period_end }}</td><td>{{ r.reason }}</td><td><button class="editish" type="button" data-fill-row>修改</button> <form class="inline" method="post" action="/wizard/8/fail/delete" data-confirm="刪除這筆資料不足紀錄？"><input type="hidden" name="equipment_id" value="{{ r.equipment_id }}"><button class="linkish" type="submit">刪除</button></form></td></tr>{% endfor %}
+  </table>
+  {% endif %}
+  {% if mi_legacy_fail_rows %}
+  <p class="note">舊版 8.2 原始資料已保留；下列資料未自動當作已確認的失效率。請依運轉及失效紀錄在新表單重填。</p>
+  <table class="data"><tr><th>設備</th><th>舊運行時間</th><th>舊失效數</th><th>舊說明</th></tr>
+    {% for r in mi_legacy_fail_rows %}<tr><td>{{ r.equipment_id }}</td><td>{{ r.hours }}</td><td>{{ r.repair }}</td><td>{{ r.note }}</td></tr>{% endfor %}
+  </table>
+  {% endif %}
+  {% if mi_category_rates %}
+  <h4>六大類彙總失效率</h4>
+  <p class="note">以同類設備的失效事件總數除以運行小時總數計算；零時數及未確認的資料不列入。</p>
+  <table class="data"><tr><th>六大類</th><th>失效事件總數</th><th>運行小時總數</th><th>次／百萬小時</th></tr>
+    {% for r in mi_category_rates %}<tr><td>{{ r.mi_type }}</td><td>{{ r.failures }}</td><td>{{ r.hours }}</td><td>{{ '%.4g'|format(r.rate) }}</td></tr>{% endfor %}
+  </table>
+  {% endif %}
+  <form class="grid card" id="form-mi-fail" method="post" action="/wizard/8/fail">
+    <label>安全關鍵設備 <select name="equipment_id" data-edit-identity required><option value="">（請選擇）</option>{% for r in mi_detail_equipment %}<option value="{{ r.equipment_id }}">{{ r.equipment_id }} {{ r.equipment_name }}</option>{% endfor %}</select></label>
+    <label>統計起 <input name="period_start" type="date" required></label>
+    <label>統計迄 <input name="period_end" type="date" required></label>
+    <label>累計使用時間（小時） <input name="hours" type="number" min="0" step="any" required></label>
+    <label>失效事件數 <input name="repair" type="number" min="0" step="1" required></label>
+    <label>說明 <input name="note"></label>
+    <button type="submit">儲存設備失效率</button>
+  </form>
+  <h4>原始資料不足</h4>
+  <form class="grid card" method="post" action="/wizard/8/fail/gap" id="form-mi-fail-gap" data-add-label="儲存資料不足狀態" data-edit-label="更新資料不足狀態">
+    <label>安全關鍵設備 <select name="equipment_id" data-edit-identity required><option value="">（請選擇）</option>{% for r in mi_detail_equipment %}<option value="{{ r.equipment_id }}">{{ r.equipment_id }} {{ r.equipment_name }}</option>{% endfor %}</select></label>
+    <label>統計起 <input name="period_start" type="date" required></label>
+    <label>統計迄 <input name="period_end" type="date" required></label>
+    <label>資料不足原因 <input name="reason" required placeholder="請說明缺少何種原始運轉或故障紀錄"></label>
+    <button type="submit">儲存資料不足狀態</button>
+  </form>
+</section>

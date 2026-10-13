@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ title or "PSM 線上填報" }}</title>
+  <link rel="stylesheet" href="/static/style.css?v=20260929rxn">
+</head>
+<body class="{{ body_class }}">
+<a class="skip-link" href="#main-content">跳至主要內容</a>
+<div class="layout">
+  <aside class="sidebar">
+    <a class="brand" href="/" aria-label="回填報首頁"><span class="brand-mark">PSM</span><span>線上填報<small>製程安全管理</small></span></a>
+    <nav aria-label="主要導覽">
+    {% for href, label in nav_primary %}
+      <a href="{{ href }}" class="{{ 'active' if request.url.path == href or (href != '/' and request.url.path.startswith(href + '/')) else '' }}">{{ label }}</a>
+    {% endfor %}
+    <details class="data-fold" {% if data_open %}open{% endif %}>
+      <summary>資料表與進階編輯</summary>
+      {% for href, label in nav_data %}
+        <a href="{{ href }}" class="{{ 'active' if request.url.path == href or (href != '/' and request.url.path.startswith(href + '/')) else '' }}">{{ label }}</a>
+      {% endfor %}
+    </details>
+    </nav>
+    <details class="sidebar-tools">
+      <summary>資料管理</summary>
+      <form action="/demo/reset" method="post" data-confirm="確定重載示範廠資料？">
+        <button class="secondary" type="submit">重載示範廠</button>
+      </form>
+      <form action="/wizard/reset" method="post" data-confirm="確定清空首次填報的全部資料？此操作無法復原。">
+        <button class="secondary" type="submit">清空首次填報</button>
+      </form>
+    </details>
+  </aside>
+  <main class="main" id="main-content">
+    {% if err %}<div class="banner err">{{ err }}</div>{% endif %}
+    {% if okmsg %}<div class="banner ok">{{ okmsg }}</div>{% endif %}
+    {% if not masters_ok and show_masters_banner %}
+      <div class="banner warn">核心資料表（製程、設備、化學品）或圖資未完備，不得評分：{{ masters_reasons | join("；") }}</div>
+    {% endif %}
+    {% block content %}{% endblock %}
+  </main>
+</div>
+<script src="/static/wizard.js?v=20261013legal"></script>
+<script src="/static/flow_editor.js?v=20260928flowux3"></script>
+<script>
+(function () {
+  document.querySelectorAll('form[action="/wizard/row/delete"]').forEach(function (form) {
+    if (!form.hasAttribute("data-confirm")) form.setAttribute("data-confirm", "確定刪除這筆填報資料？");
+    var button = form.querySelector('button[type="submit"]');
+    if (button) {
+      if (button.textContent.trim() === "刪") button.textContent = "刪除";
+      var row = form.closest("tr");
+      var item = row && row.querySelector("td") ? row.querySelector("td").textContent.trim() : "填報資料";
+      if (!button.hasAttribute("aria-label")) button.setAttribute("aria-label", "刪除 " + item.replace("編輯", "").trim());
+    }
+  });
+  document.querySelectorAll("form[data-confirm]").forEach(function (form) {
+    form.addEventListener("submit", function (event) {
+      if (!window.confirm(form.getAttribute("data-confirm"))) event.preventDefault();
+    });
+  });
+  var index = document.getElementById("chapter-index");
+  if (index) {
+    var headings = document.querySelectorAll(".wizard h3");
+    if (headings.length > 2) {
+      var label = document.createElement("strong");
+      label.textContent = "本章段落";
+      index.appendChild(label);
+      headings.forEach(function (heading, i) {
+        heading.id = heading.id || "chapter-section-" + (i + 1);
+        var link = document.createElement("a");
+        link.href = "#" + heading.id;
+        link.textContent = (heading.firstChild && heading.firstChild.textContent || heading.textContent).trim();
+        index.appendChild(link);
+      });
+      index.hidden = false;
+    }
+  }
+  function formActionOf(form) { return form.getAttribute("action") || ""; }
+  function isContentForm(form) {
+    if (!form || form.classList.contains("inline")) return false;
+    var action = formActionOf(form);
+    return action.indexOf("/wizard/flags") < 0 && action.indexOf("/wizard/reset") < 0 && action.indexOf("/demo/reset") < 0;
+  }
+  function resolveAddForm(table) {
+    if (table.dataset.addForm) {
+      var named = document.getElementById(table.dataset.addForm);
+      if (named) return named;
+    }
+    var editRow = table.querySelector("tr[data-fill-form]");
+    if (editRow && editRow.dataset.fillForm) {
+      var filled = document.getElementById(editRow.dataset.fillForm);
+      if (filled) return filled;
+    }
+    var section = table.closest(".sec") || table.parentNode;
+    var forms = section.querySelectorAll("form:not(.inline)");
+    for (var i = 0; i < forms.length; i++) {
+      if (!isContentForm(forms[i])) continue;
+      if (forms[i].compareDocumentPosition(table) & Node.DOCUMENT_POSITION_PRECEDING) return forms[i];
+    }
+    return null;
+  }
+  function addButtonLabel(table, form) {
+    if (table.dataset.addLabel) return table.dataset.addLabel;
+    if (form.dataset.addLabel) return form.dataset.addLabel;
+    var submit = form.querySelector('button[type="submit"], input[type="submit"]');
+    var text = submit ? (submit.value || submit.textContent || "").replace(/\s+/g, " ").trim() : "";
+    return text || "新增資料";
+  }
+  document.querySelectorAll("table.data").forEach(function (table) {
+    if (table.closest("form") || table.hasAttribute("data-no-auto-add")) return;
+    var anchor = table.closest(".table-wrap") || table;
+    var prev = anchor.previousElementSibling;
+    if (prev && prev.classList.contains("table-bar")) return;
+    var form = resolveAddForm(table);
+    if (!form) return;
+    if (!form.id) form.id = "add-form-" + Array.prototype.indexOf.call(document.forms, form);
+    var bar = document.createElement("div");
+    bar.className = "table-bar";
+    var link = document.createElement("a");
+    link.className = "btn";
+    link.href = "#" + form.id;
+    link.textContent = addButtonLabel(table, form);
+    link.dataset.newForm = form.id;
+    bar.appendChild(link);
+    anchor.parentNode.insertBefore(bar, anchor);
+  });
+})();
+</script>
+<script src="/static/table_ux.js?v=20260928p1"></script>
+</body>
+</html>

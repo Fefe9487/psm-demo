@@ -1,0 +1,46 @@
+{% set fl = flags if flags is defined else {} %}
+<section class="sec">
+  <h3>登錄啟動前安全檢查結果 <small class="table-ref">表7.1-1</small></h3>
+  <p class="note">先逐台判定設備是否有啟動前安全檢查適用案件；適用設備須列執行紀錄，不適用須說明理由。全場所無適用案件時仍須完成逐台不適用判定，再填總體理由。同次檢查涉及多台設備時，逐台關聯紀錄。每筆改善建議分列。</p>
+  <form class="card" method="post" action="/wizard/flags">
+    <input type="hidden" name="step" value="7">
+    <input type="hidden" name="pssr_na" value="0">
+    <label class="chk"><input type="checkbox" name="pssr_na" value="1" data-gate="pssr" {% if fl.get('pssr_na')=='1' %}checked{% endif %}> 本次無適用案件（無新建或尚未引入危害性化學品）</label>
+    <label data-panel="pssr" data-show="1" {% if fl.get('pssr_na')!='1' %}hidden{% endif %}>無適用案件理由 <input name="pssr_na_reason" value="{{ fl.get('pssr_na_reason') or '' }}" required></label>
+    <button type="submit">存聲明</button>
+  </form>
+  <div>
+    <h4>設備適用性</h4>
+    <table class="data"><tr><th>設備</th><th>判定</th><th>理由</th><th></th></tr>
+      {% for r in rows.get('7.0', []) %}<tr data-fill-form="form-70" data-json="{{ r | tojson | forceescape }}"><td>{{ r.equipment_id }}</td><td>{{ '適用' if r.applicable == '1' else '不適用' }}</td><td>{{ r.reason or '' }}</td><td><button class="editish" type="button" data-fill-row>修改</button> <form class="inline" method="post" action="/wizard/row/delete"><input type="hidden" name="step" value="7"><input type="hidden" name="row_id" value="{{ r.row_id }}"><button class="linkish" type="submit">刪</button></form></td></tr>{% endfor %}
+    </table>
+    <form class="grid card" method="post" action="/wizard/row" id="form-70" data-add-label="存設備判定" data-edit-label="更新設備判定">
+      <input type="hidden" name="step" value="7"><input type="hidden" name="section" value="7.0">
+      <label>設備編號 <select name="equipment_id" data-edit-identity required>{% for e in eq_all %}<option value="{{ e.equipment_id }}">{{ e.equipment_id }} {{ e.name }}</option>{% endfor %}</select></label>
+      <label>是否適用 <select name="applicable" required><option value="1">適用</option><option value="0">不適用</option></select></label>
+      <label>判定理由（不適用必填） <input name="reason"></label>
+      <button type="submit">存設備判定</button>
+    </form>
+  </div>
+  <table class="data">
+    <tr><th>設備編號</th><th>設備名稱</th><th>所屬製程</th><th>執行時間</th><th>改善建議</th><th>預定完成日期</th><th>追蹤檢核結果</th><th></th></tr>
+    {% for r in rows.get('7.1', []) %}
+    <tr data-fill-form="form-71" data-json="{{ r | tojson | forceescape }}">
+      <td>{{ r.equipment_id }}</td><td>{{ r.equipment_name }}</td><td>{{ r.process_id }}</td>
+      <td>{{ r.when }}</td><td>{{ r.rec }}</td><td>{{ r.due }}</td><td>{{ r.track }}</td>
+      <td><button class="editish" type="button" data-fill-row>修改</button> <form class="inline" method="post" action="/wizard/row/delete"><input type="hidden" name="step" value="7"><input type="hidden" name="row_id" value="{{ r.row_id }}"><button class="linkish" type="submit">刪</button></form></td>
+    </tr>
+    {% endfor %}
+  </table>
+  <form class="grid card" method="post" action="/wizard/row" id="form-71" data-add-label="新增 7.1 列" data-edit-label="更新 7.1 列" data-panel="pssr" data-show="0" hidden>
+    <input type="hidden" name="step" value="7"><input type="hidden" name="section" value="7.1">
+    <label>設備編號
+      <select name="equipment_id" required>{% for e in eq_all %}<option value="{{ e.equipment_id }}" data-process="{{ e.process_id }}">{{ e.equipment_id }} {{ e.name }}／{{ e.process_id }}</option>{% endfor %}</select>
+    </label>
+    <label>執行日期 <input name="when" type="date" required></label>
+    <label>改善建議 <input name="rec"></label>
+    <label>預定完成日期 <input name="due" type="date"></label>
+    <label>追蹤檢核結果 <input name="track"></label>
+    <button type="submit">新增 7.1 列</button>
+  </form>
+</section>

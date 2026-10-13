@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>3.6 承攬管理</h2>
+{% include "_proc.html" %}
+<p class="note">事故摘要、原因與改善只登在附表11.2-1。本表只填承攬廠商、期間，並關聯事故項次。保養、工程、臨時維修都要填。</p>
+<table class="data">
+  <tr><th>項次</th><th>承攬人</th><th>期間</th><th>關聯事故</th><th>日期</th><th>類型</th><th>摘要</th><th>製程</th><th>設備</th></tr>
+  {% for i in incidents %}
+  <tr>
+    <td>{{ i.incident_id }}</td>
+    <td>{{ i.contractor_name }}</td>
+    <td>{{ i.contract_period or '' }}</td>
+    <td>{{ i.linked_incident_id or '' }}</td>
+    <td>{{ i.occur_date or '' }}</td>
+    <td>{{ i.incident_type }}</td>
+    <td>{{ i.summary }}</td>
+    <td>{{ i.process_id or '' }}</td>
+    <td>{{ i.equipment_id or '' }}</td>
+  </tr>
+  {% else %}
+  <tr><td colspan="9">（尚無附表6.2-1 列。有承攬但無事故請據實註明。）</td></tr>
+  {% endfor %}
+</table>
+<form class="grid card" method="post" action="/contractor">
+  <label>項次 <input name="incident_id" placeholder="空白則自動編"></label>
+  <label>承攬人／廠商 <input name="contractor_name" required></label>
+  <label>承攬期間 <input name="contract_period"></label>
+  <label>關聯事故項次
+    <select name="linked_incident_id">
+      <option value="">（先到附表十一建檔）</option>
+      {% for a in accidents %}
+      <option value="{{ a.incident_id }}">{{ a.incident_id }} {{ a.summary }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>類型
+    <select name="incident_type">{% for t in INCIDENT_TYPES %}<option>{{ t }}</option>{% endfor %}</select>
+  </label>
+  <button type="submit">新增承攬列</button>
+</form>
+{% endblock %}

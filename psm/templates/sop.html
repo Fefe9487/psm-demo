@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>3.4 標準作業程序</h2>
+{% include "_proc.html" %}
+<p>七階段正文空。每個製程都列出。SOP 分兩類：<strong>製程操作</strong>掛製程編號；<strong>機械設備操作</strong>掛該製程下的設備編號。不得手打製程名或設備名。</p>
+
+<h3>製程操作</h3>
+{% for p in board.processes %}
+<div class="op-block card">
+  <a class="op-head" href="/processes/{{ p.process_id }}">{{ p.process_id }} {{ p.name }} <span class="open">檢視</span></a>
+  <p class="muted">操作權責 {{ p.operating_dept_id }} {{ p.operating_dept_name }}</p>
+  <div class="table-bar"><a class="btn" href="#sop-process">新增</a></div>
+  <table class="data" data-no-auto-add>
+    <tr><th>SOP</th><th>標題</th><th>程序編號</th><th>正文</th></tr>
+    {% for s in p.sops %}
+    <tr><td>{{ s.sop_id }}</td><td>{{ s.title }}</td><td>{{ s.procedure_no or '' }}</td><td>（正文空）</td></tr>
+    {% else %}
+    <tr><td colspan="4" class="muted">尚未建立製程操作 SOP</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% else %}
+<p class="muted">還沒有製程。請先在核心資料表建立製程。</p>
+{% endfor %}
+
+<h3>機械設備操作</h3>
+{% for p in board.processes %}
+<div class="op-block card">
+  <a class="op-head" href="/processes/{{ p.process_id }}">{{ p.process_id }} {{ p.name }} <span class="open">檢視</span></a>
+  <div class="table-bar"><a class="btn" href="#sop-equipment">新增</a></div>
+  <table class="data" data-no-auto-add>
+    <tr><th>設備編號</th><th>名稱（JOIN）</th><th>SOP</th><th>標題</th><th>正文</th></tr>
+    {% for e in p.equipment %}
+      {% if e.sops %}
+        {% for s in e.sops %}
+        <tr>
+          <td>{{ e.equipment_id }}</td><td>{{ e.name }}</td>
+          <td>{{ s.sop_id }}</td><td>{{ s.title }}</td><td>（正文空）</td>
+        </tr>
+        {% endfor %}
+      {% else %}
+        <tr><td>{{ e.equipment_id }}</td><td>{{ e.name }}</td><td colspan="3" class="muted">尚未建立機械設備操作 SOP</td></tr>
+      {% endif %}
+    {% else %}
+    <tr><td colspan="5" class="muted">此製程尚無設備</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endfor %}
+
+<form id="sop-process" class="grid card" method="post">
+  <input type="hidden" name="op_kind" value="process">
+  <p class="note" style="grid-column:1/-1">新增製程操作 SOP</p>
+  <label>SOP 編號 <input name="sop_id" required></label>
+  <label>製程
+    <select name="process_id" required>
+      <option value="">（必選已有製程）</option>
+      {% for p in processes %}<option value="{{ p.process_id }}">{{ p.process_id }} {{ p.name }}</option>{% endfor %}
+    </select>
+  </label>
+  <label>標題 <input name="title" required></label>
+  <label>程序編號 <input name="procedure_no"></label>
+  <button type="submit">新增製程操作</button>
+</form>
+<form id="sop-equipment" class="grid card" method="post">
+  <input type="hidden" name="op_kind" value="equipment">
+  <p class="note" style="grid-column:1/-1">新增機械設備操作 SOP（製程由設備帶出）</p>
+  <label>SOP 編號 <input name="sop_id" required></label>
+  <label>設備
+    <select name="equipment_id" required>
+      <option value="">（必選已有設備）</option>
+      {% for e in equipment %}<option value="{{ e.equipment_id }}">{{ e.equipment_id }} {{ e.name }}（{{ e.process_id }}）</option>{% endfor %}
+    </select>
+  </label>
+  <label>標題 <input name="title" required></label>
+  <label>程序編號 <input name="procedure_no"></label>
+  <button type="submit">新增機械設備操作</button>
+</form>
+{% endblock %}

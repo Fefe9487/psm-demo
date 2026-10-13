@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>3.13 符合性稽核</h2>
+{% include "_proc.html" %}
+{% if plan and not plan.first_done %}
+<p>尚未第一次。預定實施日期：{{ plan.planned_date }}。{{ plan.notes }}</p>
+{% endif %}
+<p class="note">查核要點依十四單元固定列出，不另增列。要補的是各單元資料表。</p>
+<table class="data" data-no-auto-add>
+  <tr><th>項次</th><th>單元</th><th>查核要點（指回製程／設備／CAS，不另造名稱）</th></tr>
+  {% for c in checklist %}
+  <tr><td>{{ c.item_no }}</td><td>附表{{ c.unit_no }}</td><td>{{ c.prompt }}</td></tr>
+  {% endfor %}
+</table>
+{% endblock %}

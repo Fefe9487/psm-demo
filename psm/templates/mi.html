@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>3.8 機械完整性</h2>
+{% include "_proc.html" %}
+<p>附表8.1-1 從完整設備清單逐台篩選。結果不回寫設備主檔。腐蝕環路不做。提示不代替風險評分。</p>
+{% if mi_prompts %}
+<h3>寫死提示（機械完整性）</h3>
+<ul>
+  {% for p in mi_prompts %}
+  <li>{{ p.equipment_id }} {{ p.cas }}：{{ p.message }}
+    <form class="inline" method="post" action="/prompt/status">
+      <input type="hidden" name="prompt_id" value="{{ p.prompt_id }}">
+      <input type="hidden" name="next" value="/mi">
+      <select name="status">
+        <option value="open">待處理</option>
+        <option value="accepted">已採納</option>
+        <option value="not_applicable">不適用</option>
+      </select>
+      <input name="na_reason" placeholder="不適用理由">
+      <button type="submit">更新</button>
+    </form>
+  </li>
+  {% endfor %}
+</ul>
+{% endif %}
+{% for pid, st in esd.items() %}<p class="note">{{ pid }} ESD：{{ st.label }}</p>{% endfor %}
+<table class="data">
+  <tr><th>設備編號</th><th>設備類型</th><th>六大類</th><th>篩選</th><th>依據</th><th>運行小時</th><th>失效次數</th><th>次／百萬小時</th></tr>
+  {% for s in screens %}
+  <tr>
+    <td>{{ s.equipment_id }}</td><td>{{ s.equipment_type }}</td><td>{{ s.mi_type or '待確認' }}</td>
+    <td>{{ '是' if s.is_critical else '否' }}</td>
+    <td>{{ s.basis }}</td>
+    <td>{{ s.run_hours if s.run_hours is not none else '' }}</td>
+    <td>{{ s.failure_count if s.failure_count is not none else '' }}</td>
+    <td>{{ s.failure_rate if s.failure_rate is not none else '' }}</td>
+  </tr>
+  {% else %}
+  <tr><td colspan="8">（尚無附表8.1-1）</td></tr>
+  {% endfor %}
+</table>
+<h3>逐項檢查明細</h3>
+<table class="data">
+  <tr><th>設備</th><th>損壞機制</th><th>功能檢查項目</th><th>方式</th><th>頻率</th><th>程序書</th><th>P&amp;ID</th><th>狀態</th></tr>
+  {% for d in mi_details %}
+  <tr><td>{{ d.equipment_id }}</td><td>{{ d.damage_mechanism }}</td><td>{{ d.inspection_item }}</td><td>{{ d.inspect_method }}</td><td>{{ d.inspect_frequency }}</td><td>{{ d.procedure_ref }}</td><td>{{ d.pid_drawing_no }}</td><td>{{ '已確認' if d.confirmed else '待確認' }}</td></tr>
+  {% endfor %}
+</table>
+<form id="screen-add" class="grid card" method="post" action="/mi/screen">
+  <label>設備
+    <select name="equipment_id" required>
+      {% for e in equipment %}<option value="{{ e.equipment_id }}">{{ e.equipment_id }} {{ e.equipment_type }}</option>{% endfor %}
+    </select>
+  </label>
+  <label><input type="checkbox" name="is_critical"> 安全關鍵性設備</label>
+  <label>設備六大類 <select name="mi_type"><option value="">待確認</option>{% for t in mi_six %}<option>{{ t }}</option>{% endfor %}</select></label>
+  <label>依據 <input name="basis" required></label>
+  <label>損壞機制 <input name="damage_mechanism"></label>
+  <label>功能檢查項目 <input name="inspection_item"></label>
+  <label>檢驗方法 <input name="inspect_method"></label>
+  <label>檢驗頻率 <input name="inspect_frequency"></label>
+  <label>程序書編號 <input name="procedure_ref"></label>
+  <label>P&amp;ID 圖號 <input name="pid_drawing_no"></label>
+  <button type="submit">新增篩選</button>
+</form>
+<h3>檢查紀錄</h3>
+<table class="data">
+  <tr><th>檢查</th><th>設備</th><th>日期</th><th>人員</th><th>方法</th><th>結果</th></tr>
+  {% for i in inspections %}
+  <tr><td>{{ i.inspection_id }}</td><td>{{ i.equipment_id }}</td><td>{{ i.inspect_date }}</td>
+      <td>{{ i.inspector }}</td><td>{{ i.method }}</td><td>{{ i.result }}</td></tr>
+  {% endfor %}
+</table>
+<form class="grid card" method="post" action="/mi/inspection">
+  <label>檢查編號 <input name="inspection_id" required></label>
+  <label>設備
+    <select name="equipment_id">{% for e in equipment %}<option value="{{ e.equipment_id }}">{{ e.equipment_id }}</option>{% endfor %}</select>
+  </label>
+  <label>日期 <input name="inspect_date" required></label>
+  <label>人員 <input name="inspector" required></label>
+  <label>方法 <input name="method" required></label>
+  <label>結果 <input name="result" required></label>
+  <button type="submit">新增檢查</button>
+</form>
+{% endblock %}

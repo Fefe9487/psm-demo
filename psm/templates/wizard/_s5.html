@@ -1,0 +1,54 @@
+{% set fl = flags if flags is defined else {} %}
+<section class="sec">
+  <h3>安排製程與作業程序訓練 <small class="table-ref">表5.1-1</small></h3>
+  <p class="note">一列同時寫初次訓練時數、再次訓練頻率與再次訓練時數。同製程的多份 SOP 可關聯同一門課；未關聯 SOP 的課須說明原因。變更案件要引用的課，在表10.1-2 選這張表。</p>
+  <table class="data">
+    <tr><th>課程</th><th>適用對象</th><th>初次時數</th><th>再次頻率</th><th>再次時數</th><th>製程</th><th>對應作業程序</th><th>操作</th></tr>
+    {% for c in courses %}
+    <tr data-fill-form="form-51" data-json="{{ c | tojson | forceescape }}">
+      <td>{{ c.name }}</td><td>{{ c.audience }}</td><td>{{ c.hours }}</td>
+      <td>{{ c.refresh_every or '' }}</td><td>{{ c.refresh_hours if c.refresh_hours is not none else '' }}</td>
+      <td>{{ c.process_id }}</td><td>{{ c.sop_ids|join('、') if c.sop_ids else ('無：' ~ (c.no_sop_reason or '待說明')) }}</td><td><button class="editish" type="button" data-fill-row>修改</button> <form class="inline" method="post" action="/wizard/item/delete" data-confirm="刪除這門課程及相關訓練紀錄？"><input type="hidden" name="kind" value="course"><input type="hidden" name="course_id" value="{{ c.course_id }}"><button class="linkish" type="submit">刪除</button></form></td>
+    </tr>
+    {% endfor %}
+  </table>
+  <form class="grid card" method="post" action="/wizard/5/course" id="form-51" data-add-label="新增訓練列" data-edit-label="更新訓練列">
+    <input type="hidden" name="kind" value="initial">
+    <label>課程編號 <input name="course_id" data-edit-identity required></label>
+    <label>課程 <input name="name" required></label>
+    <label>適用對象
+      <select name="audience" required>
+        <option>員工</option>
+        <option>承攬商</option>
+        <option>其他</option>
+      </select>
+    </label>
+    <label>初次訓練時數 <input name="hours" type="number" min="0.01" step="any" required></label>
+    <label>再次訓練頻率 <input name="refresh_every" placeholder="例如每年" required></label>
+    <label>再次訓練時數 <input name="refresh_hours" type="number" min="0.01" step="any" required></label>
+    <label>所屬製程
+      <select name="process_id" required>{% for p in processes %}<option value="{{ p.process_id }}">{{ p.process_id }} {{ p.name }}</option>{% endfor %}</select>
+    </label>
+    <label>關聯操作程序（可多選同製程 SOP）
+      <select name="sop_ids" multiple size="5">
+        {% for s in sops %}<option value="{{ s.sop_id }}">{{ s.process_id }}／{{ s.sop_id }} {{ s.title }}</option>{% endfor %}
+      </select>
+    </label>
+    <label>未關聯 SOP 的理由 <input name="no_sop_reason" placeholder="例：共通安全衛生課程"></label>
+    <label class="chk"><input type="checkbox" name="is_moc_related" value="1"> 供表10.1-2 選為變更教育訓練</label>
+    <button type="submit">新增訓練列</button>
+  </form>
+</section>
+<section class="sec">
+  <h3>逐份核對 SOP 與訓練課程</h3>
+  <p class="note">原則上每份 SOP 都須對應課程。若某份 SOP 確有例外，請留具體理由；沒有理由會留在待補清單。</p>
+  <table class="data"><tr><th>SOP</th><th>例外理由</th><th></th></tr>
+    {% for r in rows.get('5.1e', []) %}<tr data-fill-form="form-51e" data-json="{{ r | tojson | forceescape }}"><td>{{ r.sop_id }}</td><td>{{ r.reason }}</td><td><button class="editish" type="button" data-fill-row>修改</button> <form class="inline" method="post" action="/wizard/row/delete"><input type="hidden" name="step" value="5"><input type="hidden" name="row_id" value="{{ r.row_id }}"><button class="linkish" type="submit">刪</button></form></td></tr>{% endfor %}
+  </table>
+  <form class="grid card" method="post" action="/wizard/row" id="form-51e" data-add-label="記錄例外" data-edit-label="更新例外">
+    <input type="hidden" name="step" value="5"><input type="hidden" name="section" value="5.1e">
+    <label>SOP <select name="sop_id" data-edit-identity required>{% for s in sops %}<option value="{{ s.sop_id }}">{{ s.sop_id }} {{ s.title }}</option>{% endfor %}</select></label>
+    <label>例外理由 <input name="reason" required></label>
+    <button type="submit">記錄例外</button>
+  </form>
+</section>

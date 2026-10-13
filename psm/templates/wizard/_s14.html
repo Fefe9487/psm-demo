@@ -1,0 +1,21 @@
+{% set fl = flags if flags is defined else {} %}
+<section class="sec">
+  <h3>上傳商業機密管理程序書</h3>
+  <p class="note">本章無填報表。請上傳商業機密管理程序書，供審查程序與資訊提供方式。未揭露成分不需虛構 CAS。</p>
+  {% if secret_uploads %}
+    <h4>已附檔案</h4>
+    <table class="data"><tr><th>文件名稱</th><th>狀態</th><th>操作</th></tr>
+      {% for doc in secret_uploads %}<tr data-fill-form="form-secret-upload" data-json="{{ {'attachment_id': doc.attachment_id} | tojson | forceescape }}"><td>{{ doc.original_name }}</td><td>{% if '示範草稿' in (doc.note or '') %}<span class="muted">示範草稿，正式申報前須替換</span>{% else %}已上傳{% endif %}</td><td><button class="editish" type="button" data-fill-row>修改／換檔</button> <form class="inline" method="post" action="/wizard/item/delete" data-confirm="刪除這份程序書？"><input type="hidden" name="kind" value="secret_upload"><input type="hidden" name="attachment_id" value="{{ doc.attachment_id }}"><button class="linkish" type="submit">刪除</button></form></td></tr>{% endfor %}
+    </table>
+  {% endif %}
+  <form class="grid card" action="/wizard/14/upload" method="post" id="form-secret-upload" data-add-label="上傳程序書" data-edit-label="更新程序書" enctype="multipart/form-data">
+    <input type="hidden" name="attachment_id" value="">
+    <label>商業機密管理程序書 <input type="file" name="file" required></label>
+    <button type="submit">上傳程序書</button>
+  </form>
+</section>
+<p>
+  <a class="btn" href="/report" target="_blank">預覽申報報告</a>
+  <a class="btn secondary" href="/report/file">下載 HTML</a>
+  <a class="btn secondary" href="/demo">對照示範廠</a>
+</p>

@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>4 廠區位置圖（結構化；圖檔可佔位）</h2>
+<table class="data">
+  <tr><th>區域代碼</th><th>名稱</th><th>圖號</th><th>版次</th><th>日期</th><th>製程</th><th>集合點</th><th>附件</th></tr>
+  {% for a in areas %}
+  <tr>
+    <td>{{ a.area_code }}</td><td>{{ a.name }}</td><td>{{ a.drawing_no }}</td><td>{{ a.revision }}</td>
+    <td>{{ a.issue_date }}</td><td>{{ a.process_id or '' }}</td>
+    <td>{{ '是' if a.is_assembly_point else '否' }}</td><td>{{ a.attachment_path }}</td>
+  </tr>
+  {% endfor %}
+</table>
+<form class="grid card" method="post">
+  <label>區域代碼 <input name="area_code" required></label>
+  <label>名稱 <input name="name" required></label>
+  <label>圖號 <input name="drawing_no" required></label>
+  <label>版次 <input name="revision" required></label>
+  <label>制修訂日期 <input name="issue_date" required></label>
+  <label>對應製程
+    <select name="process_id">
+      <option value="">（建議填）</option>
+      {% for p in processes %}<option value="{{ p.process_id }}">{{ p.process_id }} {{ p.name }}</option>{% endfor %}
+    </select>
+  </label>
+  <label>附件路徑（可佔位） <input name="attachment_path" required placeholder="placeholder://PLOT-001"></label>
+  <label><input type="checkbox" name="is_assembly_point"> 集合點</label>
+  <button type="submit">新增區域</button>
+</form>
+{% endblock %}

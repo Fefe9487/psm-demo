@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="floor-page">
+  <header class="floor-bar">
+    <div>
+      <strong>{{ site.site_name if site else "（尚無場所）" }}</strong>
+      <p class="muted">填完區域與設備後的檢視。點製程卡片篩選並打開該製程摘要 → 再點「完整檢視」。點設備看關聯名稱。圖上不手打設備名或品名。</p>
+    </div>
+    <div class="floor-actions">
+      <a class="btn secondary" href="/wizard">回精靈</a>
+      <a class="btn" href="/report">產出十四章報告</a>
+    </div>
+  </header>
+  {% if not bundle.equipment %}
+    <p class="banner warn">還沒有設備可點。請先走首次填報精靈，或改看示範廠。</p>
+  {% endif %}
+  <div class="chips" id="process-chips">
+    <button type="button" class="chip on" data-process="">全部製程</button>
+    {% for p in bundle.processes %}
+      <button type="button" class="chip" data-process="{{ p.process_id }}">{{ p.process_id }} {{ p.name }}</button>
+    {% endfor %}
+  </div>
+  <div class="floor-wrap">
+    <div class="plant-card">
+      <svg id="plant-map" viewBox="0 0 960 540" role="img" aria-label="廠區示意">
+        {% for a in bundle.areas %}
+          <g class="area-g" data-area="{{ a.area_code }}">
+            <rect class="area-box" x="{{ a.x }}" y="{{ a.y }}" width="{{ a.w }}" height="{{ a.h }}" rx="10"/>
+            <text class="area-label" x="{{ a.x + 16 }}" y="{{ a.y + 28 }}">{{ a.area_code }} {{ a.name }}{% if a.is_assembly_point %} · 集合點{% endif %}</text>
+          </g>
+        {% endfor %}
+        {% for e in bundle.equipment %}
+          <g class="eq-g rank-{{ e.max_rank_label }}" data-eq="{{ e.equipment_id }}" data-process="{{ e.process_id }}" data-area="{{ e.area_code }}" transform="translate({{ e.x }},{{ e.y }})">
+            <circle class="eq-hit" r="28"/>
+            <text class="eq-id" y="-32">{{ e.equipment_id }}</text>
+          </g>
+        {% endfor %}
+      </svg>
+      <div class="legend">
+        <span class="swatch rank-低"></span>低
+        <span class="swatch rank-中"></span>中
+        <span class="swatch rank-高"></span>高
+        <span class="swatch rank-極高"></span>極高
+        <span class="swatch rank-無"></span>未評
+      </div>
+    </div>
+    <aside class="panel" id="side-panel">
+      <p class="muted">點製程卡片可篩選並檢視該製程；點區域篩該區；點設備編號看部門與評分。</p>
+    </aside>
+  </div>
+</div>
+<script type="application/json" id="floor-data">{{ bundle_json | safe }}</script>
+<script src="/static/floor.js"></script>
+{% endblock %}

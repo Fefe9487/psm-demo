@@ -1,0 +1,45 @@
+{% if document_requirements %}
+<section class="sec" id="chapter-documents">
+  <h3>本章程序書與佐證文件</h3>
+  <p class="note">同一文件版次只上傳一次。填文件編號、名稱與修訂日期後，可在其他章節選取既有文件；解除本章關聯不會刪除原檔。</p>
+  {% for purpose, label in document_requirements %}
+    {% set doc_form_id = 'doc-form-' ~ step ~ '-' ~ loop.index %}
+    <h4>{{ label }}</h4>
+    {% set linked = document_refs | selectattr('purpose', 'equalto', purpose) | list %}
+    {% if linked %}
+    <div class="table-wrap"><table class="data">
+      <tr><th>文件編號</th><th>名稱</th><th>修訂日期</th><th>操作</th></tr>
+      {% for doc in linked %}
+      <tr data-fill-form="{{ doc_form_id }}" data-json="{{ {'document_id': doc.document_id, 'document_no': doc.document_no, 'title': doc.title, 'revision_date': doc.revision_date} | tojson | forceescape }}"><td>{{ doc.document_no }}</td><td>{{ doc.title }}</td><td>{{ doc.revision_date }}</td>
+        <td><button class="editish" type="button" data-fill-row>修改</button> <form class="inline" method="post" action="/wizard/document/unlink" data-confirm="解除本章文件關聯？">
+          <input type="hidden" name="step" value="{{ step }}"><input type="hidden" name="purpose" value="{{ purpose }}">
+          <input type="hidden" name="document_id" value="{{ doc.document_id }}"><button class="linkish" type="submit">解除關聯</button>
+        </form></td></tr>
+      {% endfor %}
+    </table></div>
+    {% endif %}
+    <form class="grid card" method="post" action="/wizard/document/create" id="{{ doc_form_id }}" data-add-label="上傳文件" data-edit-label="更新文件資料" enctype="multipart/form-data">
+      <input type="hidden" name="step" value="{{ step }}"><input type="hidden" name="purpose" value="{{ purpose }}">
+      <input type="hidden" name="document_id" value="">
+      <label>文件編號 <input name="document_no" data-edit-identity required></label>
+      <label>文件名稱 <input name="title" required></label>
+      <label>最後修訂日期 <input name="revision_date" type="date" data-edit-identity required></label>
+      <label>實際檔案 <input name="file" type="file" required></label>
+      <button type="submit">上傳文件</button>
+    </form>
+    {% if documents %}
+    <form class="grid card" method="post" action="/wizard/document/link">
+      <input type="hidden" name="step" value="{{ step }}"><input type="hidden" name="purpose" value="{{ purpose }}">
+      <label>引用已上傳文件
+        <select name="document_id" required><option value="">（請選）</option>
+        {% for doc in documents if doc.is_uploaded %}
+        <option value="{{ doc.document_id }}">{{ doc.document_no }}｜{{ doc.title }}｜{{ doc.revision_date }}</option>
+        {% endfor %}
+        </select>
+      </label>
+      <button type="submit">引用既有文件</button>
+    </form>
+    {% endif %}
+  {% endfor %}
+</section>
+{% endif %}

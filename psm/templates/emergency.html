@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>3.12 緊急應變</h2>
+{% include "_proc.html" %}
+<p>計劃全文空。集合點用區域代碼。演練掛製程及後果編號。</p>
+{% if org %}
+<p>組織摘要：{{ org.org_summary }}　應變中心：{{ org.command_center }}</p>
+{% endif %}
+<p>集合點：
+  {% for a in areas if a.is_assembly_point %}{{ a.area_code }} {{ a.name }}{% if not loop.last %}、{% endif %}{% endfor %}
+</p>
+<table class="data">
+  <tr><th>演練</th><th>製程</th><th>後果</th><th>日期</th><th>說明</th></tr>
+  {% for d in drills %}
+  <tr><td>{{ d.drill_id }}</td><td>{{ d.process_id }}</td><td>{{ d.consequence_id }}</td>
+      <td>{{ d.drill_date }}</td><td>{{ d.notes }}</td></tr>
+  {% endfor %}
+</table>
+<form class="grid card" method="post" action="/emergency/drill">
+  <label>演練編號 <input name="drill_id" required></label>
+  <label>製程
+    <select name="process_id">{% for p in processes %}<option value="{{ p.process_id }}">{{ p.process_id }}</option>{% endfor %}</select>
+  </label>
+  <label>後果
+    <select name="consequence_id"><option value=""></option>
+      {% for c in consequences %}<option value="{{ c.consequence_id }}">{{ c.consequence_id }}</option>{% endfor %}
+    </select>
+  </label>
+  <label>日期 <input name="drill_date" required></label>
+  <label>說明 <input name="notes"></label>
+  <button type="submit">新增演練</button>
+</form>
+{% endblock %}

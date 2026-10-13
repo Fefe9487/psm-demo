@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="landing">
+  <span class="eyebrow">甲類工作場所</span>
+  <h2>製程安全管理初次填報</h2>
+  <p class="lede">本版填寫製程安全管理十四項。先建立場所與核心清單，再逐章填寫資料與附件；後續欄位會引用已建立的部門、製程、設備及化學品編號。</p>
+  <div class="landing-grid">
+    <a class="landing-card primary" href="/wizard/start">
+      <span class="kicker">新案件</span>
+      <strong>開始首次填報 <span aria-hidden="true">→</span></strong>
+      <p>建立核心清單；若已有填報資料，會接續編輯。完成後可選擇後續章節。</p>
+    </a>
+    <a class="landing-card" href="/demo">
+      <span class="kicker">參考範例</span>
+      <strong>查看示範廠 <span aria-hidden="true">→</span></strong>
+      <p>查看無水 HF 密閉接收、氣態供料與尾氣鹼洗的十四章填報案例及報告。</p>
+    </a>
+  </div>
+  <div class="landing-steps"><span>01 建立核心清單</span><span>02 填寫各章內容</span><span>03 預覽申報報告</span></div>
+</div>
+{% endblock %}

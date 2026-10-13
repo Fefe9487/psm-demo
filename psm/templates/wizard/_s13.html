@@ -1,0 +1,72 @@
+{% set fl = flags if flags is defined else {} %}
+<section class="sec">
+  <h3>規劃稽核並追蹤改善事項 <small class="table-ref">表13.1-1、13.2-1</small></h3>
+  <p class="note">尚未執行首次稽核者免填 13.1；本精靈為首次申請，13.2 免填。若已有稽核並自願填改善事項，每筆須引用 13.1 既有稽核項次，列出負責部門與預定完成日期。</p>
+  <form class="yn-grid card" method="post" action="/wizard/flags">
+    <input type="hidden" name="step" value="13">
+    <label>是否尚未執行首次稽核
+      <select name="audit_first" data-gate="audit-exec">
+        <option value="">（請選）</option>
+        <option value="是" {% if fl.get('audit_first')=='是' %}selected{% endif %}>是，13.1 免填</option>
+        <option value="否" {% if fl.get('audit_first')=='否' %}selected{% endif %}>否，已有稽核</option>
+      </select>
+    </label>
+    <div data-panel="audit-exec" data-show="否" hidden>
+    <input type="hidden" name="audit_zero" value="0">
+    <label class="chk"><input type="checkbox" name="audit_zero" value="1" data-gate="audit-zero" {% if fl.get('audit_zero')=='1' %}checked{% endif %}> 最近稽核無不符合（可選聲明）</label>
+    </div>
+    <button type="submit">存頁首</button>
+  </form>
+  <div data-panel="audit-exec" data-show="否" hidden>
+  <h4>登錄稽核計畫與執行人員 <small class="table-ref">表13.1-1</small></h4>
+  <table class="data">
+    <tr><th>日期時間</th><th>部門</th><th>單元</th><th>稽核員</th><th></th></tr>
+    {% for r in rows.get('13.1', []) %}
+    <tr data-fill-form="form-131" data-json="{{ r | tojson | forceescape }}"><td>{{ r.when }}</td><td>{{ r.dept_id }}</td><td>{{ r.unit }}</td><td>{{ r.auditor }}</td>
+      <td><button class="editish" type="button" data-fill-row>修改</button> <form class="inline" method="post" action="/wizard/row/delete"><input type="hidden" name="step" value="13"><input type="hidden" name="row_id" value="{{ r.row_id }}"><button class="linkish" type="submit">刪</button></form></td></tr>
+    {% endfor %}
+  </table>
+  <form class="grid card" method="post" action="/wizard/row" id="form-131" data-add-label="新增 13.1 列" data-edit-label="更新 13.1 列">
+    <input type="hidden" name="step" value="13"><input type="hidden" name="section" value="13.1">
+    <label>日期、時間 <input name="when" type="datetime-local" data-edit-identity required></label>
+    <label>受稽核部門
+      <select name="dept_id" required>{% for d in departments %}<option value="{{ d.dept_id }}">{{ d.dept_id }} {{ d.name }}</option>{% endfor %}</select>
+    </label>
+    <label>PSM 單元
+      <select name="unit">{% for i in range(1,15) %}<option>{{ unit_titles[i] }}</option>{% endfor %}</select>
+    </label>
+    <label>稽核員 <input name="auditor" required></label>
+    <label>備註 <input name="note"></label>
+    <button type="submit">新增 13.1 列</button>
+  </form>
+  <h4>自願登錄稽核改善進度 <small class="table-ref">表13.2-1</small></h4>
+  {% if rows.get('13.2', []) %}
+  <table class="data">
+    <tr><th>稽核日期</th><th>發現事項</th><th>改善措施</th><th>負責部門</th><th>預定完成</th><th>實際完成</th><th>操作</th></tr>
+    {% for r in rows.get('13.2', []) %}
+    <tr data-fill-form="form-132" data-json="{{ r | tojson | forceescape }}"><td>{{ r.plan_when or '' }}</td><td>{{ r.finding }}</td><td>{{ r.action }}</td><td>{{ r.dept_id or '' }}</td><td>{{ r.due or '' }}</td><td>{{ r.done or '' }}</td><td><button class="editish" type="button" data-fill-row>修改</button> <form class="inline" method="post" action="/wizard/row/delete" data-confirm="刪除這筆改善追蹤？"><input type="hidden" name="step" value="13"><input type="hidden" name="row_id" value="{{ r.row_id }}"><button class="linkish" type="submit">刪除</button></form></td></tr>
+    {% endfor %}
+  </table>
+  {% endif %}
+  <form class="grid card" method="post" action="/wizard/row" id="form-132" data-add-label="新增 13.2 列" data-edit-label="更新 13.2 列">
+    <input type="hidden" name="step" value="13"><input type="hidden" name="section" value="13.2">
+    <div data-panel="audit-zero" data-show="0">
+    <label>引用稽核項次
+      <select name="plan_when" required>
+        <option value="">（選表13.1-1）</option>
+        {% for r in rows.get('13.1', []) %}<option value="{{ r.when }}">{{ r.when }} {{ r.unit }}</option>{% endfor %}
+      </select>
+    </label>
+    <label>不符合／可改進事項 <input name="finding" required></label>
+    <label>改善措施 <input name="action" required></label>
+    <label>負責部門
+      <select name="dept_id">{% for d in departments %}<option value="{{ d.dept_id }}">{{ d.dept_id }} {{ d.name }}</option>{% endfor %}</select>
+    </label>
+    <label>預期完成時間 <input name="due" type="date" required></label>
+    <label>實際完成時間 <input name="done" type="date"></label>
+    <label>備註 <input name="note"></label>
+    <button type="submit">新增 13.2 列</button>
+    </div>
+  </form>
+  </div>
+</section>

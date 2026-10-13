@@ -1,0 +1,14 @@
+.venv/
+.server_deps/
+__pycache__/
+.pytest_cache/
+*.py[cod]
+*.log
+.env
+.env.*
+!.env.example
+data/qa-*/
+data/qa-tmp-*/
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm

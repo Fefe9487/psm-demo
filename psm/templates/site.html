@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>1 場所</h2>
+<form class="grid card" method="post" action="/site">
+  <label>場所識別 <input name="site_id" value="{{ site.site_id if site else 'DEMO-SITE' }}" required></label>
+  <label>事業單位名稱 <input name="company_name" value="{{ site.company_name if site else '' }}" required></label>
+  <label>場所名稱 <input name="site_name" value="{{ site.site_name if site else '' }}" required></label>
+  <label>範圍 <input name="scope" value="{{ site.scope if site else '' }}" required></label>
+  <label>申請義務人 <input name="applicant_name" value="{{ site.applicant_name if site else '' }}" required></label>
+  <label>評估基準日 <input name="assessment_base_date" value="{{ site.assessment_base_date if site else '' }}" required></label>
+  <label>場所勞工人數 <input name="worker_count" type="number" min="0" value="{{ site.worker_count if site else 0 }}"></label>
+  <label>無某設備類型聲明 <input name="declare_no_equipment_types" value="{{ site.declare_no_equipment_types if site else '' }}"></label>
+  <label><input type="checkbox" name="declare_no_incident_5y" {% if site and site.declare_no_incident_5y %}checked{% endif %}> 近五年事故 0 件</label>
+  <button type="submit">存檔</button>
+</form>
+{% endblock %}

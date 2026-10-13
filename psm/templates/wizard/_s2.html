@@ -1,0 +1,128 @@
+{% set fl = flags if flags is defined else {} %}
+<p class="note">不預設 HAZOP 線上節點工作表。評估紀錄以上傳為準。嚴重度、可能性與風險等級的定義寫在表2.3；高風險情境寫在表2.4-1。</p>
+
+<section class="sec">
+  <h3>選擇危害評估方法並說明原因 <small class="table-ref">表2.1-1</small></h3>
+  <form class="card" method="post" action="/wizard/flags">
+    <input type="hidden" name="step" value="2">
+    <input type="hidden" name="pha_methods_present" value="1">
+    {% for mid, title, qty in pha_methods %}
+    <label class="chk"><input type="checkbox" name="pha_methods" value="{{ mid }}" data-gate="pha-{{ mid }}" {% if mid in selected_methods %}checked{% endif %}> {{ title }}</label>
+    <label data-panel="pha-{{ mid }}" data-show="{{ mid }}" hidden>{{ title }}之採用原因
+      <textarea name="consider:{{ mid }}" rows="2">{{ fl.get('consider:' + mid, '') }}</textarea>
+    </label>
+    {% endfor %}
+    <button type="submit">存 2.1</button>
+  </form>
+</section>
+
+<section class="sec">
+  <h3>填寫評估問題數並附上紀錄 <small class="table-ref">表2.2-1</small></h3>
+  <p class="note">每份評估紀錄有獨立編號、方法、考量問題數與檔案；本表不掛製程。高風險情境從已上傳紀錄選編號。</p>
+  <form class="grid card" method="post" action="/wizard/flags">
+    <input type="hidden" name="step" value="2">
+    <input type="hidden" name="pha_consider" value="{{ fl.get('pha_consider','') }}">
+    {% for mid, title, qty in pha_methods %}
+    <label data-panel="pha-{{ mid }}" data-show="{{ mid }}" hidden>{{ title }}（{{ qty }}） <input name="qty:{{ mid }}" value="{{ fl.get('qty:' + mid, '') }}"></label>
+    {% endfor %}
+    <button type="submit">存 2.2</button>
+  </form>
+</section>
+
+<section class="sec">
+  <h4>上傳評估紀錄</h4>
+  <table class="data" data-add-form="form-pha-record" data-add-label="上傳評估紀錄">
+    <tr><th>紀錄編號</th><th>方法</th><th>考量問題數</th><th>日期</th><th>檔案</th><th>操作</th></tr>
+    {% for r in pha_records %}
+    <tr data-fill-form="form-pha-record" data-json="{{ {'record_id': r.record_id, 'method': r.method, 'question_count': r.question_count, 'record_date': r.record_date, 'file_name': r.original_name} | tojson | forceescape }}"><td>{{ r.record_id }}</td><td>{{ r.method }}</td><td>{{ r.question_count }}</td><td>{{ r.record_date }}</td><td>{{ r.original_name }}（{{ '已上傳' if r.is_uploaded else '檔案待補' }}）</td>
+      <td><button class="editish" type="button" data-fill-row>修改</button> <form class="inline" method="post" action="/wizard/2/record/delete" data-confirm="確定刪除這份評估紀錄？"><input type="hidden" name="record_id" value="{{ r.record_id }}"><button class="linkish" type="submit">刪除</button></form></td></tr>
+    {% endfor %}
+  </table>
+  <form class="card" method="post" action="/wizard/flags">
+    <input type="hidden" name="step" value="2">
+    <input type="hidden" name="pha_consider" value="{{ fl.get('pha_consider','') }}">
+    <label data-panel="pha-checklist" data-show="checklist" hidden>檢核表無矩陣時之風險等級說明 <input name="risk_narrative" value="{{ fl.get('risk_narrative','') }}"></label>
+    <button type="submit">存說明</button>
+  </form>
+  {% if pha_uploads %}
+  <h4>已上傳評估紀錄</h4>
+  <table class="data" data-no-auto-add>
+    <tr><th>製程</th><th>文件</th><th>方法</th><th>附件狀態</th><th>操作</th></tr>
+    {% for a in pha_uploads %}
+    <tr data-fill-form="form-pha-record" data-json="{{ {'attachment_id': a.attachment_id, 'process_id': a.process_id or '', 'file_name': a.original_name, 'method': a.note or ''} | tojson | forceescape }}"><td>{{ a.process_id }}</td><td>{{ a.original_name }}</td><td>{{ a.note or '' }}</td><td>{% if a.is_uploaded %}已上傳{% else %}僅範例檔名，待上傳{% endif %}</td><td><button class="editish" type="button" data-fill-row>修改</button> <form class="inline" method="post" action="/wizard/item/delete" data-confirm="刪除這份評估紀錄？"><input type="hidden" name="kind" value="pha_upload"><input type="hidden" name="attachment_id" value="{{ a.attachment_id }}"><button class="linkish" type="submit">刪除</button></form></td></tr>
+    {% endfor %}
+  </table>
+  {% endif %}
+  <form class="grid card" method="post" action="/wizard/2/upload" id="form-pha-record" data-add-label="上傳評估紀錄" data-edit-label="更新評估紀錄" enctype="multipart/form-data">
+    <input type="hidden" name="attachment_id" value="">
+    <label data-pha-record-only>評估紀錄編號 <input name="record_id" data-edit-identity required placeholder="例如 PHA-2026-001"></label>
+    <label>所屬製程（獨立附件可選） <select name="process_id"><option value="">（無）</option>{% for p in processes %}<option value="{{ p.process_id }}">{{ p.process_id }} {{ p.name }}</option>{% endfor %}</select></label>
+    <label>評估方法 <select name="method" required><option value="">（請選）</option>{% for mid, title, qty in pha_methods %}<option value="{{ mid }}">{{ title }}</option>{% endfor %}</select></label>
+    <label data-pha-record-only>考量問題數 <input name="question_count" type="number" min="0" step="1" required></label>
+    <label data-pha-record-only>紀錄日期 <input name="record_date" type="date" required></label>
+    <label>文件名稱（可留空，預設使用檔名） <input name="file_name" placeholder="例如：製程危害評估紀錄"></label>
+    <label>評估紀錄檔案 <input type="file" name="file" required></label>
+    <button type="submit">上傳評估紀錄</button>
+  </form>
+</section>
+
+<section class="sec">
+  <h3>定義嚴重度、可能性與風險等級 <small class="table-ref">表2.3-1 至 2.3-3</small></h3>
+  <p class="note">採用風險矩陣或乘積法時，三張定義都要有列。只用檢核表、沒有風險分級時，勾下面即可。</p>
+  <form class="card" method="post" action="/wizard/flags">
+    <input type="hidden" name="step" value="2">
+    <input type="hidden" name="risk_na" value="0">
+    <label class="chk"><input type="checkbox" name="risk_na" value="1" {% if fl.get('risk_na')=='1' %}checked{% endif %}> 僅檢核表、無風險分級（表2.3 不適用）</label>
+    <button type="submit">存註明</button>
+  </form>
+  <table class="data">
+    <tr><th>種類</th><th>代號</th><th>說明</th><th></th></tr>
+    {% for r in rows.get('2.3', []) %}
+    <tr data-fill-form="form-23" data-json="{{ r | tojson | forceescape }}"><td>{{ r.kind }}</td><td>{{ r.code }}</td><td>{{ r.desc }}</td>
+      <td><button class="editish" type="button" data-fill-row>修改</button> <form class="inline" method="post" action="/wizard/row/delete"><input type="hidden" name="step" value="2"><input type="hidden" name="row_id" value="{{ r.row_id }}"><button class="linkish" type="submit">刪</button></form></td></tr>
+    {% endfor %}
+  </table>
+  <form class="grid card" method="post" action="/wizard/row" id="form-23" data-add-label="新增定義列" data-edit-label="更新定義列">
+    <input type="hidden" name="step" value="2"><input type="hidden" name="section" value="2.3">
+    <label>種類
+      <select name="kind" required>
+        <option>嚴重度</option>
+        <option>可能性</option>
+        <option>風險等級</option>
+      </select>
+    </label>
+    <label>代號或分數 <input name="code" required></label>
+    <label>說明 <input name="desc" required></label>
+    <button type="submit">新增定義列</button>
+  </form>
+</section>
+
+<section class="sec">
+  <h3>列出需要優先處理的高風險情境 <small class="table-ref">表2.4-1</small></h3>
+  <p class="note">評估紀錄編號與製程必填。有改善建議才填預計完成與追蹤。</p>
+  <table class="data">
+    <tr><th>評估紀錄</th><th>製程</th><th>設備</th><th>情境</th><th>既有防範</th><th>改善建議</th><th></th></tr>
+    {% for r in rows.get('2.4', []) %}
+    <tr data-fill-form="form-24" data-json="{{ r | tojson | forceescape }}"><td>{{ r.assessment_id or '' }}</td><td>{{ r.process_id or '' }}</td><td>{{ r.equipment_id }}</td><td>{{ r.scenario }}</td><td>{{ r.safeguard }}</td><td>{{ r.improvement or '' }}</td>
+      <td><button class="editish" type="button" data-fill-row>修改</button> <form class="inline" method="post" action="/wizard/row/delete"><input type="hidden" name="step" value="2"><input type="hidden" name="row_id" value="{{ r.row_id }}"><button class="linkish" type="submit">刪</button></form></td></tr>
+    {% endfor %}
+  </table>
+  <form class="grid card" method="post" action="/wizard/row" id="form-24" data-add-label="新增 2.4 列" data-edit-label="更新 2.4 列">
+    <input type="hidden" name="step" value="2"><input type="hidden" name="section" value="2.4">
+    <label>評估紀錄編號 <select name="assessment_id" required><option value="">（先上傳表2.2-1）</option>{% for r in pha_records %}<option value="{{ r.record_id }}">{{ r.record_id }}｜{{ r.original_name }}</option>{% endfor %}</select></label>
+    <label>所屬製程
+      <select name="process_id" id="pha24-process" required>{% for p in processes %}<option value="{{ p.process_id }}">{{ p.process_id }} {{ p.name }}</option>{% endfor %}</select>
+    </label>
+    <label>相關設備（可複選；製程整體情境可不選）
+      <select name="equipment_id" id="pha24-equipment" multiple size="5">{% for e in eq_all %}<option value="{{ e.equipment_id }}" data-process="{{ e.process_id }}">{{ e.equipment_id }} {{ e.name }}</option>{% endfor %}</select>
+    </label>
+    <p id="pha24-equipment-change" class="note span-all" role="status" hidden></p>
+    <label>高嚴重度及高風險情境 <input name="scenario" required></label>
+    <label>既有防範措施 <input name="safeguard" required></label>
+    <label>改善建議 <input name="improvement"></label>
+    <label>預計完成 <input name="due" type="date"></label>
+    <label>追蹤 <input name="track"></label>
+    <button type="submit">新增 2.4 列</button>
+  </form>
+</section>
+

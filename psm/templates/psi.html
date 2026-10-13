@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>存量與上下限</h2>
+{% include "_proc.html" %}
+<h3>表3.1-1 最大存量</h3>
+<table class="data">
+  <tr><th>CAS</th><th>製程</th><th>kg</th><th>區域</th><th>說明</th></tr>
+  {% for r in inventory %}
+  <tr><td>{{ r.cas }}</td><td>{{ r.process_id }}</td><td>{{ r.max_kg }}</td><td>{{ r.area_code }}</td><td>{{ r.calc_note }}</td></tr>
+  {% endfor %}
+</table>
+<form class="grid card" method="post" action="/psi/inventory">
+  <label>CAS
+    <select name="cas">{% for c in chemicals %}<option value="{{ c.cas }}">{{ c.cas }} / {{ c.process_id }}</option>{% endfor %}</select>
+  </label>
+  <label>製程
+    <select name="process_id">{% for p in processes %}<option value="{{ p.process_id }}">{{ p.process_id }}</option>{% endfor %}</select>
+  </label>
+  <label>最大存量 kg <input name="max_kg" required></label>
+  <label>區域
+    <select name="area_code">{% for a in areas %}<option value="{{ a.area_code }}">{{ a.area_code }}</option>{% endfor %}</select>
+  </label>
+  <label>計算說明 <input name="calc_note"></label>
+  <button type="submit">新增存量</button>
+</form>
+
+<h3>表3.1-2 安全上下限</h3>
+<table class="data">
+  <tr><th>設備</th><th>參數</th><th>單位</th><th>設計高</th><th>設計低</th><th>安全上</th><th>安全下</th></tr>
+  {% for r in limits %}
+  <tr><td>{{ r.equipment_id }}</td><td>{{ r.parameter }}</td><td>{{ r.unit }}</td>
+      <td>{{ r.design_high }}</td><td>{{ r.design_low }}</td><td>{{ r.safety_high }}</td><td>{{ r.safety_low }}</td></tr>
+  {% endfor %}
+</table>
+<form class="grid card" method="post" action="/psi/limit">
+  <label>設備
+    <select name="equipment_id">{% for e in equipment %}<option value="{{ e.equipment_id }}">{{ e.equipment_id }}</option>{% endfor %}</select>
+  </label>
+  <label>參數 <input name="parameter" required></label>
+  <label>單位 <input name="unit"></label>
+  <label>設計高 <input name="design_high"></label>
+  <label>設計低 <input name="design_low"></label>
+  <label>安全上 <input name="safety_high"></label>
+  <label>安全下 <input name="safety_low"></label>
+  <button type="submit">新增上下限</button>
+</form>
+
+<h3>建造材料／釋壓／連鎖（seed 已有；畫面列出）</h3>
+<table class="data">
+  <tr><th>設備</th><th>材質</th><th>規格</th></tr>
+  {% for r in materials %}<tr><td>{{ r.equipment_id }}</td><td>{{ r.material }}</td><td>{{ r.spec }}</td></tr>{% endfor %}
+</table>
+<form class="grid card" method="post" action="/psi/material">
+  <label>設備
+    <select name="equipment_id" required>{% for e in equipment %}<option value="{{ e.equipment_id }}">{{ e.equipment_id }}</option>{% endfor %}</select>
+  </label>
+  <label>建造材料 <input name="material" required></label>
+  <label>材質類別
+    <select name="material_category">{% for m in MATERIAL_CATEGORIES %}<option>{{ m }}</option>{% endfor %}</select>
+  </label>
+  <label>規格 <input name="spec"></label>
+  <button type="submit">新增材料</button>
+</form>
+<table class="data">
+  <tr><th>釋壓設備</th><th>類型</th><th>設定</th><th>CAS</th><th>圖號</th></tr>
+  {% for r in relief %}
+  <tr><td>{{ r.equipment_id }}</td><td>{{ r.device_type }}</td><td>{{ r.set_pressure }}</td>
+      <td>{{ r.released_cas }}</td><td>{{ r.pid_drawing_no }}</td></tr>
+  {% endfor %}
+</table>
+<form class="grid card" method="post" action="/psi/relief">
+  <label>釋壓設備
+    <select name="equipment_id" required>{% for e in equipment %}<option value="{{ e.equipment_id }}">{{ e.equipment_id }}</option>{% endfor %}</select>
+  </label>
+  <label>類型 <input name="device_type" required placeholder="安全閥"></label>
+  <label>設定壓力 <input name="set_pressure"></label>
+  <label>CAS
+    <select name="released_cas"><option value=""></option>{% for c in chemicals %}<option value="{{ c.cas }}|{{ c.process_id }}">{{ c.cas }} / {{ c.process_id }}</option>{% endfor %}</select>
+  </label>
+  <label>圖號
+    <select name="pid_drawing_no"><option value=""></option>{% for d in drawings %}<option value="{{ d.drawing_no }}|{{ d.revision }}">{{ d.drawing_no }} {{ d.revision }}</option>{% endfor %}</select>
+  </label>
+  <button type="submit">新增釋壓</button>
+</form>
+<table class="data">
+  <tr><th>連鎖</th><th>設備</th><th>功能</th><th>方案</th></tr>
+  {% for r in interlocks %}
+  <tr><td>{{ r.interlock_id }}</td><td>{{ r.equipment_id }}</td><td>{{ r.function_desc }}</td><td>{{ r.scenario_id }}</td></tr>
+  {% endfor %}
+</table>
+<form class="grid card" method="post" action="/psi/interlock">
+  <label>連鎖編號 <input name="interlock_id" required></label>
+  <label>設備
+    <select name="equipment_id" required>{% for e in equipment %}<option value="{{ e.equipment_id }}">{{ e.equipment_id }} {{ e.process_id }}</option>{% endfor %}</select>
+  </label>
+  <label>名稱 <input name="name" required></label>
+  <label>功能 <input name="function_desc" required></label>
+  <label>方案
+    <select name="scenario_id"><option value=""></option>{% for s in scenarios %}<option value="{{ s.scenario_id }}">{{ s.scenario_id }}</option>{% endfor %}</select>
+  </label>
+  <button type="submit">新增連鎖</button>
+</form>
+
+<h3>裝卸佔用（車牌不新增 Equipment）</h3>
+<table class="data">
+  <tr><th>佔用</th><th>設備</th><th>製程</th><th>CAS</th><th>車牌或容器號</th><th>起迄</th></tr>
+  {% for r in occupancy %}
+  <tr><td>{{ r.occupancy_id }}</td><td>{{ r.equipment_id }}</td><td>{{ r.process_id }}</td>
+      <td>{{ r.cas }}</td><td>{{ r.plate_or_container }}</td><td>{{ r.start_ts }}–{{ r.end_ts }}</td></tr>
+  {% endfor %}
+</table>
+<form class="grid card" method="post" action="/psi/occupancy">
+  <label>佔用編號 <input name="occupancy_id" required></label>
+  <label>裝卸設備
+    <select name="equipment_id">
+      {% for e in equipment if e.equipment_type == '裝卸及輸送' %}
+        <option value="{{ e.equipment_id }}">{{ e.equipment_id }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>製程
+    <select name="process_id">{% for p in processes %}<option value="{{ p.process_id }}">{{ p.process_id }}</option>{% endfor %}</select>
+  </label>
+  <label>CAS
+    <select name="cas">{% for c in chemicals %}<option value="{{ c.cas }}">{{ c.cas }} / {{ c.process_id }}</option>{% endfor %}</select>
+  </label>
+  <label>車牌或容器號 <input name="plate_or_container" required></label>
+  <label>開始 <input name="start_ts" required></label>
+  <label>結束 <input name="end_ts"></label>
+  <button type="submit">新增佔用</button>
+</form>
+{% endblock %}

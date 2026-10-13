@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>製程－設備－化學品對應表</h2>
+<p class="note">只記<strong>實際存在</strong>的關係。沒有「一次產生該製程全部設備 × 全部化學品」的按鈕。每台設備至少一列（有化學品或聲明無）之後，該製程才能評分。三張核心表仍是索引，十四項沒有被拆掉。</p>
+{% if map_reasons %}
+  <div class="banner warn">尚未覆蓋：{{ map_reasons | join("；") }}</div>
+{% endif %}
+<table class="data">
+  <tr><th>製程</th><th>設備</th><th>CAS</th><th>危害說明</th><th>材質</th><th>可能殘留</th><th>檢討</th><th>無製程化學品</th></tr>
+  {% for m in pec_maps %}
+  <tr>
+    <td>{{ m.process_id }} {{ m.process_name }}</td>
+    <td>{{ m.equipment_id }} {{ m.equipment_name }}</td>
+    <td>{{ m.cas or '—' }} {{ m.chemical_name or '' }}{% if m.sds_id %}（{{ m.sds_id }}）{% endif %}</td>
+    <td>{{ m.h_codes }}</td>
+    <td>{{ m.material or '' }}</td>
+    <td>{{ '是' if m.may_remain else '否' }}</td>
+    <td>{{ m.review_notes or '' }}</td>
+    <td>{{ '是' if m.no_process_chemical else '否' }}</td>
+  </tr>
+  {% else %}
+  <tr><td colspan="8" class="muted">尚無對應列。請一筆一筆新增實際關係。</td></tr>
+  {% endfor %}
+</table>
+<form class="grid card" method="post" action="/map">
+  <label>製程
+    <select name="process_id" required>
+      {% for p in processes %}<option value="{{ p.process_id }}">{{ p.process_id }} {{ p.name }}</option>{% endfor %}
+    </select>
+  </label>
+  <label>設備（須屬所選製程）
+    <select name="equipment_id" required>
+      {% for e in equipment %}<option value="{{ e.equipment_id }}">{{ e.equipment_id }} {{ e.name }}（{{ e.process_id }}）</option>{% endfor %}
+    </select>
+  </label>
+  <label>化學品代號
+    <select name="cas">
+      <option value="">（無或聲明無時留空）</option>
+      {% for c in chemicals %}<option value="{{ c.cas }}||{{ c.sds_id }}">{{ c.cas }} {{ c.name }}（{{ c.process_id }}／{{ c.sds_id }}）</option>{% endfor %}
+    </select>
+  </label>
+  <label>材質（可帶入設備建造材料） <input name="material"></label>
+  <label class="chk"><input type="checkbox" name="no_process_chemical"> 本設備無製程化學品</label>
+  <label class="chk"><input type="checkbox" name="may_remain"> 可能殘留</label>
+  <label class="chk"><input type="checkbox" name="confirmed"> 已確認</label>
+  <label>檢討說明 <input name="review_notes"></label>
+  <label>不適用理由 <input name="na_reason"></label>
+  <button type="submit">新增實際對應列</button>
+</form>
+{% endblock %}

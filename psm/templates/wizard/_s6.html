@@ -1,0 +1,47 @@
+{% set fl = flags if flags is defined else {} %}
+<section class="sec">
+  <h3>登錄承攬商與承攬期間</h3>
+  <p class="note">保養、工程及臨時維修都屬承攬。即使近五年沒有事故，也請登錄實際承攬商與期間。</p>
+  <table class="data">
+    <tr><th>承攬商</th><th>承攬期間</th><th>工作內容</th><th>操作</th></tr>
+    {% for c in contractors %}
+    <tr data-fill-form="form-61" data-json="{{ c | tojson | forceescape }}"><td>{{ c.name }}</td><td>{{ c.contract_period }}</td><td>{{ c.work_description }}</td>
+      <td><button class="editish" type="button" data-fill-row>修改</button> <form class="inline" method="post" action="/wizard/6/contractor/delete" data-confirm="確定刪除這家承攬商？"><input type="hidden" name="contractor_id" value="{{ c.contractor_id }}"><button class="linkish" type="submit">刪除</button></form></td></tr>
+    {% endfor %}
+  </table>
+  <form class="grid card" method="post" action="/wizard/6/contractor" id="form-61" data-add-label="新增承攬商" data-edit-label="更新承攬商">
+    <input type="hidden" name="contractor_id" value="">
+    <label>承攬商名稱 <input name="name" required></label>
+    <label>承攬期間 <input name="contract_period" required placeholder="例如 2026-01-01 至 2026-12-31"></label>
+    <label>工作內容 <input name="work_description" placeholder="例如設備保養、管線維修"></label>
+    <button type="submit">新增承攬商</button>
+  </form>
+  <form class="card" method="post" action="/wizard/flags">
+    <input type="hidden" name="step" value="6"><input type="hidden" name="c_roster_complete" value="0">
+    <label class="chk"><input type="checkbox" name="c_roster_complete" value="1" {% if fl.get('c_roster_complete')=='1' %}checked{% endif %}> 已核對本場所所有保養、工程及臨時維修承攬商均已登錄</label>
+    <button type="submit">存名冊確認</button>
+  </form>
+</section>
+<section class="sec">
+  <h3>關聯承攬作業事故 <small class="table-ref">表6.2-1</small></h3>
+  <p class="note">事故的日期、原因與改善措施先在第十一章登錄，這裡選事故項次。若第十一章尚未填，可先暫存事故摘要；送出前仍須補上關聯。</p>
+  <form class="card" method="post" action="/wizard/flags">
+    <input type="hidden" name="step" value="6"><input type="hidden" name="c_no_accident" value="0">
+    <label class="chk"><input type="checkbox" name="c_no_accident" value="1" {% if fl.get('c_no_accident')=='1' %}checked{% endif %}> 近五年無承攬職災或虛驚</label>
+    <button type="submit">存事故狀態</button>
+  </form>
+  <table class="data">
+    <tr><th>承攬商</th><th>承攬期間</th><th>關聯事故項次</th><th>暫存摘要</th><th>操作</th></tr>
+    {% for i in contractor_incidents %}
+    <tr data-fill-form="form-62" data-json="{{ i | tojson | forceescape }}"><td>{{ i.contractor_name }}</td><td>{{ i.contract_period or '' }}</td><td>{{ i.linked_incident_id or '待補關聯' }}</td><td>{{ i.summary or '' }}</td>
+      <td><button class="editish" type="button" data-fill-row>修改</button> <form class="inline" method="post" action="/wizard/item/delete" data-confirm="刪除這筆承攬事故關聯？"><input type="hidden" name="kind" value="contractor"><input type="hidden" name="incident_id" value="{{ i.incident_id }}"><button class="linkish" type="submit">刪除</button></form></td></tr>
+    {% endfor %}
+  </table>
+  <form class="grid card" method="post" action="/wizard/6/incident" id="form-62" data-add-label="新增事故關聯" data-edit-label="更新事故關聯">
+    <input type="hidden" name="incident_id" value="">
+    <label>承攬商 <select name="contractor_id" required><option value="">（先登錄承攬商）</option>{% for c in contractors %}<option value="{{ c.contractor_id }}">{{ c.name }}｜{{ c.contract_period }}</option>{% endfor %}</select></label>
+    <label>事故項次（表11.2-1）<select name="linked_incident_id"><option value="">（尚未建立，可暫存）</option>{% for i in site_incidents %}<option value="{{ i.incident_id }}">{{ i.incident_id }} {{ i.summary }}</option>{% endfor %}</select></label>
+    <label>暫存摘要（尚未選事故項次時必填）<input name="summary"></label>
+    <button type="submit">新增事故關聯</button>
+  </form>
+</section>

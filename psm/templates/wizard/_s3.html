@@ -1,0 +1,44 @@
+{% set fl = flags if flags is defined else {} %}
+{% set labor_grid = labor_grid if labor_grid is defined else [] %}
+<section class="sec">
+  <h3>說明勞工如何參與各項安全管理工作 <small class="table-ref">表3.1-1</small></h3>
+  <p class="note">依現場實際作法新增參與項目，填寫參與方式與人員；可逐項修改或刪除。要完成本章，十三項都需要有參與方式。程序書可在下方上傳。</p>
+  {% if labor_grid %}
+    <div class="table-wrap">
+    <table class="data labor-grid">
+      <tr><th>製程安全管理項目</th><th>參與方式或主要參與活動</th><th>參與人員或部門</th><th>備註</th><th>操作</th></tr>
+      {% for r in labor_grid %}
+      <tr data-fill-form="form-labor" data-json="{{ {'item': r.item, 'how': r.how, 'who': r.who, 'note': r.note} | tojson | forceescape }}">
+        <td>{{ r.item }}</td><td>{{ r.how }}</td><td>{{ r.who }}</td><td>{{ r.note }}</td>
+        <td><button class="editish" type="button" data-fill-row>編輯</button> <form class="inline" method="post" action="/wizard/row/delete" data-confirm="刪除這項參與方式？"><input type="hidden" name="step" value="3"><input type="hidden" name="row_id" value="{{ r.row_id }}"><button class="linkish" type="submit">刪除</button></form></td>
+      </tr>
+      {% endfor %}
+    </table>
+    </div>
+  {% endif %}
+  <form class="grid card" id="form-labor" method="post" action="/wizard/3/labor">
+    <label>參與項目 <select name="item" required><option value="">（請選擇）</option>{% for item in labor_items %}<option value="{{ item }}">{{ item }}</option>{% endfor %}</select></label>
+    <label>參與方式或活動 <input name="how" required placeholder="例如：參加評估會議並提出改善意見"></label>
+    <label>參與人員或部門 <input name="who" list="labor-who" placeholder="例如：操作課或所有勞工"></label>
+    <label>備註 <input name="note"></label>
+    <datalist id="labor-who">
+      <option value="所有勞工">
+      {% for d in departments %}<option value="{{ d.dept_id }}">{{ d.dept_id }} {{ d.name }}</option>{% endfor %}
+    </datalist>
+    <button type="submit">儲存參與項目</button>
+  </form>
+  <h4>程序書附件</h4>
+  <form class="grid card" method="post" action="/wizard/3/proc" enctype="multipart/form-data">
+    <label>文件名稱（可留空，預設使用檔名） <input name="labor_file" value="{{ fl.get('labor_file_name','') }}"></label>
+    <label>日期 <input name="labor_date" type="date" value="{{ fl.get('labor_date','') }}"></label>
+    <label>程序書檔案 <input type="file" name="file"></label>
+    <label class="chk"><input type="checkbox" name="labor_see_also" value="1" data-gate="labor-ref" {% if fl.get('labor_see_also')=='1' %}checked{% endif %}> 計畫見其他已上傳文件</label>
+    <label data-panel="labor-ref" data-show="1" hidden>選擇既有附件
+      <select name="labor_ref">
+        <option value="">（請選擇）</option>
+        {% for a in shared_uploads %}<option value="{{ a.attachment_id }}" {% if fl.get('labor_ref')==a.attachment_id|string %}selected{% endif %}>{{ a.original_name or a.kind }}（{{ a.kind }}）</option>{% endfor %}
+      </select>
+    </label>
+    <button type="submit">存 3.2</button>
+  </form>
+</section>

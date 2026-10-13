@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>3.3 勞工參與</h2>
+{% include "_proc.html" %}
+<p>當年度計畫附件：空。活動須選製程編號。</p>
+<table class="data">
+  <tr><th>活動</th><th>製程</th><th>類型</th><th>日期</th><th>說明</th></tr>
+  {% for a in activities %}
+  <tr><td>{{ a.activity_id }}</td><td>{{ a.process_id }}</td><td>{{ a.activity_type }}</td>
+      <td>{{ a.activity_date }}</td><td>{{ a.description }}</td></tr>
+  {% endfor %}
+</table>
+<form class="grid card" method="post">
+  <label>活動編號 <input name="activity_id" required></label>
+  <label>製程
+    <select name="process_id" required>
+      {% for p in processes %}<option value="{{ p.process_id }}">{{ p.process_id }}</option>{% endfor %}
+    </select>
+  </label>
+  <label>類型 <input name="activity_type" required></label>
+  <label>日期 <input name="activity_date" required></label>
+  <label>說明 <input name="description" required></label>
+  <button type="submit">新增活動</button>
+</form>
+{% endblock %}

@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>7 P&amp;ID 結構化登錄</h2>
+<p class="note">無圖號／版次／涵蓋設備者只當未登錄附件，HAZOP 不能勾該圖。</p>
+<div class="table-bar"><a class="btn" href="#pid-add">新增</a></div>
+<table class="data" data-no-auto-add>
+  <tr><th>圖號</th><th>版次</th><th>名稱</th><th>製程</th><th>現況</th><th>涵蓋設備</th></tr>
+  {% for d in drawings %}
+  <tr>
+    <td>{{ d.drawing_no }}</td><td>{{ d.revision }}</td><td>{{ d.name }}</td>
+    <td>{{ d.process_id }}</td><td>{{ '是' if d.is_as_built else '否' }}</td><td>{{ d.covering }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% if orphans %}
+<h3>未完成結構化之附件（不得供 HAZOP）</h3>
+<div class="table-bar"><a class="btn" href="#pid-add">新增</a></div>
+<table class="data" data-no-auto-add>
+  <tr><th>ID</th><th>製程</th><th>路徑</th><th>註記</th></tr>
+  {% for o in orphans %}
+  <tr><td>{{ o.attachment_id }}</td><td>{{ o.process_id or '' }}</td><td>{{ o.attachment_path }}</td><td>{{ o.note }}</td></tr>
+  {% endfor %}
+</table>
+{% endif %}
+<form id="pid-add" class="grid card" method="post">
+  <label>圖號 <input name="drawing_no"></label>
+  <label>版次 <input name="revision"></label>
+  <label>名稱 <input name="name"></label>
+  <label>製程
+    <select name="process_id"><option value=""></option>
+      {% for p in processes %}<option value="{{ p.process_id }}">{{ p.process_id }}</option>{% endfor %}
+    </select>
+  </label>
+  <label>制修訂日期 <input name="issue_date"></label>
+  <label>附件路徑 <input name="attachment_path" placeholder="可只上傳檔而不填圖號"></label>
+  <label><input type="checkbox" name="is_as_built" checked> 現況 as-built</label>
+  <label>涵蓋設備（多選 ID）
+    <select name="covering_ids" multiple size="6">
+      {% for e in equipment %}<option value="{{ e.equipment_id }}">{{ e.equipment_id }} {{ e.process_id }}</option>{% endfor %}
+    </select>
+  </label>
+  <button type="submit">新增圖資</button>
+</form>
+{% endblock %}

@@ -1,0 +1,974 @@
+{% from "_hazard_picker.html" import hazard_picker %}
+{% set pf = prefill if prefill is defined else {} %}
+{% set fl = flags if flags is defined else {} %}
+{% set blocks_15 = blocks_15 if blocks_15 is defined else [] %}
+{% set flow_blocks = flow_blocks if flow_blocks is defined else [] %}
+{% set block_process = block_process if block_process is defined else '' %}
+{% set block_process_row = block_process_row if block_process_row is defined else None %}
+{% set special_chem = special_chem if special_chem is defined else {} %}
+{% set reaction_types = reaction_types if reaction_types is defined else [] %}
+{% set vent_types = vent_types if vent_types is defined else [] %}
+{% set vent_levels = vent_levels if vent_levels is defined else [] %}
+{% set vent_avail = vent_avail if vent_avail is defined else [] %}
+{% set leak_levels = leak_levels if leak_levels is defined else [] %}
+{% set zone_levels = zone_levels if zone_levels is defined else [] %}
+{% set ratio_bases = ratio_bases if ratio_bases is defined else [] %}
+{% set phases = phases if phases is defined else ['固態', '液態', '氣態'] %}
+{% set esd_list = esd_list if esd_list is defined else [] %}
+{% set contents = contents if contents is defined else [] %}
+{% set annex_catalog = annex_catalog if annex_catalog is defined else [] %}
+<div class="prefill-zone">
+  <h3>先建立後續章節會用到的基本資料</h3>
+  <p class="note">先建立場所與部門，再建立製程、設備、化學品及區域；後面的欄位就能從清單選取，避免名稱不一致。<strong>按「編輯」可修改，按「刪除」會同步處理關聯資料。</strong>化學品可自行新增 CAS 與品名；法規清單有列的物質才會帶入規定數量。</p>
+
+  <h3>填寫場所資料並建立部門 <small class="table-ref">表1.0-1</small></h3>
+  <p class="note">場所是甲類範圍的邊界。第一次填報先建立部門，再供製程及設備選取。組織系統圖以附件上傳。</p>
+  <form class="grid card" method="post" action="/wizard/1">
+    <label>事業單位名稱 <input name="company_name" value="{{ wsite.company_name if wsite else pf.get('company_name', '') }}" required></label>
+    <label>場所名稱 <input name="site_name" value="{{ wsite.site_name if wsite else pf.get('site_name', '') }}" required></label>
+    <label>範圍 <input name="scope" value="{{ wsite.scope if wsite else pf.get('scope', '') }}" required></label>
+    <label>申請義務人 <input name="applicant_name" value="{{ wsite.applicant_name if wsite else pf.get('applicant_name', '') }}" required></label>
+    <label>場所勞工人數 <input name="worker_count" type="number" min="1" value="{{ wsite.worker_count if wsite else pf.get('worker_count', '') }}" required></label>
+    <label>評估基準日 <input name="assessment_base_date" type="date" value="{{ wsite.assessment_base_date if wsite else pf.get('assessment_base_date', '') }}" required></label>
+    <label class="chk"><input type="checkbox" name="declare_no_incident_5y" {% if wsite and wsite.declare_no_incident_5y %}checked{% endif %}> 近五年事故 0 件</label>
+    {% set absent_types = (wsite.declare_no_equipment_types if wsite else '').split(',') %}
+    {% set used_types = equipment|map(attribute='equipment_type')|list %}
+    <details class="span-all choice-details">
+      <summary>本場所沒有的設備類型（選填）</summary>
+      <p class="note">只勾確定沒有的類型；已有設備列的類型不可勾選。</p>
+      <div class="choice-group">
+        {% for typ in EQUIPMENT_TYPES %}<label class="chk"><input type="checkbox" class="absent-equipment-type" value="{{ typ }}" {% if typ in absent_types and typ not in used_types %}checked{% endif %} {% if typ in used_types %}disabled{% endif %}> {{ typ }}</label>{% endfor %}
+      </div>
+    </details>
+    <input type="hidden" name="declare_no_equipment_types" id="absent-equipment-types" value="{{ wsite.declare_no_equipment_types if wsite else '' }}">
+    <button type="submit">存場所</button>
+  </form>
+
+  <div class="table-wrap">
+  <table class="data">
+    <tr><th>部門編號</th><th>名稱</th><th>人數</th><th>上級</th></tr>
+    {% for d in departments %}
+    <tr data-edit="department" data-json="{{ d | tojson | forceescape }}">
+      <td>{{ d.dept_id }}</td><td>{{ d.name }}</td><td>{{ d.headcount if d.headcount is not none else '' }}</td><td>{{ d.parent_dept_id or '' }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="4" class="muted">尚未建立部門</td></tr>
+    {% endfor %}
+  </table>
+  </div>
+  <form class="grid card" method="post" action="/wizard/1/dept" id="form-department" data-add-label="新增部門" data-edit-label="更新部門">
+    <label>部門編號 <input name="dept_id" required value="{{ pf.get('dept_id','') }}"></label>
+    <label>名稱 <input name="name" required value="{{ pf.get('dept_name','') }}"></label>
+    <label>部門人數 <input name="headcount" type="number" min="0" value="0"></label>
+    <label>上級部門
+      <select name="parent_dept_id"><option value="">（無）</option>{% for d in departments %}<option value="{{ d.dept_id }}">{{ d.dept_id }} {{ d.name }}</option>{% endfor %}</select>
+    </label>
+    <button type="submit">新增部門</button>
+  </form>
+
+  <h3>建立製程與操作部門的關係 <small class="table-ref">表1.0-2</small></h3>
+  <div class="table-wrap">
+  <table class="data">
+    <tr><th>製程編號</th><th>名稱</th><th>操作部門</th><th>連續／批次</th><th>概述</th></tr>
+    {% for p in processes %}
+    <tr data-edit="process" data-json="{{ p | tojson | forceescape }}">
+      <td>{{ p.process_id }}</td><td>{{ p.name }}</td><td>{{ p.operating_dept_id }}</td>
+      <td>{{ PROCESS_MODE_LABEL.get(p.mode, p.mode) }}</td><td>{{ p.overview or '' }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="5" class="muted">尚未建立製程</td></tr>
+    {% endfor %}
+  </table>
+  </div>
+  <form class="grid card" method="post" action="/wizard/1/process" id="form-process" data-add-label="新增製程" data-edit-label="更新製程">
+    <label>製程編號 <input name="process_id" required></label>
+    <label>名稱 <input name="name" required></label>
+    <label>操作權責部門
+      <select name="operating_dept_id" required {% if not departments %}disabled{% endif %}>
+        <option value="">（必選已有部門）</option>
+        {% for d in departments %}<option value="{{ d.dept_id }}">{{ d.dept_id }} {{ d.name }}</option>{% endfor %}
+      </select>
+    </label>
+    <label>連續或批次
+      <select name="mode">{% for m, lab in PROCESS_MODE_LABEL.items() %}<option value="{{ m }}">{{ lab }}</option>{% endfor %}</select>
+    </label>
+    <label class="chk"><input type="checkbox" name="has_overpressure"> 有超壓保護</label>
+    <label class="chk"><input type="checkbox" name="has_chemical_reaction"> 有化學反應</label>
+    <label class="chk"><input type="checkbox" name="is_loading"> 裝卸或輸送</label>
+    <label class="chk"><input type="checkbox" name="is_downstream"> 後段處理</label>
+    <label>製程概述（目的與操作流程）
+      <textarea name="overview" rows="2" required></textarea>
+    </label>
+    <button type="submit">新增製程</button>
+  </form>
+
+  <h3>登錄設備及維護部門 <small class="table-ref">表1.0-3</small></h3>
+  <div class="table-wrap">
+  <table class="data">
+    <tr><th>設備編號</th><th>名稱</th><th>製程</th><th>類型</th><th>維護部門</th></tr>
+    {% for e in equipment %}
+    <tr data-edit="equipment" data-json="{{ e | tojson | forceescape }}">
+      <td>{{ e.equipment_id }}</td><td>{{ e.name }}</td><td>{{ e.process_id }}</td>
+      <td>{{ e.equipment_type }}</td><td>{{ e.maint_dept_id }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="5" class="muted">尚未建立設備</td></tr>
+    {% endfor %}
+  </table>
+  </div>
+  <p class="note">設備與管線只填甲類範圍內須申報者。所在區域請到表1.0-5 勾選關聯設備；儲存時若尚未勾選，會暫掛該製程的第一個區域。</p>
+  <form class="grid card" method="post" action="/wizard/1/equipment" id="form-equipment" data-add-label="新增設備" data-edit-label="更新設備">
+    <label>設備編號 <input name="equipment_id" required></label>
+    <label>名稱 <input name="name" required></label>
+    <label>所屬製程
+      <select name="process_id" required {% if not processes %}disabled{% endif %}>
+        <option value="">（必選）</option>
+        {% for p in processes %}<option value="{{ p.process_id }}">{{ p.process_id }} {{ p.name }}</option>{% endfor %}
+      </select>
+    </label>
+    <label>維護部門
+      <select name="maint_dept_id" required {% if not departments %}disabled{% endif %}>
+        <option value="">（必選）</option>
+        {% for d in departments %}<option value="{{ d.dept_id }}">{{ d.dept_id }} {{ d.name }}</option>{% endfor %}
+      </select>
+    </label>
+    <label>設備類型
+      <select name="equipment_type" id="equipment_type">{% for t in EQUIPMENT_TYPES %}<option>{{ t }}</option>{% endfor %}</select>
+    </label>
+    <label id="power-wrap" hidden>動力型式
+      <select name="power_kind">{% for k in POWER_KINDS %}<option>{{ k }}</option>{% endfor %}</select>
+    </label>
+    <input type="hidden" name="area_code" value="">
+    <label>建造材料（規格名稱） <input name="material"></label>
+    <label>材質類別
+      <select name="material_category">
+        <option value="">（對劣化機制查詢）</option>
+        {% for m in MATERIAL_CATEGORIES %}<option>{{ m }}</option>{% endfor %}
+      </select>
+    </label>
+    <label>操作分類
+      <select name="phase_class">{% for p in PHASE_CLASSES %}<option>{{ p }}</option>{% endfor %}</select>
+    </label>
+    <p class="note">安全關鍵性在附表8.1-1篩選，設備建檔不勾。</p>
+    <label class="chk"><input type="checkbox" name="is_regulated_machinery" data-gate="eq-cert"> 第 16 條危險性機械或設備</label>
+    <label class="chk"><input type="checkbox" name="is_high_pressure_gas" data-gate="eq-cert"> 高壓氣體特定設備或容器</label>
+    <label data-panel="eq-cert" data-show="on" hidden>法令證明備註（選填） <input name="legal_cert_type"></label>
+    <p class="note">勾選危險性機械設備或高壓氣體後，儲存設備會連動到表1.11-1；設備類別、合格證號碼及有效期限請在該表填寫。</p>
+    <button type="submit">新增設備</button>
+  </form>
+
+  <h3>登錄製程使用的化學品與成分 <small class="table-ref">表1.0-4</small></h3>
+  <p class="note">純物質一列一筆。勾選混合物後，用下方巢狀表逐列填成分（CAS、比例、危害說明、常用狀況相態）。點列可改該筆。後續單元選取以 CAS＋製程為準；同一 CAS 於同一製程有多列者，選取清單合併為一筆。未揭露成分不虛構 CAS。操作量×重量百分比（上限）＝成分歸屬量，再對規定數量。常用狀況相態（固態、液態、氣態）必填，用來對照附表管制量相態。氯化氫、氟化氫的管制量相態是氣態，填液態或固態（含水溶液）不列入管制量。</p>
+  {% if annex_merge %}
+  <p class="note">同一 CAS 於本場所合併（間距視為 500 公尺以內）：
+    {% for cas, m in annex_merge.items() %}{{ cas }} 純物質 {{ m.pure_kg }} kg／規定數量 {{ m.limit_kg }} kg → {{ '達規定數量' if m.exceeds else '未達' }}{% if not loop.last %}；{% endif %}{% endfor %}
+  </p>
+  {% endif %}
+  {% set chem_groups = chem_groups if chem_groups is defined else [] %}
+  <div class="table-wrap">
+  <table class="data chem-104-table">
+    <tr><th>純物質或混合物</th><th>製程</th><th>SDS 代號</th><th>名稱</th><th>成分</th><th class="master-actions">操作</th></tr>
+    {% for g in chem_groups %}
+    {% if g.kind == '混合物' %}
+    <tr>
+      <td>混合物</td>
+      <td>{{ g.process_id }}</td>
+      <td>{{ g.sds_id }}</td>
+      <td>{{ g.mix_name }}<div class="muted">總量 {{ g.total_kg or '—' }} kg{% if g.basis %}・{{ g.basis }}{% endif %}</div></td>
+      <td>{{ g.components|length }} 項成分</td>
+      <td class="master-actions"><form method="post" action="/wizard/1/mix/delete" data-confirm="刪除整筆混合物及所有成分？相關引用也會一併更新，刪除後無法復原。"><input type="hidden" name="row_id" value="{{ g.components[0].row_id }}"><button class="linkish" type="submit" aria-label="刪除混合物 {{ g.mix_name }}">刪除混合物</button></form></td>
+    </tr>
+    <tr class="chem-components-row">
+      <td colspan="6"><div class="table-wrap">
+        <table class="data nest" data-no-auto-add>
+          <tr><th>CAS／操作</th><th>名稱</th><th>角色</th><th>相態</th><th>危害說明</th><th>比例％</th><th>歸屬量kg</th><th>規定數量</th><th>認定</th></tr>
+          {% for r in g.components %}
+          <tr data-edit="chemical" data-json="{{ r | tojson | forceescape }}">
+            <td>{{ r.cas }}<div class="chem-component-controls"><button class="editish edit-row" type="button" aria-label="編輯成分 {{ r.name }}">編輯</button>{% if r.row_id %}<form method="post" action="/wizard/row/delete"><input type="hidden" name="step" value="1"><input type="hidden" name="row_id" value="{{ r.row_id }}"><button class="linkish" type="submit" aria-label="刪除成分 {{ r.name }}">刪除成分</button></form>{% endif %}</div></td><td>{{ r.name }}</td><td>{{ r.role }}</td><td>{{ r.phase_state or '未填' }}</td><td>{{ hazard_display_labels(r.h_codes)|join('、') }}</td>
+            <td>{{ r.pct_lo }}–{{ r.pct_hi }}</td>
+            <td>{{ r.pure_kg or r.qty or '' }}{% if r.estimate %}（估算）{% endif %}</td>
+            <td>{{ r.limit_kg or '' }}</td><td>{{ r.annex_note or '' }}</td>
+          </tr>
+          {% endfor %}
+        </table>
+      </div></td>
+    </tr>
+    {% else %}
+    {% set r = g.head %}
+    <tr data-edit="chemical" data-json="{{ r | tojson | forceescape }}">
+      <td>純物質</td><td>{{ r.process_id }}</td><td>{{ r.sds_id or '' }}</td><td>{{ r.name }}</td>
+            <td>{{ r.cas }}・{{ r.role }}・{{ r.phase_state or '未填相態' }}・{{ hazard_display_labels(r.h_codes)|join('、') }}</td>
+      <td class="master-actions"><form method="post" action="/wizard/item/delete" data-confirm="刪除這筆純物質？相關引用也會一併更新，刪除後無法復原。"><input type="hidden" name="kind" value="chemical"><input type="hidden" name="process_id" value="{{ r.process_id }}"><input type="hidden" name="sds_id" value="{{ r.sds_id }}"><input type="hidden" name="cas" value="{{ r.cas }}"><button class="linkish" type="submit" aria-label="刪除純物質 {{ r.name }}">刪除</button></form></td>
+    </tr>
+    {% endif %}
+    {% else %}
+    <tr><td colspan="6" class="muted">尚未建立化學品</td></tr>
+    {% endfor %}
+  </table>
+  </div>
+  <form class="grid card" method="post" action="/wizard/1/chemical" enctype="multipart/form-data" id="form-chemical" data-add-label="新增化學品列" data-edit-label="更新化學品">
+    <label class="chk"><input type="checkbox" id="chem-mix-flag"> 混合物（勾選後用巢狀表填成分）</label>
+    <select name="kind" id="chem-kind" hidden>
+      <option>純物質</option>
+      <option>混合物</option>
+    </select>
+    <label>從危險物／有害物清單帶入（選填）
+      <select id="annex-pick">
+        <option value="">（自行填 CAS／名稱，或選清單帶入）</option>
+        {% for a in annex_catalog %}
+        <option value="{{ a.cas }}" data-name-zh="{{ a.name_zh }}" data-name-en="{{ a.name_en }}" data-limit="{{ a.limit_kg }}" data-phase="{{ a.limit_phase }}" data-gate="{{ 1 if a.phase_gate else 0 }}">{{ a.name_zh }}（{{ a.cas }}，規定數量 {{ a.limit_kg }} kg{% if a.limit_phase %}，管制量相態 {{ a.limit_phase }}{% endif %}）</option>
+        {% endfor %}
+      </select>
+    </label>
+    <p class="note" id="phase-hint"></p>
+    <label>所屬製程
+      <select name="process_id" required {% if not processes %}disabled{% endif %}>
+        <option value="">（必選）</option>
+        {% for p in processes %}<option value="{{ p.process_id }}">{{ p.process_id }} {{ p.name }}</option>{% endfor %}
+      </select>
+    </label>
+    <label>SDS 代號 <input name="sds_id" placeholder="例如 SDS-HF-001"></label>
+    <label>SDS 檔名 <input name="file_name" value="SDS.pdf"></label>
+    <label>上傳 SDS <input type="file" name="file"></label>
+    <label class="pure-only">CAS <input name="cas" id="chem-cas" required></label>
+    <label class="pure-only">中文名稱 <input name="name" id="chem-name"></label>
+    <label class="pure-only">英文名稱 <input name="name_en" id="chem-name-en"></label>
+    <label class="pure-only">成分歸屬量（公斤） <input name="attributed_qty" placeholder="純物質填操作量"></label>
+    <label class="pure-only">角色 <select name="role">{% for r in CHEMICAL_ROLES %}<option>{{ r }}</option>{% endfor %}</select></label>
+    <div class="pure-only hazard-field required-field"><span class="field-title">危害說明</span>{{ hazard_picker('h_codes') }}</div>
+    <label class="pure-only">常用狀況相態
+      <select name="phase_state" required>
+        <option value="">（必選）</option>
+        {% for ph in phases %}<option>{{ ph }}</option>{% endfor %}
+      </select>
+    </label>
+    <label class="mix-only">混合物名稱 <input name="mix_name"></label>
+    <label class="mix-only">比例基準
+      <select name="basis">{% for b in ratio_bases %}<option>{{ b }}</option>{% endfor %}</select>
+    </label>
+    <label class="mix-only">混合物總量（公斤） <input name="total_kg"></label>
+    <div class="span-all mix-only" id="mix-nest-wrap">
+      <p class="note">成分列在這張巢狀表。可加多列，一次存進同一張混合物。</p>
+      <table class="data nest" data-no-auto-add id="mix-nest">
+        <tr><th>CAS</th><th>名稱</th><th>角色</th><th>危害說明</th><th>比例下限%</th><th>比例上限%</th><th>常用狀況相態</th><th>換算式</th><th></th></tr>
+        <tbody id="mix-body"></tbody>
+      </table>
+      <button type="button" id="mix-add">加一列成分</button>
+      <template id="mix-row-tpl">
+        <tr>
+          <td><input name="comp_cas"></td>
+          <td><input name="comp_name"></td>
+          <td><select name="comp_role">{% for r in CHEMICAL_ROLES %}<option>{{ r }}</option>{% endfor %}</select></td>
+          <td>{{ hazard_picker('comp_h') }}</td>
+          <td><input name="comp_pct_lo"></td>
+          <td><input name="comp_pct_hi"></td>
+          <td><select name="comp_phase" required><option value="">（必選）</option>{% for ph in phases %}<option>{{ ph }}</option>{% endfor %}</select></td>
+          <td><input name="comp_formula" placeholder="操作量×wt%"></td>
+          <td><button type="button" class="linkish mix-del">刪列</button></td>
+        </tr>
+      </template>
+    </div>
+    <button type="submit">新增化學品列</button>
+  </form>
+
+  <h3>劃分廠區區域並關聯設備與化學品 <small class="table-ref">表1.0-5</small></h3>
+  <p class="note">設備與化學品建好後再到這裡關聯。方塊用滑鼠按住拖到右側「已選」，已選會留成深色方塊，列表也看得到。點一下方塊同樣可以移過去。設備所在區域在本表勾選，不要在設備列另填所在區域。集合點供緊急應變選取。</p>
+  <div class="table-wrap">
+  <table class="data">
+    <tr><th>區域代碼</th><th>名稱</th><th>勞工人數</th><th>圖號</th><th>版次</th><th>日期</th><th>製程</th><th>集合點</th><th>關聯設備</th><th>關聯化學品</th></tr>
+    {% for a in areas %}
+    <tr data-edit="area" data-json="{{ a | tojson | forceescape }}">
+      <td>{{ a.area_code }}</td><td>{{ a.name }}<div class="muted">位置圖：{{ '已上傳' if a.is_uploaded else '待上傳' }}</div></td><td>{{ a.worker_count if a.worker_count is not none else '' }}</td><td>{{ a.drawing_no }}</td><td>{{ a.revision }}</td>
+      <td>{{ a.issue_date }}</td><td>{{ a.process_id or '' }}</td><td>{{ '是' if a.is_assembly_point else '否' }}</td>
+      <td>
+        {% for eid in a.linked_equipment %}
+        <span class="drag-box static">{% for e in eq_all if e.equipment_id==eid %}{{ e.equipment_id }} {{ e.name }}{% else %}{{ eid }}{% endfor %}</span>
+        {% else %}<span class="muted">尚未選</span>{% endfor %}
+      </td>
+      <td>
+        {% for token in a.linked_cas_list %}
+        {% set bits = token.split('|') %}
+        <span class="drag-box static">{% for c in chemicals if c.cas==bits[0] and c.process_id==(bits[1] if bits|length>1 else a.process_id) %}{{ c.cas }} {{ c.name }}{% else %}{{ token }}{% endfor %}</span>
+        {% else %}<span class="muted">尚未選</span>{% endfor %}
+      </td>
+    </tr>
+    {% else %}
+    <tr><td colspan="10" class="muted">尚未建立區域</td></tr>
+    {% endfor %}
+  </table>
+  </div>
+  <form class="grid card" method="post" action="/wizard/1/area" enctype="multipart/form-data" id="form-area" data-add-label="新增區域" data-edit-label="更新區域">
+    <label>區域代碼 <input name="area_code" required></label>
+    <label>名稱 <input name="name" required></label>
+    <label>圖號 <input name="drawing_no" required></label>
+    <label>版次 <input name="revision" required value="A"></label>
+    <label>日期 <input name="issue_date" type="date" required></label>
+    <label>關聯製程
+      <select name="process_id" {% if not processes %}disabled{% endif %}>
+        <option value="">（可後補表1.0-2）</option>
+        {% for p in processes %}<option value="{{ p.process_id }}">{{ p.process_id }} {{ p.name }}</option>{% endfor %}
+      </select>
+    </label>
+    <div class="span-all pick-board" data-field="linked_equipment">
+      <div>
+        <div class="pick-label">關聯設備・可選</div>
+        <div class="pick-pool" data-hint="尚無設備">
+          {% for e in eq_all %}
+          <div class="drag-box" data-value="{{ e.equipment_id }}">{{ e.equipment_id }} {{ e.name }}</div>
+          {% endfor %}
+        </div>
+      </div>
+      <div>
+        <div class="pick-label">關聯設備・已選</div>
+        <div class="pick-chosen" data-hint="把設備方塊拖到這裡"></div>
+      </div>
+    </div>
+    <div class="span-all pick-board" data-field="linked_cas">
+      <div>
+        <div class="pick-label">關聯化學品・可選</div>
+        <div class="pick-pool" data-hint="尚無化學品">
+          {% for c in chemicals %}
+          <div class="drag-box" data-value="{{ c.cas }}|{{ c.process_id }}">{{ c.cas }} {{ c.name }} / {{ c.process_id }}</div>
+          {% endfor %}
+        </div>
+      </div>
+      <div>
+        <div class="pick-label">關聯化學品・已選</div>
+        <div class="pick-chosen" data-hint="把化學品方塊拖到這裡"></div>
+      </div>
+    </div>
+    <label>位置圖檔名 <input name="file_name" value="plot.pdf"></label>
+    <label>上傳 <input type="file" name="file"></label>
+    <label class="chk"><input type="checkbox" name="is_control_room"> 控制室</label>
+    <label class="chk"><input type="checkbox" name="is_fire_system"> 消防</label>
+    <label class="chk"><input type="checkbox" name="is_assembly_point"> 集合點</label>
+    <label>勞工人數 <input name="worker_count" type="number" min="0" value="0"></label>
+    <label>承攬人數 <input name="contractor_count" type="number" min="0" value="0"></label>
+    <label>訪客人數 <input name="visitor_count" type="number" min="0" value="0"></label>
+    <button type="submit">新增區域</button>
+  </form>
+</div>
+
+<section class="sec">
+  <h3>說明危害性化學品的使用與存量 <small class="table-ref">表1.1-1</small></h3>
+  <p class="note">選已有化學品帶入名稱、CAS、「危／有」及建議「高燃／高毒」。使用單位帶入該製程操作權責部門；地點與最大存量若已有存量列可帶入，與現場不符時請改。英文名稱僅在危險物／有害物清單有列時自動帶入。</p>
+  <div class="table-wrap">
+  <table class="data">
+    <tr><th>中文名稱</th><th>英文名稱</th><th>CAS No.</th><th>使用單位</th><th>最大存量</th><th>月用量</th><th>危</th><th>有</th><th>高燃</th><th>高毒</th><th>地點</th><th>管制法規</th><th></th></tr>
+    {% for r in rows.get('1.1', []) %}
+    <tr data-fill-form="form-11" data-json="{{ dict(r, cas=r.cas ~ '|' ~ r.process_id) | tojson | forceescape }}">
+      <td>{{ r.name }}</td><td>{{ r.name_en }}</td><td>{{ r.cas }}</td>
+      <td>{{ r.dept_id }}</td><td>{{ r.max_kg }}</td><td>{{ r.monthly_kg }}</td>
+      <td>{% if r.is_danger %}危{% endif %}</td>
+      <td>{% if r.is_harmful %}有{% endif %}</td>
+      <td>{% if r.is_high_flammable %}高燃{% endif %}</td>
+      <td>{% if r.is_high_toxic %}高毒{% endif %}</td>
+      <td>{{ r.area_code }}</td><td>{{ r.regulation }}</td>
+      <td>
+        <button class="editish" type="button" data-fill-row>修改</button>
+        <form method="post" action="/wizard/row/delete"><input type="hidden" name="step" value="1"><input type="hidden" name="row_id" value="{{ r.row_id }}"><button class="linkish" type="submit">刪</button></form>
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+  </div>
+  <form class="grid card" method="post" action="/wizard/row" id="form-11" data-add-label="新增 1.1 列" data-edit-label="更新 1.1 列">
+    <input type="hidden" name="step" value="1"><input type="hidden" name="section" value="1.1">
+    <label>化學品（CAS＋製程）
+      <select name="cas" id="psi-11-cas" required {% if not chemicals %}disabled{% endif %}>
+        <option value="">（選已有化學品）</option>
+        {% for c in chemicals %}
+        <option value="{{ c.cas }}|{{ c.process_id }}"
+                data-name="{{ c.name }}"
+                data-name-en="{{ c.annex.name_en if c.annex else '' }}"
+                data-dept="{{ c.operating_dept_id }}"
+                data-area="{{ c.inv_area_code or '' }}"
+                data-max="{{ c.inv_max_kg or '' }}"
+                data-conc="{{ c.concentration_range or '' }}"
+                data-danger="{{ 1 if c.h_flags.is_danger else 0 }}"
+                data-harm="{{ 1 if c.h_flags.is_harmful else 0 }}"
+                data-flam="{{ 1 if c.h_flags.is_high_flammable else 0 }}"
+                data-toxic="{{ 1 if c.h_flags.is_high_toxic else 0 }}">{{ c.cas }} {{ c.name }} / {{ c.process_id }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>英文名稱 <input name="name_en"></label>
+    <label>使用單位
+      <select name="dept_id" required>{% for d in departments %}<option value="{{ d.dept_id }}">{{ d.dept_id }} {{ d.name }}</option>{% endfor %}</select>
+    </label>
+    <label>最大存量（公斤） <input name="max_kg" required></label>
+    <label>平均每月使用量（公斤） <input name="monthly_kg"></label>
+    <label>地點
+      <select name="area_code" required>{% for a in areas %}<option value="{{ a.area_code }}">{{ a.area_code }} {{ a.name }}</option>{% endfor %}</select>
+    </label>
+    <input type="hidden" name="is_danger" value="0"><label class="chk"><input type="checkbox" name="is_danger" id="is_danger" value="1"> 危</label>
+    <input type="hidden" name="is_harmful" value="0"><label class="chk"><input type="checkbox" name="is_harmful" id="is_harmful" value="1"> 有</label>
+    <input type="hidden" name="is_high_flammable" value="0"><label class="chk"><input type="checkbox" name="is_high_flammable" id="is_high_flammable" value="1"> 高燃</label>
+    <input type="hidden" name="is_high_toxic" value="0"><label class="chk"><input type="checkbox" name="is_high_toxic" id="is_high_toxic" value="1"> 高毒</label>
+    <label>管制法規 <input name="regulation"></label>
+    <button type="submit">新增 1.1 列</button>
+  </form>
+</section>
+
+<section class="sec">
+  <h3>確認高度危害化學品及其危害 <small class="table-ref">表1.2-1</small></h3>
+  <p class="note">選已有 CAS＋製程。物理／健康危害依危害說明帶入後由人確認。濃度得自表1.0-4 成分比例。英文名稱與管制數量僅在危險物／有害物清單有列時自動帶入。物化欄請依本場所 SDS 確認，不要用來檢查 1.6／1.9 缺漏。下方「特化／優先管理」僅供參考，不是核心表。</p>
+  <div class="table-wrap">
+  <table class="data">
+    <tr><th>中文</th><th>英文</th><th>CAS</th><th>濃度%</th><th>管制數量</th><th>型態</th><th>氣味</th><th>蒸氣壓</th><th>沸點</th><th>閃火點</th><th>爆炸界限</th><th>TWA</th><th>物理性</th><th>健康</th><th>不相容</th><th>安定性</th><th></th></tr>
+    {% for r in rows.get('1.2', []) %}
+    <tr data-fill-form="form-12" data-json="{{ dict(r, cas=r.cas ~ '|' ~ r.process_id) | tojson | forceescape }}">
+      <td>{{ r.name }}</td><td>{{ r.name_en }}</td><td>{{ r.cas }}</td><td>{{ r.conc }}</td><td>{{ r.ctrl_qty }}</td>
+      <td>{{ r.state }}</td><td>{{ r.odor }}</td><td>{{ r.vp }}</td><td>{{ r.bp }}</td><td>{{ r.fp }}</td><td>{{ r.expl }}</td><td>{{ r.twa }}</td>
+      <td>{{ r.physical }}</td><td>{{ r.health }}</td>
+      <td>{{ r.incompat }} {{ r.incompat_note or '' }}</td><td>{{ r.stable }} {{ r.stable_note or '' }}</td>
+      <td><button class="editish" type="button" data-fill-row>修改</button> <form class="inline" method="post" action="/wizard/row/delete"><input type="hidden" name="step" value="1"><input type="hidden" name="row_id" value="{{ r.row_id }}"><button class="linkish" type="submit">刪</button></form></td>
+    </tr>
+    {% endfor %}
+  </table>
+  </div>
+  <form class="grid card" method="post" action="/wizard/row" id="form-12" data-add-label="新增 1.2 列" data-edit-label="更新 1.2 列">
+    <input type="hidden" name="step" value="1"><input type="hidden" name="section" value="1.2">
+    <label>化學品
+      <select name="cas" id="psi-12-cas">
+        <option value="">（選已有化學品）</option>
+        {% for c in chemicals %}
+        <option value="{{ c.cas }}|{{ c.process_id }}"
+                data-conc="{{ c.concentration_range or '' }}"
+                data-name-en="{{ c.annex.name_en if c.annex else '' }}"
+                data-ctrl-qty="{{ c.annex.limit_kg if c.annex else '' }}"
+                data-physical="{{ c.h_flags.physical_label }}"
+                data-health="{{ c.h_flags.health_label }}"
+                data-incompat="{{ 1 if c.h_flags.incompat_air_water else 0 }}"
+                data-ref="{{ c.cas }}">{{ c.cas }} {{ c.name }} / {{ c.process_id }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>英文名稱 <input name="name_en"></label>
+    <label>濃度（重量百分比） <input name="conc"></label>
+    <label>管制數量 <input name="ctrl_qty" placeholder="達規定數量者自動帶入"></label>
+    <label>外觀型態 <select name="state"><option>液體</option><option>氣體</option><option>固體</option></select></label>
+    <label>氣味 <input name="odor"></label>
+    <label>蒸氣壓 mmHg <input name="vp"></label>
+    <label>沸點 ℃ <input name="bp"></label>
+    <label>閃火點 ℃ <input name="fp"></label>
+    <label>爆炸界限 % <input name="expl"></label>
+    <label>TWA／STEL／CEILING <input name="twa"></label>
+    <label>物理性危害 <select name="physical">{% for o in phys_opts %}<option>{{ o }}</option>{% endfor %}</select></label>
+    <label>健康危害 <select name="health">{% for o in health_opts %}<option>{{ o }}</option>{% endfor %}</select></label>
+    <label>與空氣或水不相容或放熱 <select name="incompat"><option>否</option><option>是</option></select></label>
+    <label>不相容說明 <input name="incompat_note"></label>
+    <label>熱及化學安定性 <select name="stable"><option>是</option><option>否</option></select></label>
+    <label>安定性說明 <input name="stable_note"></label>
+    <button type="submit">新增 1.2 列</button>
+  </form>
+  <details class="card">
+    <summary>特化及優先管理化學品參考（非核心表，不判斷機械完整性或缺漏）</summary>
+    <div class="table-wrap">
+    <table class="data">
+      <tr><th>化學品代號</th><th>名稱</th><th>特化</th><th>優先管理</th><th>危害說明</th><th>TWA／STEL／最高容許濃度</th><th>閃火點、沸點、爆炸界限</th><th>不相容</th><th>可能不適材質</th><th>建議防護衣</th><th>建議濾罐</th></tr>
+      {% for cas, ref in special_chem.items() %}
+      <tr>
+        <td>{{ cas }}</td><td>{{ ref.name }}</td><td>{{ ref.special }}</td><td>{{ ref.priority }}</td>
+        <td>{{ ref.h_codes }}</td><td>{{ ref.pel }}</td><td>{{ ref.phys }}</td>
+        <td>{{ ref.incompat }}</td><td>{{ ref.unsuitable }}</td><td>{{ ref.ppe }}</td><td>{{ ref.cartridge }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+    </div>
+  </details>
+</section>
+
+<section class="sec">
+  <h3>建立流程方塊並說明製造步驟 <small class="table-ref">表1.3-1</small></h3>
+  <p class="note">每條製程最多 15 個步驟。點選方塊即可修改內容和連接。</p>
+  <form class="card" method="post" action="/wizard/flags">
+    <input type="hidden" name="step" value="1">
+    <label>所屬製程
+      <select name="ov_process">{% for p in processes %}<option value="{{ p.process_id }}" {% if fl.get('ov_process')==p.process_id %}selected{% endif %}>{{ p.process_id }} {{ p.name }}</option>{% endfor %}</select>
+    </label>
+    <label>製程概述（文字）
+      <textarea name="overview" rows="3">{{ fl.get('overview','') }}</textarea>
+    </label>
+    <button type="submit">存概述</button>
+  </form>
+  <form class="card" method="get" action="/wizard/1#flow-canvas" id="flow-load">
+    <label>編輯哪一條製程的方塊
+      <select name="block_process" onchange="this.form.requestSubmit()">
+        {% for p in processes %}<option value="{{ p.process_id }}" {% if block_process==p.process_id %}selected{% endif %}>{{ p.process_id }} {{ p.name }}</option>{% endfor %}
+      </select>
+    </label>
+    <button type="submit">載入此製程方塊</button>
+  </form>
+  {% if block_from_lists %}
+  <p class="note">{% if block_draft_count %}已帶入 {{ block_draft_count }} 個方塊（設備與化學品）。確認排列後按「存線上流程方塊」。{% else %}此製程在表1.0-3、表1.0-4 尚無設備或化學品，請先回上面兩表新增。{% endif %}</p>
+  {% endif %}
+  <form class="card flow-editor" method="post" action="/wizard/1/blocks" id="flow-save" data-draft="{{ '1' if block_from_lists and block_draft_count else '0' }}">
+    <input type="hidden" name="process_id" id="block-process" value="{{ block_process }}">
+    <div class="flow-toolbar">
+      <div><strong>{% if block_process_row %}{{ block_process_row.name }}{% else %}流程方塊{% endif %}</strong><span class="muted" id="flow-count"></span></div>
+      <div class="flow-toolbar-actions">
+        <button type="button" class="secondary" id="flow-arrange">整理排列</button>
+        <button type="button" class="secondary" id="flow-new">＋ 新增步驟</button>
+      </div>
+    </div>
+    <div class="flow-workspace">
+      <div class="flow-map">
+        <div class="flow-stage"><div class="flow-canvas" id="flow-canvas" aria-label="製程方塊圖"></div></div>
+        <div class="flow-legend" aria-label="連線圖例"><span class="flow-legend-main">同製程</span><span class="flow-legend-branch">支線</span><span class="flow-legend-process">下一製程</span></div>
+        <p class="flow-hint">點選方塊進行編輯。拖曳方塊可移動位置；從右側綠點拖到另一方塊可連接步驟。</p>
+      </div>
+      <aside class="flow-inspector" aria-label="步驟編輯">
+        <h4 id="flow-panel-title">編輯步驟</h4>
+        <p class="flow-panel-help" id="flow-panel-help"></p>
+        <div id="flow-create" hidden>
+          <label>步驟名稱 <input id="flow-name" placeholder="例如產品分離"></label>
+          <label>相關設備
+            <select id="flow-eq" class="block-eq">
+              <option value="">不指定設備</option>
+              {% for e in eq_all %}<option value="{{ e.equipment_id }}" data-process="{{ e.process_id }}" data-name="{{ e.name }}">{{ e.equipment_id }} {{ e.name }}</option>{% endfor %}
+            </select>
+          </label>
+          <label>步驟說明 <textarea id="flow-desc" rows="2" placeholder="簡述這一步在做什麼"></textarea></label>
+          <label>接往下一製程
+            <select id="flow-next-proc"><option value="">無</option>{% for p in processes if p.process_id != block_process %}<option value="{{ p.process_id }}">{{ p.process_id }} {{ p.name }}</option>{% endfor %}</select>
+          </label>
+          <p class="flow-error" id="flow-create-error" hidden></p>
+          <button type="button" id="flow-add">加入流程圖</button>
+        </div>
+        <div id="flow-edit" hidden>
+          <label>步驟名稱 <input id="flow-edit-name"></label>
+          <label>相關設備 <select id="flow-edit-eq"></select></label>
+          <label>步驟說明 <textarea id="flow-edit-desc" rows="2"></textarea></label>
+          <div class="flow-connect-fields">
+            <label>下一個步驟 <select id="flow-edit-next"></select></label>
+            <label>接往下一製程 <select id="flow-edit-process"></select></label>
+            <label>支線來自 <select id="flow-edit-branch"></select></label>
+          </div>
+          <p class="flow-field-note">下一個步驟與下一製程擇一；支線可另選來源。</p>
+          <div class="flow-edit-actions"><button type="button" class="secondary" id="flow-clear">清除連線</button><button type="button" class="flow-danger" id="flow-delete">刪除步驟</button></div>
+        </div>
+        <div class="flow-save-actions"><span id="flow-status" role="status" aria-live="polite"></span><button type="submit">儲存流程方塊</button><button type="button" class="secondary" id="flow-reset" hidden>還原本次修改</button></div>
+      </aside>
+    </div>
+    <div id="flow-fields"></div>
+  </form>
+  <script type="application/json" id="flow-seed">{{ blocks_15 | tojson }}</script>
+</section>
+
+<section class="sec">
+  <h3>記錄製程中的化學反應 <small class="table-ref">表1.4-1</small></h3>
+  <form class="card" method="post" action="/wizard/flags">
+    <input type="hidden" name="step" value="1">
+    <input type="hidden" name="no_reaction" value="0">
+    <label class="chk"><input type="checkbox" name="no_reaction" value="1" {% if fl.get('no_reaction')=='1' %}checked{% endif %}> 本場所製程均無化學反應</label>
+    <button type="submit">存場所聲明</button>
+  </form>
+  <form class="card" method="post" action="/wizard/flags">
+    <input type="hidden" name="step" value="1">
+    <label>所屬製程
+      <select name="rxn_process">{% for p in processes %}<option value="{{ p.process_id }}">{{ p.process_id }} {{ p.name }}{% if p.has_chemical_reaction %}（有反應）{% endif %}</option>{% endfor %}</select>
+    </label>
+    <label class="chk"><input type="checkbox" name="no_reaction_proc" value="1" data-gate="rxn-on" {% if fl.get('no_reaction_proc')=='1' %}checked{% endif %}> 本製程無化學反應</label>
+    <div data-panel="rxn-on" data-show="0" hidden>
+    <p class="note">反應種類可複選。有化學反應者請勾種類。勾選「其他」時，請在彈出的視窗寫明實際反應種類。反應式寫在下一張表，有反應式才填反應熱。</p>
+    <input type="hidden" name="rxn_type_other" value="">
+    <div class="chk-row">
+      {% for t in reaction_types %}
+      <label class="chk"><input type="checkbox" name="rxn_types" value="{{ t }}"> {{ t }}</label>
+      {% endfor %}
+    </div>
+    </div>
+    <button type="submit">存本製程反應種類</button>
+  </form>
+  <table class="data">
+    <tr><th>製程</th><th>反應種類</th><th>化學反應式</th><th>反應熱</th><th></th></tr>
+    {% for r in rows.get('1.4', []) %}
+    <tr data-fill-form="form-14" data-json="{{ r | tojson | forceescape }}"><td>{{ r.process_id }}</td><td>{{ r.kinds or r.kind }}{% if r.kind_other %}（{{ r.kind_other }}）{% endif %}</td><td>{{ r.formula }}</td><td>{{ r.heat }}</td>
+      <td><button class="editish" type="button" data-fill-row>修改</button> <form class="inline" method="post" action="/wizard/row/delete"><input type="hidden" name="step" value="1"><input type="hidden" name="row_id" value="{{ r.row_id }}"><button class="linkish" type="submit">刪</button></form></td></tr>
+    {% endfor %}
+  </table>
+  <form class="grid card" method="post" action="/wizard/row" id="form-14" data-add-label="新增 1.4 列" data-edit-label="更新 1.4 列" data-panel="rxn-on" data-show="0" hidden>
+    <input type="hidden" name="step" value="1"><input type="hidden" name="section" value="1.4">
+    <label>所屬製程
+      <select name="process_id">{% for p in processes %}<option value="{{ p.process_id }}">{{ p.process_id }} {{ p.name }}</option>{% endfor %}</select>
+    </label>
+    <input type="hidden" name="kind_other" value="">
+    <label>反應種類（可複選）
+      <select name="kinds" multiple>{% for t in reaction_types %}<option>{{ t }}</option>{% endfor %}</select>
+    </label>
+    <label>化學反應式 <input name="formula" data-gate="rxn-heat"></label>
+    <label data-panel="rxn-heat" data-show="*" hidden>反應熱 <input name="heat" placeholder="例如：放熱，−98 kJ/mol"></label>
+    <button type="submit">新增反應式</button>
+  </form>
+</section>
+
+<section class="sec">
+  <h3>設定設備的安全操作上下限 <small class="table-ref">表1.5-1</small></h3>
+  <p class="note">每台設備都須確認適用的安全界限項目、實際內容物及單次操作量。內容物只選該設備實際裝填或流經的化學品與 SDS；安全上下限不得填品質管制用操作界限。</p>
+  <div class="table-wrap"><table class="data">
+    <tr><th>設備</th><th>已確認項目</th><th>單次操作量</th><th>內容物</th><th>不適用／無內容物理由</th><th>狀態</th></tr>
+    {% for r in limit_reviews %}<tr><td>{{ r.equipment_id }} {{ r.name }}</td><td>{{ r.selected or '無' }}</td><td>{{ r.batch }}</td><td>{{ r.content or '無' }}</td><td>{{ r.no_parameter_reason }} {{ r.no_content_reason }}</td><td>{{ '已登錄，仍須檢核欄位' if r.reviewed else '待確認' }}</td></tr>{% endfor %}
+  </table></div>
+  <div class="table-wrap">
+  <table class="data">
+    <tr><th>設備／機台名稱</th><th>設備編號</th><th>內容物</th><th>參數</th><th>操作範圍高／低</th><th>安全高／低</th><th>單向不適用理由</th><th>備註</th><th>操作</th></tr>
+    {% for l in limits %}
+    <tr>
+      <td>{% for e in eq_all if e.equipment_id==l.equipment_id %}{{ e.name }}{% endfor %}</td>
+      <td>{{ l.equipment_id }}</td>
+      <td>{% for c in contents if c.equipment_id==l.equipment_id %}{{ c.cas or '無製程化學品' }} {% endfor %}</td>
+      <td>{{ l.parameter }} {{ l.unit }}</td>
+      <td>{{ l.design_high }} / {{ l.design_low }}</td>
+      <td>{{ l.safety_high }} / {{ l.safety_low }}</td>
+      <td>{{ l.high_na_reason }} {{ l.low_na_reason }}</td>
+      <td>{{ l.note }}</td><td><button class="editish edit-limit-review" type="button" data-equipment="{{ l.equipment_id }}">修改</button> <form class="inline" method="post" action="/wizard/item/delete" data-confirm="刪除這筆安全上下限？"><input type="hidden" name="kind" value="limit"><input type="hidden" name="limit_id" value="{{ l.limit_id }}"><button class="linkish" type="submit">刪除</button></form></td>
+    </tr>
+    {% endfor %}
+  </table>
+  </div>
+  <form class="grid card" method="post" action="/wizard/1/limit" id="form-limit-review">
+    <p class="note">先選設備，再勾這台設備須檢討的項目。每項上限或下限若確實不適用，分別寫理由；未選任何項目也須說明。</p>
+    <label class="chk"><input type="checkbox" name="review_parameter" data-gate="lim-p" value="壓力"> 壓力</label>
+    <label class="chk"><input type="checkbox" name="review_parameter" data-gate="lim-t" value="溫度"> 溫度</label>
+    <label class="chk"><input type="checkbox" name="review_parameter" data-gate="lim-f" value="流量"> 流量</label>
+    <label class="chk"><input type="checkbox" name="review_parameter" data-gate="lim-c" value="組成"> 組成</label>
+    <label>設備編號
+      <select name="equipment_id" id="limit-eq" required>
+        <option value="">（選設備）</option>
+        {% for e in eq_all %}<option value="{{ e.equipment_id }}" data-process="{{ e.process_id }}" data-name="{{ e.name }}" data-review="{{ limit_form_data.get(e.equipment_id, {}) | tojson | forceescape }}">{{ e.equipment_id }} {{ e.name }}</option>{% endfor %}
+      </select>
+    </label>
+    <label>所有界限參數均不適用的理由 <input name="no_parameter_reason"></label>
+    <div data-panel="lim-p" data-show="壓力" hidden>
+    <label>壓力單位 <input name="p_unit" value="kg/cm²G"></label>
+    <label>壓力操作範圍上限 <input name="p_design_high"></label>
+    <label>壓力操作範圍下限 <input name="p_design_low"></label>
+    <label>壓力安全上限 <input name="p_safety_high"></label>
+    <label>壓力安全下限 <input name="p_safety_low"></label>
+    <label>壓力上限不適用理由 <input name="p_high_na_reason"></label>
+    <label>壓力下限不適用理由 <input name="p_low_na_reason"></label>
+    </div>
+    <div data-panel="lim-t" data-show="溫度" hidden>
+    <label>溫度單位 <input name="t_unit" value="℃"></label>
+    <label>溫度操作範圍上限 <input name="t_design_high"></label>
+    <label>溫度操作範圍下限 <input name="t_design_low"></label>
+    <label>溫度安全上限 <input name="t_safety_high"></label>
+    <label>溫度安全下限 <input name="t_safety_low"></label>
+    <label>溫度上限不適用理由 <input name="t_high_na_reason"></label>
+    <label>溫度下限不適用理由 <input name="t_low_na_reason"></label>
+    </div>
+    <div data-panel="lim-f" data-show="流量" hidden>
+    <label>流量單位 <input name="f_unit" value="m³/hr"></label>
+    <label>流量操作範圍上限 <input name="f_design_high"></label>
+    <label>流量操作範圍下限 <input name="f_design_low"></label>
+    <label>流量安全上限 <input name="f_safety_high"></label>
+    <label>流量安全下限 <input name="f_safety_low"></label>
+    <label>流量上限不適用理由 <input name="f_high_na_reason"></label>
+    <label>流量下限不適用理由 <input name="f_low_na_reason"></label>
+    </div>
+    <div data-panel="lim-c" data-show="組成" hidden>
+    <label>組成單位 <input name="c_unit" value="wt%"></label>
+    <label>組成操作範圍上限 <input name="c_design_high"></label>
+    <label>組成操作範圍下限 wt% <input name="c_design_low"></label>
+    <label>組成安全上限 % <input name="c_safety_high"></label>
+    <label>組成安全下限 % <input name="c_safety_low"></label>
+    <label>組成上限不適用理由 <input name="c_high_na_reason"></label>
+    <label>組成下限不適用理由 <input name="c_low_na_reason"></label>
+    </div>
+    <label>單次操作量（批次） <input name="batch_qty" type="number" min="0" step="any"></label>
+    <label>單次操作量單位 <input name="batch_unit" list="batch-unit-options"></label>
+    <datalist id="batch-unit-options"><option value="公斤"><option value="公升"></datalist>
+    <label>連續操作或無批次的不適用理由 <input name="batch_na_reason"></label>
+    <label>容積 L <input name="volume"></label>
+    <label>備註 <input name="note"></label>
+    <label class="chk"><input type="checkbox" name="no_process_chemical" value="1" data-gate="lim-chem"> 本設備無實際裝填或流經的製程化學品</label>
+    <label data-panel="lim-chem" data-show="1" hidden>無操作化學品理由 <input name="no_content_reason"></label>
+    <div data-panel="lim-chem" data-show="0">
+    <label>內容物（可複選）
+      <select name="cas" id="limit-cas" multiple>
+        {% for c in chemicals %}<option value="{{ c.cas }}|{{ c.process_id }}|{{ c.sds_id }}" data-process="{{ c.process_id }}">{{ c.cas or c.name }} {{ c.name }} / {{ c.process_id }} / {{ c.sds_id }}</option>{% endfor %}
+      </select>
+    </label>
+    </div>
+    <button type="submit">儲存這台設備的 1.5 資料</button>
+  </form>
+</section>
+
+<section class="sec">
+  <h3>指定設備材質與適用設計規範 <small class="table-ref">表1.6-1</small></h3>
+  <p class="note">先選製程，再勾同一規範適用的設備及化學品。不同材質請分列；表8.1-1 會帶出這裡確認的材質類別。</p>
+  <table class="data">
+    <tr><th>規範</th><th>建造材料</th><th>材質類別</th><th>製程</th><th>適用設備</th><th>化學品</th><th>範圍</th><th>操作</th></tr>
+    {% for r in design_codes %}
+    <tr data-design-code-row="{{ r.code_id }}"><td>{{ r.spec }}</td><td>{{ r.material }}</td><td>{{ r.material_category }}</td><td>{{ r.processes }}</td><td>{{ r.equipment_ids }}</td><td>{{ r.cas_list or '—' }}</td><td>{{ r.scope or '—' }}</td>
+      <td class="master-actions"><button class="editish edit-design-code" type="button" data-json="{{ r | tojson | forceescape }}">編輯</button><form method="post" action="/wizard/1/design-code/delete" data-confirm="確定刪除這筆設計規範？"><input type="hidden" name="code_id" value="{{ r.code_id }}"><button class="linkish" type="submit">刪除</button></form></td></tr>
+    {% else %}<tr><td colspan="8" class="muted">尚未建立設計規範</td></tr>
+    {% endfor %}
+  </table>
+  <form class="grid card" method="post" action="/wizard/1/design-code" id="form-16" data-add-label="新增設計規範" data-edit-label="更新設計規範">
+    <input type="hidden" name="code_id" value="">
+    <label>製程
+      <select name="process_id" id="design-process" required>
+        {% for p in processes %}<option value="{{ p.process_id }}">{{ p.process_id }} {{ p.name }}</option>{% endfor %}
+      </select>
+    </label>
+    <fieldset class="span-all required-group"><legend>適用設備（至少一台，可複選）</legend>
+      {% for e in eq_all %}<label class="chk" data-design-process="{{ e.process_id }}"><input type="checkbox" name="equipment_ids" value="{{ e.equipment_id }}" data-native> {{ e.equipment_id }} {{ e.name }}</label>{% endfor %}
+    </fieldset>
+    <fieldset class="span-all"><legend>適用化學品（可留空）</legend>
+      {% for c in chemicals %}<label class="chk" data-design-process="{{ c.process_id }}"><input type="checkbox" name="cas_list" value="{{ c.cas }}" data-native> {{ c.cas }} {{ c.name }}</label>{% endfor %}
+    </fieldset>
+    <label>材質類別
+      <select name="material_category" id="psi-16-matcat" required>
+        <option value="">（對劣化機制查詢，必選）</option>
+        {% for m in MATERIAL_CATEGORIES %}<option>{{ m }}</option>{% endfor %}
+      </select>
+    </label>
+    <label>建造材料（規格名稱） <input name="material" required></label>
+    <label>設計規範及標準 <input name="spec" required></label>
+    <label>適用範圍或設備條件 <input name="scope"></label>
+    <button type="submit">新增設計規範</button>
+    <button type="button" class="btn secondary cancel-edit" id="design-cancel" hidden>取消編輯</button>
+  </form>
+  {% set old_codes = rows.get('1.6', []) | rejectattr('code_id', 'defined') | list %}
+  {% if old_codes %}<details><summary>試用範例的舊單筆資料（{{ old_codes|length }}）</summary>
+    <p class="note">範例資料沿用舊格式，正式填報請使用上方規範與適用設備表單。</p>
+    <table class="data"><tr><th>設備／範圍</th><th>材質</th><th>規格</th><th>操作</th></tr>
+      {% for r in old_codes %}<tr data-fill-form="form-16-legacy" data-json="{{ r | tojson | forceescape }}"><td>{{ r.equipment_id or r.scope }}</td><td>{{ r.material }}</td><td>{{ r.spec }}</td><td><button class="editish" type="button" data-fill-row>修改</button> <form class="inline" method="post" action="/wizard/row/delete" data-confirm="刪除這筆舊格式資料？"><input type="hidden" name="step" value="1"><input type="hidden" name="row_id" value="{{ r.row_id }}"><button class="linkish" type="submit">刪除</button></form></td></tr>{% endfor %}
+    </table>
+    <form class="grid card" method="post" action="/wizard/row" id="form-16-legacy" data-add-label="儲存舊格式資料" data-edit-label="更新舊格式資料" data-hide-until-edit hidden>
+      <input type="hidden" name="step" value="1"><input type="hidden" name="section" value="1.6">
+      <input type="hidden" name="material_category" value="">
+      <label>設備編號 <input name="equipment_id"></label><label>材質 <input name="material"></label>
+      <label>規格 <input name="spec"></label><label>適用範圍 <input name="scope"></label>
+      <button type="submit">更新舊格式資料</button>
+    </form>
+  </details>{% endif %}
+</section>
+
+<section class="sec">
+  <h3>上傳製程流程圖與管線儀表圖 <small class="table-ref">表1.7-1</small></h3>
+  <table class="data">
+    <tr><th>圖號</th><th>版次</th><th>製程</th><th>日期</th><th>評估紀錄編號</th><th>涵蓋</th><th>附件</th><th>操作</th></tr>
+    {% for d in drawings %}
+    <tr data-fill-form="form-pid" data-json="{{ {'drawing_no': d.drawing_no, 'revision': d.revision, 'process_id': d.process_id, 'issue_date': d.issue_date, 'name': d.name, 'eval_record_no': d.eval_record_no, 'covering': d.covering or ''} | tojson | forceescape }}"><td>{{ d.drawing_no }}</td><td>{{ d.revision }}</td><td>{{ d.process_id }}</td><td>{{ d.issue_date }}</td><td>{{ d.eval_record_no or '' }}</td><td>{{ d.covering or '' }}</td><td>{{ '已上傳' if d.is_uploaded else '待上傳' }}</td><td><button class="editish" type="button" data-fill-row>修改</button> <form class="inline" method="post" action="/wizard/item/delete" data-confirm="刪除這份圖資與其關聯資料？"><input type="hidden" name="kind" value="drawing"><input type="hidden" name="drawing_no" value="{{ d.drawing_no }}"><input type="hidden" name="revision" value="{{ d.revision }}"><button class="linkish" type="submit">刪除</button></form></td></tr>
+    {% endfor %}
+  </table>
+  <form class="grid card" method="post" action="/wizard/1/pid" id="form-pid" data-add-label="登錄 1.7" data-edit-label="更新 1.7" enctype="multipart/form-data">
+    <label>所屬製程
+      <select name="process_id" id="pid-process" required>{% for p in processes %}<option value="{{ p.process_id }}">{{ p.process_id }} {{ p.name }}</option>{% endfor %}</select>
+    </label>
+    <label>P&amp;ID 圖號 <input name="drawing_no" data-edit-identity required></label>
+    <label>版次 <input name="revision" data-edit-identity value="A"></label>
+    <label>最新制修訂日期 <input name="issue_date" type="date" required></label>
+    <label>名稱 <input name="name"></label>
+    <label>評估紀錄編號 <input name="eval_record_no"></label>
+    <label>檔名 <input name="file_name" value="PID.pdf"></label>
+    <label>上傳 <input type="file" name="file"></label>
+    <label>涵蓋設備
+      <select name="covering" id="pid-covering" multiple>
+        {% for e in eq_all %}<option value="{{ e.equipment_id }}" data-process="{{ e.process_id }}">{{ e.equipment_id }} {{ e.name }}</option>{% endfor %}
+      </select>
+    </label>
+    <button type="submit">登錄 1.7</button>
+  </form>
+</section>
+
+<section class="sec">
+  <h3>標示防爆區域及劃分依據 <small class="table-ref">表1.8-1</small></h3>
+  <form class="card" method="post" action="/wizard/flags">
+    <input type="hidden" name="step" value="1">
+    <input type="hidden" name="no_explosion" value="0">
+    <label class="chk"><input type="checkbox" name="no_explosion" value="1" {% if fl.get('no_explosion')=='1' %}checked{% endif %}> 本場所未規劃為防爆區域</label>
+    <button type="submit">存 1.8 聲明</button>
+  </form>
+  <p class="note">勾了未規劃則下表免填。劃分依 CNS 3376-10 或相關國際標準；詳圖得存廠備查。</p>
+  <div class="table-wrap">
+  <table class="data">
+    <tr><th>位置</th><th>樓層</th><th>區域</th><th>指標化學品</th><th>成分</th><th>閃火點</th><th>沸點</th><th>相對密度</th><th>爆炸界限</th><th>自燃溫度</th><th>通風型式</th><th>等級</th><th>可用度</th><th>洩漏</th><th>危險區域</th><th>設備選用</th><th></th></tr>
+    {% for r in rows.get('1.8', []) %}
+    <tr data-fill-form="form-18" data-json="{{ dict(r, cas=(r.cas ~ '|' ~ r.process_id) if r.cas and r.process_id else r.cas) | tojson | forceescape }}">
+      <td>{{ r.area_code }}</td><td>{{ r.floor }}</td><td>{{ r.area_code }}</td><td>{{ r.cas }}</td><td>{{ r.comp }}</td>
+      <td>{{ r.fp }}</td><td>{{ r.bp }}</td><td>{{ r.sg }}</td><td>{{ r.expl }}</td><td>{{ r.ait }}</td>
+      <td>{{ r.vent_type }}</td><td>{{ r.vent_level }}</td><td>{{ r.vent_avail }}</td>
+      <td>{{ r.leak }}</td><td>{{ r.zone }}</td><td>{{ r.eq_group }}</td>
+      <td><button class="editish" type="button" data-fill-row>修改</button> <form class="inline" method="post" action="/wizard/row/delete"><input type="hidden" name="step" value="1"><input type="hidden" name="row_id" value="{{ r.row_id }}"><button class="linkish" type="submit">刪</button></form></td>
+    </tr>
+    {% endfor %}
+  </table>
+  </div>
+  <form class="grid card" method="post" action="/wizard/row" id="form-18" data-add-label="新增 1.8 列" data-edit-label="更新 1.8 列">
+    <input type="hidden" name="step" value="1"><input type="hidden" name="section" value="1.8">
+    <input type="hidden" name="process_id" value="">
+    <label>區域名稱
+      <select name="area_code" required>{% for a in areas %}<option value="{{ a.area_code }}">{{ a.area_code }} {{ a.name }}</option>{% endfor %}</select>
+    </label>
+    <label>樓層 <input name="floor"></label>
+    <label>指標化學品
+      <select name="cas">
+        <option value=""></option>
+        {% for c in chemicals %}<option value="{{ c.cas }}|{{ c.process_id }}">{{ c.cas }} {{ c.name }} / {{ c.process_id }}</option>{% endfor %}
+      </select>
+    </label>
+    <label>成分 <input name="comp"></label>
+    <label>閃火點 ℃ <input name="fp"></label>
+    <label>沸點 ℃ <input name="bp"></label>
+    <label>相對密度（空氣=1） <input name="sg"></label>
+    <label>爆炸界限 Vol% <input name="expl"></label>
+    <label>自燃溫度 ℃ <input name="ait"></label>
+    <label>通風型式 <select name="vent_type">{% for v, lab in vent_types %}<option value="{{ v }}">{{ lab }}</option>{% endfor %}</select></label>
+    <label>通風等級 <select name="vent_level">{% for v, lab in vent_levels %}<option value="{{ v }}">{{ lab }}</option>{% endfor %}</select></label>
+    <label>通風可用度 <select name="vent_avail">{% for v, lab in vent_avail %}<option value="{{ v }}">{{ lab }}</option>{% endfor %}</select></label>
+    <fieldset class="chk-row"><legend>洩漏等級（可複選）</legend>
+      {% for v, lab in leak_levels %}<label class="chk"><input type="checkbox" name="leak" value="{{ v }}"> {{ lab }}</label>{% endfor %}
+    </fieldset>
+    <fieldset class="chk-row"><legend>危險區域（可複選）</legend>
+      {% for v, lab in zone_levels %}<label class="chk"><input type="checkbox" name="zone" value="{{ v }}"> {{ lab }}</label>{% endfor %}
+    </fieldset>
+    <label>設備選用等級（例：IIC T1） <input name="eq_group"></label>
+    <button type="submit">新增 1.8 列</button>
+  </form>
+</section>
+
+<section class="sec">
+  <h3>記錄釋壓設備與設計依據 <small class="table-ref">表1.9-1</small></h3>
+  <p class="note">無釋壓者註明。釋壓裝置請選設備類型為釋放及排放系統者。P&amp;ID 編號得自 1.7 帶入。</p>
+  <form class="card" method="post" action="/wizard/flags" style="margin-bottom:0.8rem">
+    <input type="hidden" name="step" value="1">
+    <input type="hidden" name="no_relief" value="0">
+    <label class="chk"><input type="checkbox" name="no_relief" value="1" {% if fl.get('no_relief')=='1' %}checked{% endif %}> 本場所無釋壓裝置</label>
+    <button type="submit">存聲明</button>
+  </form>
+  <div class="table-wrap">
+  <table class="data">
+    <tr><th>裝置編號</th><th>類型</th><th>計算書</th><th>規格文件</th><th>P&amp;ID</th><th>位置</th><th>釋放物</th><th>流相</th><th>設定壓力</th><th>設計排放量</th><th>出入口</th><th>過壓情境</th><th>設計依據</th><th></th></tr>
+    {% for r in rows.get('1.9', []) %}
+    <tr data-fill-form="form-19" data-json="{{ dict(r, cas=(r.cas ~ '|' ~ r.process_id) if r.cas else '') | tojson | forceescape }}">
+      <td>{{ r.equipment_id }}</td><td>{{ r.device_type }}</td><td>{{ r.calc_no }}</td><td>{{ r.spec_no }}</td>
+      <td>{{ r.pid_no }}</td><td>{{ r.area_code }}</td><td>{{ r.cas }}</td><td>{{ r.phase }}</td>
+      <td>{{ r.set_p }}</td><td>{{ r.capacity }}</td><td>{{ r.nozzle }}</td><td>{{ r.scenario }}</td><td>{{ r.basis }}</td>
+      <td><button class="editish" type="button" data-fill-row>修改</button> <form class="inline" method="post" action="/wizard/row/delete"><input type="hidden" name="step" value="1"><input type="hidden" name="row_id" value="{{ r.row_id }}"><button class="linkish" type="submit">刪</button></form></td>
+    </tr>
+    {% endfor %}
+  </table>
+  </div>
+  <form class="grid card" method="post" action="/wizard/row" id="form-19" data-add-label="新增 1.9 列" data-edit-label="更新 1.9 列">
+    <input type="hidden" name="step" value="1"><input type="hidden" name="section" value="1.9">
+    <input type="hidden" name="process_id" value="">
+    <label>釋壓裝置
+      <select name="equipment_id">
+        <option value="">（選釋放及排放系統）</option>
+        {% for e in eq_all if e.equipment_type=='釋放及排放系統' %}
+        <option value="{{ e.equipment_id }}" data-area="{{ e.area_code }}" data-name="{{ e.name }}">{{ e.equipment_id }} {{ e.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>類型 <input name="device_type" placeholder="安全閥／爆破片"></label>
+    <label>計算書標號 <input name="calc_no"></label>
+    <label>規格文件編號 <input name="spec_no"></label>
+    <label>P&amp;ID 編號
+      <select name="pid_no"><option value=""></option>{% for d in drawings %}<option value="{{ d.drawing_no }}">{{ d.drawing_no }} {{ d.revision }}</option>{% endfor %}</select>
+    </label>
+    <label>安裝位置
+      <select name="area_code"><option value=""></option>{% for a in areas %}<option value="{{ a.area_code }}">{{ a.area_code }} {{ a.name }}</option>{% endfor %}</select>
+    </label>
+    <label>釋放物
+      <select name="cas"><option value=""></option>{% for c in chemicals %}<option value="{{ c.cas }}|{{ c.process_id }}">{{ c.cas }} {{ c.name }}</option>{% endfor %}</select>
+    </label>
+    <label>流相 <select name="phase"><option>氣</option><option>液</option></select></label>
+    <label>設定壓力 kg/cm² <input name="set_p"></label>
+    <label>設計排放量 m³/hr <input name="capacity"></label>
+    <label>出入口尺寸 mm <input name="nozzle"></label>
+    <label>過壓計算情境 <input name="scenario"></label>
+    <label>設計依據 <input name="basis"></label>
+    <button type="submit">新增 1.9 列</button>
+  </form>
+</section>
+
+<section class="sec">
+  <h3>說明安全連鎖、偵測及抑制系統 <small class="table-ref">表1.10-1</small></h3>
+  <p class="note">控制系統與緊急停車系統分列。緊急停車條件見表4.3-1，不在本節另填方案。</p>
+  <div class="table-wrap">
+  <table class="data">
+    <tr><th>系統／單元</th><th>連鎖名稱</th><th>型式</th><th>安全功能</th><th>正常設定</th><th>預警</th><th>警報</th><th>復歸</th><th></th></tr>
+    {% for r in rows.get('1.10', []) %}
+    <tr data-fill-form="form-110" data-json="{{ r | tojson | forceescape }}">
+      <td>{{ r.equipment_id }}</td><td>{{ r.name }}</td><td>{{ r.kind }}</td><td>{{ r.function }}</td>
+      <td>{{ r.normal }}</td><td>{{ r.warn }}</td><td>{{ r.alarm }}</td><td>{{ r.reset }}</td>
+      <td><button class="editish" type="button" data-fill-row>修改</button> <form class="inline" method="post" action="/wizard/row/delete"><input type="hidden" name="step" value="1"><input type="hidden" name="row_id" value="{{ r.row_id }}"><button class="linkish" type="submit">刪</button></form></td>
+    </tr>
+    {% endfor %}
+  </table>
+  </div>
+  <form class="grid card" method="post" action="/wizard/row" id="form-110" data-add-label="新增 1.10 列" data-edit-label="更新 1.10 列">
+    <input type="hidden" name="step" value="1"><input type="hidden" name="section" value="1.10">
+    <label>系統／單元
+      <select name="equipment_id">
+        {% for e in eq_all if e.equipment_type in ('控制系統','緊急停車系統') %}
+        <option value="{{ e.equipment_id }}">{{ e.equipment_id }} {{ e.name }}（{{ e.equipment_type }}）</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>安全連鎖編號／名稱 <input name="name" required></label>
+    <label>連鎖型式 <select name="kind"><option>硬體</option><option>軟體</option></select></label>
+    <label>安全功能描述 <input name="function" required></label>
+    <label>正常操作設定值 <input name="normal"></label>
+    <label>預警設定值及動作 <input name="warn"></label>
+    <label>警報設定值及動作 <input name="alarm"></label>
+    <label>復歸 <select name="reset"><option>手動</option><option>自動</option></select></label>
+    <button type="submit">新增 1.10 列</button>
+  </form>
+</section>
+
+<section class="sec" id="psi-111-section">
+  <h3>附上設備相關法令證明 <small class="table-ref">表1.11-1</small></h3>
+  {% set legal_equipment = legal_equipment if legal_equipment is defined else [] %}
+  {% set legal_ids = legal_equipment|map(attribute='equipment_id')|list %}
+  {% set cert_ids = rows.get('1.11', [])|map(attribute='equipment_id')|list %}
+  <p class="note">引用表1.0-3 已勾選「危險性機械設備」或「高壓氣體特定設備或容器」的設備。待填列會自動列出，設備編號及名稱沿用設備清單；同一設備可登錄多份證明。</p>
+  <form class="card" method="post" action="/wizard/flags" style="margin-bottom:0.8rem">
+    <input type="hidden" name="step" value="1">
+    <input type="hidden" name="no_art16" value="0">
+    <label class="chk"><input type="checkbox" name="no_art16" id="psi-111-none" value="1" {% if fl.get('no_art16')=='1' %}checked{% endif %} {% if legal_equipment or cert_ids %}disabled{% endif %}> 本場所無第 16 條危險性機械或設備及高壓氣體特定設備或容器</label>
+    <button type="submit">存聲明</button>
+  </form>
+  <table class="data">
+    <thead>
+    <tr><th>設備名稱</th><th>設備編號</th><th>危險性設備類別</th><th>合格證有效期限</th><th>檢查合格證號碼</th><th></th></tr>
+    </thead>
+    <tbody id="psi-111-saved">
+    {% for r in rows.get('1.11', []) %}
+    <tr data-fill-form="form-111" data-json="{{ r | tojson | forceescape }}">
+      <td data-legal-name="{{ r.equipment_id }}">{% for e in eq_all if e.equipment_id==r.equipment_id %}{{ e.name }}{% endfor %}</td>
+      <td>{{ r.equipment_id }}</td><td>{{ r.category }}</td><td>{{ r.expire }}</td><td>{{ r.cert_no }}</td>
+      <td><button class="editish" type="button" data-fill-row {% if r.equipment_id not in legal_ids %}disabled{% endif %}>修改</button> <span class="muted" data-legal-stale {% if r.equipment_id in legal_ids %}hidden{% endif %}>請先回表1.0-3 確認設備勾選</span> <form class="inline" method="post" action="/wizard/row/delete"><input type="hidden" name="step" value="1"><input type="hidden" name="row_id" value="{{ r.row_id }}"><button class="linkish" type="submit">刪</button></form></td>
+    </tr>
+    {% endfor %}
+    </tbody>
+    <tbody id="psi-111-pending">
+    {% for e in legal_equipment if e.equipment_id not in cert_ids %}
+    <tr data-fill-form="form-111" data-json="{{ {'equipment_id': e.equipment_id, 'category': e.legal_category, 'cert_no': '', 'expire': ''} | tojson | forceescape }}">
+      <td>{{ e.name }}</td><td>{{ e.equipment_id }}</td><td>{{ e.legal_category }}</td><td class="muted">待填</td><td class="muted">待填</td>
+      <td><button class="editish" type="button" data-fill-row>填寫證明</button></td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <p class="note" id="psi-111-empty" {% if legal_equipment or cert_ids %}hidden{% endif %}>尚無適用設備；請先回表1.0-3 勾選，若確實沒有則儲存上方聲明。</p>
+  <form class="grid card" method="post" action="/wizard/row" id="form-111" data-add-label="新增 1.11 列" data-edit-label="更新 1.11 列">
+    <input type="hidden" name="step" value="1"><input type="hidden" name="section" value="1.11">
+    <label>設備
+      <select name="equipment_id" id="psi-111-eq" required {% if not legal_equipment %}disabled{% endif %}>
+        <option value="">（選已勾選的設備）</option>
+        {% for e in legal_equipment %}
+        <option value="{{ e.equipment_id }}" data-category="{{ e.legal_category }}">{{ e.equipment_id }} {{ e.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>危險性設備類別 <input name="category" required></label>
+    <label>檢查合格證號碼 <input name="cert_no" required></label>
+    <label>合格證有效期限 <input name="expire" type="date" required></label>
+    <button type="submit" {% if not legal_equipment %}disabled{% endif %}>新增 1.11 列</button>
+  </form>
+</section>

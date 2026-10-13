@@ -1,0 +1,48 @@
+{% set fl = flags if flags is defined else {} %}
+{% set hotwork_zones = hotwork_zones if hotwork_zones is defined else [] %}
+<section class="sec">
+  <h3>指定需要動火許可的管制區域 <small class="table-ref">表9.1-1</small></h3>
+  <p class="note">填報主體是管制區域，選表1.0-5；是否防爆帶出表1.8-1。管線維修或工程動火都要列舉管制區域。</p>
+  {% if hotwork_zones %}
+  <div class="table-wrap">
+  <table class="data">
+    <tr><th>區域</th><th>名稱</th><th>防爆</th><th>防爆說明</th><th>防護原因</th><th>操作</th></tr>
+    {% for z in hotwork_zones %}
+    <tr data-fill-form="form-91" data-json="{{ z | tojson | forceescape }}">
+      <td>{{ z.area_code }}</td>
+      <td>{{ z.area_name }}</td>
+      <td>{{ '是' if z.is_explosion_zone else '否' }}</td>
+      <td>{{ z.explosion_note or '' }}</td>
+      <td>{{ z.protection_reason }}</td><td><button class="editish" type="button" data-fill-row>修改</button> <form class="inline" method="post" action="/wizard/item/delete" data-confirm="刪除這個動火管制區域？"><input type="hidden" name="kind" value="hotwork_zone"><input type="hidden" name="area_code" value="{{ z.area_code }}"><button class="linkish" type="submit">刪除</button></form></td>
+    </tr>
+    {% endfor %}
+  </table>
+  </div>
+  {% endif %}
+  <form class="grid card" method="post" action="/wizard/row" id="form-91" data-add-label="新增 9.1-1 列" data-edit-label="更新 9.1-1 列">
+    <input type="hidden" name="step" value="9"><input type="hidden" name="section" value="9.1z">
+    <label>管制區域
+      <select name="area_code" required>
+        <option value="">（選表1.0-5）</option>
+        {% for a in areas %}<option value="{{ a.area_code }}">{{ a.area_code }} {{ a.name }}</option>{% endfor %}
+      </select>
+    </label>
+    <label>列舉動火區域防護原因 <input name="protection_reason" required></label>
+    <button type="submit">新增 9.1-1 列</button>
+  </form>
+  <form class="yn-grid card" method="post" action="/wizard/flags">
+    <input type="hidden" name="step" value="9">
+    {% for k, label in yn9 %}
+    <label>{{ label }}
+      <select name="{{ k }}"><option value="">（請選）</option>
+        <option value="是" {% if fl.get(k)=='是' %}selected{% endif %}>是</option>
+        <option value="否" {% if fl.get(k)=='否' %}selected{% endif %}>否</option>
+      </select>
+    </label>
+    {% endfor %}
+    <label>對象若填實例（選設備）
+      <select name="hw_eq"><option value=""></option>{% for e in eq_all %}<option value="{{ e.equipment_id }}">{{ e.equipment_id }} {{ e.name }}</option>{% endfor %}</select>
+    </label>
+    <button type="submit">存確認事項</button>
+  </form>
+</section>
