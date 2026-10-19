@@ -12,3 +12,6 @@ data/qa-tmp-*/
 *.sqlite-journal
 *.sqlite-wal
 *.sqlite-shm
+_site*/
+.pytest-*.xml
+.browser-cache/

@@ -440,11 +440,12 @@ def test_psi_handbook_tables_on_step1(tmp_path, monkeypatch):
     assert "蒸氣壓" in page
     assert "閃火點" in page
     assert "TWA" in page
-    assert "建立方塊" in page
+    assert 'id="flow-canvas"' in page
+    assert 'id="flow-add"' in page and "加入流程圖" in page
     assert "已選" in page
     assert "巢狀表" in page
-    assert "不另建製程先後指標" in page
-    assert "下一製程" not in page
+    assert 'id="flow-next-proc"' in page
+    assert 'id="flow-edit-process"' in page
     assert "設備編號" in page
     assert "氧化" in page
     assert "硝化" in page
