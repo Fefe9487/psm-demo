@@ -1,11 +1,6 @@
 <!doctype html>
-<html lang="zh-Hant">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PSM 製程安全管理｜唯讀示範</title><link rel="stylesheet" href="static/style.css"><link rel="stylesheet" href="static/readonly.css"></head>
-<body>
-<a class="skip-link" href="#main-content">跳至主要內容</a>
-<div class="layout"><aside class="sidebar"><a class="brand" href="index.html"><span class="brand-mark">PSM</span><span>製程安全管理<small>唯讀示範</small></span></a><nav aria-label="主要導覽"><a href="hf/wizard/1.html">HF 密閉供料</a><a href="petrochemical/wizard/1.html">石化業案例</a><a href="https://github.com/Fefe9487/psm-demo#啟動">本機填報版與啟動說明</a></nav></aside>
-<main class="main" id="main-content"><div class="landing"><span class="eyebrow">製程安全管理十四項</span><h1>選擇一個案例，逐章查看填報範例</h1><p class="lede">瀏覽場所、製程、設備、化學品及十四章範例報告。本網站為唯讀示範；需要填寫、上傳或儲存時，請使用本機版。</p><div class="landing-grid">
-<a class="landing-card primary" href="hf/wizard/1.html"><span class="kicker">HF 案例</span><strong>HF 密閉供料 →</strong><p>密閉接收、汽化供料及尾氣鹼洗，查看跨章引用的設備、化學品與事故範例。</p></a>
-<a class="landing-card" href="petrochemical/wizard/1.html"><span class="kicker">石化業案例</span><strong>HF 催化烷基化 →</strong><p>異丁烷與丁烯進料、催化烷基化、產品分離與尾氣處理的全表範例。</p></a></div>
-<h2>直接查看十四章報告</h2><p><a class="btn secondary" href="hf/report.html">HF 案例報告</a> <a class="btn secondary" href="petrochemical/report.html">石化業案例報告</a></p><p class="note">範例數值、設備界限及文件為教學假設；頁面保留待補事項，供對照填報欄位。</p></div></main></div>
-</body></html>
+<html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PSM 製程安全管理｜互動展示</title><link rel="stylesheet" href="./interactive.css"><script src="./start.js" defer></script></head>
+<body><main><span class="eyebrow">製程安全管理十四項</span><h1>選擇案例，開始實際操作</h1><p class="intro">新增、修改、刪除資料，編輯流程圖、上傳附件，再預覽十四章報告。兩套案例已附預設資料，可隨時恢復。</p>
+<p id="startup-status" role="status" aria-live="polite">正在載入互動展示，首次開啟需要下載系統檔案…</p>
+<div class="cases"><a data-start aria-disabled="true" tabindex="-1" href="./app/wizard/sample/hf"><span>HF 案例</span><h2>HF 密閉供料 →</h2><p>從密閉接收到氣態供料、尾氣鹼洗，操作完整的十四章填報介面。</p></a><a data-start aria-disabled="true" tabindex="-1" href="./app/wizard/sample/petrochemical"><span>石化業案例</span><h2>HF 催化烷基化 →</h2><p>異丁烷與丁烯進料、催化烷基化、產品分離及尾氣處理的全表範例。</p></a></div>
+<p class="storage-note">操作資料與上傳檔案只保留在這個瀏覽器，其他訪客不會看到你的修改。清除網站資料後會恢復預設。</p><details><summary>載入狀態與說明</summary><p>請使用支援網站儲存功能的新版瀏覽器，並保留此網站的儲存空間。範例資料供教學與功能展示。</p><pre id="startup-error"></pre><a href="https://github.com/Fefe9487/psm-demo">專案與本機啟動說明</a></details></main></body></html>
