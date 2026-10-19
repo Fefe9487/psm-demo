@@ -14,3 +14,4 @@ data/qa-tmp-*/
 *.sqlite-shm
 _site*/
 .pytest-*.xml
+.browser-cache/

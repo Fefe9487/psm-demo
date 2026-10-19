@@ -2,19 +2,18 @@
 
 PSMdemo 是以 FastAPI 建立的製程安全資訊填報示範。這份倉庫備份包含程式、測試、專案文件、範例資料庫與必要樣本附件。
 
-## GitHub Pages 唯讀示範
+## GitHub Pages 互動展示
 
-[開啟 PSM 示範網站](https://fefe9487.github.io/psm-demo/)。可切換 HF 密閉供料及石化業案例，瀏覽十四章、各製程步驟與範例報告。Pages 只提供唯讀快照；填報、附件上傳及儲存請使用下方的本機版。
+[開啟 PSM 互動展示](https://fefe9487.github.io/psm-demo/)。可切換 HF 密閉供料及石化業案例，使用原本的十四章填報介面：新增、修改、刪除資料、編輯流程圖、上傳附件、儲存及產生報告。頁面上方可恢復目前案例的預設資料。
 
-發布來源為 `gh-pages` 分支根目錄，與 Python 程式及 SQLite 資料庫分開。網站只包含白名單內的 HTML、CSS 與建置檢查摘要，不會發布資料庫、歷史備份或本機附件。
+原 FastAPI 與 SQLite 透過 Pyodide 在瀏覽器內執行，Service Worker 處理網站自己的 `/app/` 請求。每位訪客的修改與附件保存在自己的 IndexedDB；其他訪客不會看到，清除網站資料會恢復預設。第一次啟動需下載約 19 MB 系統檔案，之後使用瀏覽器快取。展示不含多人共享或跨裝置同步。
 
-重新產生及檢查網站（輸出目錄須為空）：
+重新建置網站（輸出目錄須為空）：
 
     .\.venv\Scripts\python.exe -m pip install -r requirements.txt
-    .\.venv\Scripts\python.exe scripts/export_pages.py --output _site
-    .\.venv\Scripts\python.exe scripts/export_pages.py --output _site --check
+    .\.venv\Scripts\python.exe scripts/build_browser_demo.py --output _site
 
-匯出器使用兩套固定案例的暫存副本，保留原始資料庫；所有站內路徑均使用相對網址。輸出後將 `_site` 內容提交至 `gh-pages` 分支即可更新網站。目前採分支發布，`main` 更新不會自動重新匯出。
+建置器下載固定版本的官方 Pyodide 執行環境與 Python wheels，驗證套件雜湊，並打包程式、樣式及三個指定範例資料庫；不包含歷史備份或本機上傳檔案。執行環境與套件均隨網站發布，訪客不需連接 PyPI 或 CDN。將 `_site` 內容提交至 `gh-pages` 分支即可更新網站；`main` 更新不會自動建置。舊的靜態快照匯出器仍可另行產生離線參考資料，網站首頁使用互動版。
 
 ## 啟動
 
@@ -38,7 +37,7 @@ data/ 內保存一般版與高壓氣體版的示範／填報資料庫、示範�
 
 ## 驗證
 
-2026-10-19 完整測試為 **162 passed**。測試包含文件跨章引用與唯讀網站匯出；第一章流程編輯器的舊文案檢查已改為目前的控制項與「加入流程圖」文字。Pages 與文件引用修正詳見 [檢查紀錄](docs/2026-10-19-Pages與引用檢查.md)。
+2026-10-19 完整測試為 **168 passed**。測試包含文件跨章引用、瀏覽器轉接層的儲存／上傳／還原、兩套案例的十四章路由、網址改寫與 JavaScript 語法。Pages 與文件引用修正詳見 [檢查紀錄](docs/2026-10-19-Pages與引用檢查.md)。
 
 執行測試：
 
