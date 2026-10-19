@@ -85,6 +85,9 @@ def check_copy(source: Path, target: Path) -> list[str]:
 
 def main() -> int:
     sources = [ROOT / "data" / name for name in ("psm_demo_hf.sqlite", "psm_fill_hf.sqlite")]
+    sources.extend(ROOT / "data/demo_cases" / name for name in (
+        "hf-incident.sqlite", "zero-accident-contractors.sqlite", "petrochemical-complete.sqlite",
+    ))
     failures: list[str] = []
     with tempfile.TemporaryDirectory(prefix="psm-v83-qa-") as tmp:
         for source in sources:

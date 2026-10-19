@@ -2,6 +2,20 @@
 
 PSMdemo 是以 FastAPI 建立的製程安全資訊填報示範。這份倉庫備份包含程式、測試、專案文件、範例資料庫與必要樣本附件。
 
+## GitHub Pages 唯讀示範
+
+[開啟 PSM 示範網站](https://fefe9487.github.io/psm-demo/)。可切換 HF 密閉供料及石化業案例，瀏覽十四章、各製程步驟與範例報告。Pages 只提供唯讀快照；填報、附件上傳及儲存請使用下方的本機版。
+
+發布來源為 `gh-pages` 分支根目錄，與 Python 程式及 SQLite 資料庫分開。網站只包含白名單內的 HTML、CSS 與建置檢查摘要，不會發布資料庫、歷史備份或本機附件。
+
+重新產生及檢查網站（輸出目錄須為空）：
+
+    .\.venv\Scripts\python.exe -m pip install -r requirements.txt
+    .\.venv\Scripts\python.exe scripts/export_pages.py --output _site
+    .\.venv\Scripts\python.exe scripts/export_pages.py --output _site --check
+
+匯出器使用兩套固定案例的暫存副本，保留原始資料庫；所有站內路徑均使用相對網址。輸出後將 `_site` 內容提交至 `gh-pages` 分支即可更新網站。目前採分支發布，`main` 更新不會自動重新匯出。
+
 ## 啟動
 
 在 Windows PowerShell 執行：
@@ -24,7 +38,7 @@ data/ 內保存一般版與高壓氣體版的示範／填報資料庫、示範�
 
 ## 驗證
 
-本次連動相關測試為 19 passed。完整測試目前有 155 個通過、1 個既有文案檢查失敗：test_psi_handbook_tables_on_step1 仍期待舊按鈕文字「建立方塊」，目前介面文案為「加入流程圖」。修正記錄說明了測試範圍。
+2026-10-19 完整測試為 **162 passed**。測試包含文件跨章引用與唯讀網站匯出；第一章流程編輯器的舊文案檢查已改為目前的控制項與「加入流程圖」文字。Pages 與文件引用修正詳見 [檢查紀錄](docs/2026-10-19-Pages與引用檢查.md)。
 
 執行測試：
 
@@ -36,4 +50,4 @@ data/ 內保存一般版與高壓氣體版的示範／填報資料庫、示範�
 
 ## 備份內容
 
-本倉庫為 PSMdemo 的私有備份，包含資料庫快照。若要試填，請先另存資料庫副本，再把環境變數 PSM_WIZARD_DB_PATH（一般案例）或 PSM_WIZARD_PETRO_DB_PATH（石化案例）指向副本。
+本倉庫包含 PSMdemo 的資料庫快照。若要試填，請先另存資料庫副本，再把環境變數 PSM_WIZARD_DB_PATH（一般案例）或 PSM_WIZARD_PETRO_DB_PATH（石化案例）指向副本。

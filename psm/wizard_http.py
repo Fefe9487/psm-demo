@@ -299,7 +299,7 @@ def register_wizard(app, *, get_conn, render, redirect_ok, redirect_err):
                     (WIZARD_SITE_ID, number, name, revised, path),
                 ).lastrowid
             conn.execute(
-                """INSERT INTO filing_document_ref(site_id,step,purpose,document_id)
+                """INSERT OR IGNORE INTO filing_document_ref(site_id,step,purpose,document_id)
                    VALUES (?,?,?,?)""",
                 (WIZARD_SITE_ID, step, purpose, doc_id),
             )

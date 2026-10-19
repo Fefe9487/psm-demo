@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 from fastapi.testclient import TestClient
 
@@ -736,6 +737,44 @@ def test_empty_attachment_does_not_pass_upload_check(tmp_path):
     empty = tmp_path / "empty.pdf"
     empty.write_bytes(b"")
     assert not wizard.has_uploaded_file(str(empty))
+
+
+def test_editing_shared_document_preserves_existing_chapter_references(tmp_path, monkeypatch):
+    client, path = _client(tmp_path, monkeypatch)
+    fields = {
+        "step": "9", "purpose": "hotwork_procedure", "document_no": "SHARED-EDIT",
+        "title": "共用程序", "revision_date": "2026-08-01",
+    }
+    created = client.post("/wizard/document/create", data=fields,
+                          files={"file": ("old.pdf", b"%PDF-1.4\nold", "application/pdf")},
+                          follow_redirects=False)
+    assert "err=" not in created.headers["location"]
+    conn = db.connect(path)
+    try:
+        document_id = conn.execute("SELECT document_id FROM filing_document WHERE document_no='SHARED-EDIT'").fetchone()[0]
+    finally:
+        conn.close()
+    linked = client.post("/wizard/document/link", data={
+        "step": "10", "purpose": "moc_plan", "document_id": document_id,
+    }, follow_redirects=False)
+    assert "err=" not in linked.headers["location"]
+    for files in ({}, {"file": ("replacement.pdf", b"%PDF-1.4\nnew", "application/pdf")}):
+        updated = client.post("/wizard/document/create", data={
+            **fields, "document_id": str(document_id), "title": "更新的共用程序",
+        }, files=files, follow_redirects=False)
+        assert updated.status_code == 303
+        assert "err=" not in updated.headers["location"]
+    conn = db.connect(path)
+    try:
+        assert conn.execute("SELECT COUNT(*) FROM filing_document").fetchone()[0] == 1
+        assert conn.execute("SELECT COUNT(*) FROM filing_document_ref WHERE document_id=?", (document_id,)).fetchone()[0] == 2
+        stored = conn.execute("SELECT title,attachment_path FROM filing_document WHERE document_id=?", (document_id,)).fetchone()
+        assert stored["title"] == "更新的共用程序"
+        assert Path(stored["attachment_path"]).read_bytes() == b"%PDF-1.4\nnew"
+        assert not wizard.document_gaps(conn, WIZARD_SITE_ID, 9)
+        assert not wizard.document_gaps(conn, WIZARD_SITE_ID, 10)
+    finally:
+        conn.close()
 
 
 def test_first_filing_moc_without_cases_still_requires_one_procedure(tmp_path, monkeypatch):
