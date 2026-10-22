@@ -1073,6 +1073,8 @@ def counts(conn: sqlite3.Connection, site_id: str) -> dict:
 def page_extra(conn: sqlite3.Connection, site_id: str, step: int) -> dict:
     flags = fil.all_flags(conn, site_id)
     by_sec = fil.rows_by_section(conn, site_id)
+    psi_facts = fil.psi_chemical_facts(conn, site_id)
+    fil.sync_psi_rows(by_sec, psi_facts)
     by_sec["11.2"] = [
         {
             **dict(r), "when": r["incident_date"],
@@ -1285,6 +1287,7 @@ def page_extra(conn: sqlite3.Connection, site_id: str, step: int) -> dict:
     return {
         "flags": flags,
         "rows": by_sec,
+        "psi_facts": psi_facts,
         "sops": sops,
         "courses": courses,
         "contents": contents,
@@ -1379,7 +1382,7 @@ def page_extra(conn: sqlite3.Connection, site_id: str, step: int) -> dict:
         "phys_opts": fil.PHYS_OPTS,
         "health_opts": fil.HEALTH_OPTS,
         "unit_titles": UNIT_TITLES,
-        "annex_merge": fil.merge_annex_qty(by_sec.get("mix") or []),
+        "annex_merge": fil.merge_annex_qty(fil.chemical_quantity_rows(conn, site_id)),
         "annex_catalog": fil.annex_catalog(),
         "chem_104": (
             chem_104 := fil.chem_104_rows(

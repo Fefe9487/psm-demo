@@ -173,8 +173,8 @@ _ANNEX_BY_CAS = {
 }
 # 表列中文「丙烯」實為丙烯腈（Acrylonitrile）
 _ANNEX_BY_CAS["107-13-1"]["aliases"] = ("丙烯",)
-# 附表管制量相態（固態／液態／氣態）。phase_gate 為真時，常用狀況相態不符者不列入管制量。
-# 氯化氫、氟化氫依勞動部解釋以氣態為規範對象；其餘為對照用，不另排除。
+# 常見相態供參考，非附表另訂門檻。HCl／HF 依注意事項確認氣態及水溶液別；
+# 非氣態且未確認為水溶液者保留待確認，不由液態推定為水溶液。
 _LIMIT_PHASE = {
     "1338-23-4": "液態",
     "94-36-0": "固態",
@@ -594,6 +594,7 @@ def chem_104_rows(chemicals: list[dict], mix_rows: list[dict]) -> list[dict]:
                 "sds_file": chem.get("sds_file") or chem.get("sds_path") or "",
                 "sds_id": chem.get("sds_id") or m.get("sds_id") or "",
                 "phase_state": m.get("phase_state") or chem.get("phase_state") or "",
+                "aqueous_status": m.get("aqueous_status", chem.get("aqueous_status", "")),
             }
         )
         if cas and pid:
@@ -608,18 +609,22 @@ def chem_104_rows(chemicals: list[dict], mix_rows: list[dict]) -> list[dict]:
                 "cas": c.get("cas"),
                 "process_id": c.get("process_id"),
                 "name": c.get("name"),
+                "name_en": c.get("name_en") or "",
                 "role": c.get("role"),
                 "h_codes": c.get("h_codes"),
                 "sds_id": c.get("sds_id") or "",
                 "mix_name": "",
                 "pct_lo": "",
-                "pct_hi": "",
+                "pct_hi": "100",
                 "basis": "",
-                "total_kg": "",
-                "qty": c.get("concentration_range") or "",
-                "pure_kg": "",
+                "total_kg": c.get("attributed_qty"),
+                "qty": c.get("attributed_qty") if c.get("attributed_qty") is not None else "",
+                "pure_kg": c.get("attributed_qty") if c.get("attributed_qty") is not None else "",
                 "sds_file": c.get("sds_file"),
                 "phase_state": c.get("phase_state") or "",
+                "aqueous_status": c.get("aqueous_status") or "",
+                "attributed_qty": c.get("attributed_qty"),
+                "concentration_range": c.get("concentration_range") or "",
                 "row_id": None,
             }
         )
@@ -668,7 +673,7 @@ def yn12_ok(flags: dict) -> bool:
 
 def _num(v) -> float | None:
     try:
-        s = str(v or "").replace(",", "").replace("%", "").strip()
+        s = str(v if v is not None else "").replace(",", "").replace("%", "").strip()
         if s == "":
             return None
         return float(s)
@@ -680,7 +685,9 @@ def mix_allocated(total: str, pct_hi: str, pct_lo: str = "") -> dict:
     """混合物數量歸屬：比例為範圍時採上限；不寫入化學品核心列。"""
     tot = _num(total)
     hi = _num(pct_hi)
-    if tot is None or hi is None:
+    from math import isfinite
+
+    if tot is None or hi is None or not isfinite(tot) or not isfinite(hi) or tot < 0 or not 0 <= hi <= 100:
         return {"qty": "", "estimate": False, "pure_kg": None}
     qty = tot * hi / 100.0
     lo = str(pct_lo or "").strip()
@@ -735,14 +742,14 @@ def annex_qty_check(
     cas: str | None = None,
     name: str | None = None,
     op_kg: str = "",
-    wt_pct: str = "",
+    wt_pct: str = "100",
     wt_lo: str = "",
-    is_aqueous: bool = False,
+    is_aqueous: bool | None = None,
     n_pct: str | None = None,
     phase: str = "",
 ) -> dict:
-    """操作量×重量百分比＝純物質公斤，再對施行細則規定數量。相態不符管制量相態者不列入。"""
-    alloc = mix_allocated(op_kg, wt_pct or "100", wt_lo)
+    """公斤×重量百分比÷100。水溶液別與相態分開，未確認者不宣告未達量。"""
+    alloc = mix_allocated(op_kg, wt_pct, wt_lo)
     pure = alloc["pure_kg"]
     rec = lookup_annex(cas, name)
     out = {
@@ -757,27 +764,29 @@ def annex_qty_check(
         "name_zh": rec["name_zh"] if rec else "",
         "limit_phase": (rec.get("limit_phase") or "") if rec else "",
         "phase": str(phase or "").strip(),
+        "needs_review": False,
     }
-    if pure is None:
-        out["note"] = "操作量或濃度無法計算"
-        return out
     if not rec:
         out["note"] = "未列於勞動檢查法施行細則危險物／有害物規定數量，不納入甲類數量認定"
         return out
     cas_k = str(cas or rec.get("cas") or "").strip()
     phase_s = str(phase or "").strip()
-    limit_phase = str(rec.get("limit_phase") or "")
-    if rec.get("phase_gate") and phase_s and limit_phase and phase_s != limit_phase:
-        out["note"] = (
-            f"常用狀況相態為{phase_s}，附表管制量相態為{limit_phase}，相態不符不列入管制量"
-        )
-        return out
-    if cas_k in AQUEOUS_EXCLUDED_CAS and is_aqueous and phase_s != "氣態":
-        out["note"] = "氯化氫、氟化氫以氣態為規範對象；水溶液（鹽酸／氫氟酸）不列入"
+    if cas_k in AQUEOUS_EXCLUDED_CAS:
+        if is_aqueous is True and phase_s in ("", "液態"):
+            out["note"] = "水溶液（鹽酸／氫氟酸）不列入甲類數量認定"
+            return out
+        if is_aqueous is True or phase_s != "氣態":
+            out["needs_review"] = True
+            out["note"] = "待確認：請核對操作相態、水溶液別及適用範圍；液態不等於水溶液"
+            return out
+    if pure is None:
+        out["needs_review"] = True
+        out["note"] = "待確認：操作量（kg）或重量百分比未填妥"
         return out
     if cas_k == NITROCELLULOSE_CAS:
         np = _num(n_pct)
         if np is None or np <= 12.6:
+            out["needs_review"] = np is None
             out["note"] = "硝化纖維僅含氮量大於 12.6% 者納入累計"
             return out
     out["counted"] = True
@@ -792,15 +801,20 @@ def _as_bool(v) -> bool:
 
 def attach_annex_check(payload: dict) -> dict:
     row = dict(payload)
-    op = row.get("total_kg") or row.get("op_kg") or ""
-    wt = row.get("pct_hi") or row.get("wt") or ""
+    op = row.get("total_kg")
+    if op is None or op == "":
+        op = row.get("op_kg", "")
+    wt = row.get("pct_hi")
+    if wt is None or wt == "":
+        wt = row.get("wt", "")
     chk = annex_qty_check(
         cas=row.get("cas"),
         name=row.get("mix_name") or row.get("name"),
         op_kg=str(op),
         wt_pct=str(wt),
         wt_lo=str(row.get("pct_lo") or ""),
-        is_aqueous=_as_bool(row.get("is_aqueous")),
+        # 舊 is_aqueous 曾由液態自動推定，不作為使用者已確認的證據。
+        is_aqueous={"1": True, "0": False}.get(str(row.get("aqueous_status", ""))),
         n_pct=row.get("n_pct"),
         phase=str(row.get("phase_state") or row.get("phase") or ""),
     )
@@ -814,8 +828,9 @@ def attach_annex_check(payload: dict) -> dict:
     row["counted"] = chk["counted"]
     row["exceeds"] = chk["exceeds"]
     row["annex_note"] = chk["note"]
+    row["needs_review"] = chk["needs_review"]
     if not row.get("formula"):
-        row["formula"] = "操作量×重量百分比（上限）＝純物質公斤"
+        row["formula"] = "操作量（kg）×重量百分比（上限）÷100＝純物質量（kg）"
     return row
 
 
@@ -825,7 +840,7 @@ def merge_annex_qty(rows: list[dict]) -> dict[str, dict]:
     for raw in rows:
         row = attach_annex_check(raw)
         cas = str(row.get("cas") or "").strip()
-        if not cas or not row.get("counted"):
+        if not cas or not row.get("limit_kg"):
             continue
         pure = _num(row.get("pure_kg")) or 0.0
         bucket = out.setdefault(
@@ -836,12 +851,73 @@ def merge_annex_qty(rows: list[dict]) -> dict[str, dict]:
                 "limit_kg": _num(row.get("limit_kg")),
                 "annex": row.get("annex") or "",
                 "exceeds": False,
+                "needs_review": False,
+                "counted_rows": 0,
             },
         )
-        bucket["pure_kg"] += pure
+        if row.get("counted"):
+            bucket["pure_kg"] += pure
+            bucket["counted_rows"] += 1
+        bucket["needs_review"] |= row.get("needs_review", False)
         lim = bucket.get("limit_kg")
         bucket["exceeds"] = lim is not None and bucket["pure_kg"] >= lim
     return out
+
+
+def chemical_quantity_rows(conn: sqlite3.Connection, site_id: str) -> list[dict]:
+    """Calculate every pure substance and mixture component once, preserving its SDS."""
+    chemicals = [dict(r) for r in conn.execute(
+        """SELECT c.* FROM chemical c JOIN process p ON p.process_id=c.process_id
+           WHERE p.site_id=? ORDER BY c.cas,c.process_id,c.sds_id""", (site_id,),
+    )]
+    return [attach_annex_check(r) for r in chem_104_rows(chemicals, list_rows(conn, site_id, "mix"))]
+
+
+def psi_chemical_facts(conn: sqlite3.Connection, site_id: str) -> dict[str, dict]:
+    """Tables 1.1/1.2 share the current 1.0-4 facts, including every SDS component."""
+    rows = chemical_quantity_rows(conn, site_id)
+    totals = merge_annex_qty(rows)
+    grouped: dict[str, list[dict]] = {}
+    for row in rows:
+        grouped.setdefault(f"{row['cas']}|{row['process_id']}", []).append(row)
+    facts = {}
+    for key, components in grouped.items():
+        cas = str(components[0]["cas"])
+        rec = lookup_annex(cas)
+        total = totals.get(cas, {})
+        notes = list(dict.fromkeys(r["annex_note"] for r in components))
+        if not rec or not any(r["counted"] or r["needs_review"] for r in components):
+            note = "；".join(notes)
+        else:
+            result = "達規定數量" if total.get("exceeds") else "未達規定數量"
+            if total.get("needs_review"):
+                result = "已確認量達規定數量；另有待確認資料" if total.get("exceeds") else "待確認：同 CAS 尚有資料未確認"
+            note = f"本場所同 CAS 已確認量 {total.get('pure_kg', 0):g} kg；{result}"
+            details = [r["annex_note"] for r in components if not r["counted"]]
+            if details:
+                note += "；" + "；".join(dict.fromkeys(details))
+        facts[key] = {
+            "phase_state": "／".join(dict.fromkeys(r.get("phase_state") or "未填" for r in components)),
+            "aqueous_label": "／".join(dict.fromkeys(
+                {"1": "水溶液", "0": "非水溶液"}.get(str(r.get("aqueous_status")), "待確認")
+                for r in components
+            )),
+            "ctrl_qty": str(rec["limit_kg"]) if rec else "",
+            "annex_note": note,
+        }
+    return facts
+
+
+def sync_psi_rows(by_section: dict, facts: dict[str, dict]) -> None:
+    """Derived facts are recomputed on display; historical free-text values cannot override them."""
+    for section in ("1.1", "1.2"):
+        by_section[section] = [
+            {**{k: v for k, v in row.items() if k != "state"}, **facts.get(f"{row.get('cas')}|{row.get('process_id')}", {
+                "phase_state": "未填", "aqueous_label": "待確認", "ctrl_qty": "",
+                "annex_note": "待確認：請重新選取表1.0-4 化學品",
+            })}
+            for row in by_section.get(section, [])
+        ]
 
 
 def yn_all(flags: dict, keys: tuple[tuple[str, str], ...]) -> bool:

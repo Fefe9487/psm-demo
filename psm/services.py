@@ -649,12 +649,15 @@ def save_chemical(conn: sqlite3.Connection, data: dict) -> None:
     phase = (_nz(data.get("phase_state")) or _nz(data.get("phase")) or "") if phase_given else ""
     if phase and phase not in PHASES:
         raise PsmError("常用狀況相態須為固態、液態或氣態")
+    aqueous = str(data.get("aqueous_status") or "").strip()
+    if aqueous not in ("", "0", "1"):
+        raise PsmError("水溶液別須選待確認、水溶液或非水溶液")
     conn.execute(
         """INSERT INTO chemical(cas, process_id, sds_id, name, role, un_number,
             transport_hazard_class, concentration_range, h_codes,
             purity_or_mixture, mixture_name, pct_low, pct_high, pct_basis,
-            mixture_qty, attributed_qty, phase_state, name_en)
-           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            mixture_qty, attributed_qty, phase_state, name_en, aqueous_status)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
            ON CONFLICT(process_id, sds_id, cas) DO UPDATE SET
              name=excluded.name, name_en=excluded.name_en, role=excluded.role,
              un_number=excluded.un_number,
@@ -664,7 +667,8 @@ def save_chemical(conn: sqlite3.Connection, data: dict) -> None:
              mixture_name=excluded.mixture_name, pct_low=excluded.pct_low,
              pct_high=excluded.pct_high, pct_basis=excluded.pct_basis,
              mixture_qty=excluded.mixture_qty, attributed_qty=excluded.attributed_qty,
-             phase_state=CASE WHEN ?=1 THEN excluded.phase_state ELSE chemical.phase_state END""",
+             phase_state=CASE WHEN ?=1 THEN excluded.phase_state ELSE chemical.phase_state END,
+             aqueous_status=CASE WHEN ?=1 THEN excluded.aqueous_status ELSE chemical.aqueous_status END""",
         (
             cas,
             process_id,
@@ -684,7 +688,9 @@ def save_chemical(conn: sqlite3.Connection, data: dict) -> None:
             _num_or_none(data.get("attributed_qty")),
             phase,
             _nz(data.get("name_en")),
+            aqueous,
             1 if phase_given else 0,
+            1 if "aqueous_status" in data else 0,
         ),
     )
     _mark_stale(conn, "Chemical", f"{cas}|{process_id}")

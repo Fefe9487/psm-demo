@@ -255,7 +255,7 @@ def render_report_html(conn: sqlite3.Connection, site_id: str) -> str:
     vent = _rows(conn, "SELECT * FROM ventilation")
     codes = _rows(conn, "SELECT * FROM design_code")
     none_types = site["declare_no_equipment_types"] or ""
-    mix_rows = [fil.attach_annex_check(r) for r in fil.list_rows(conn, site_id, "mix")]
+    mix_rows = fil.chemical_quantity_rows(conn, site_id)
     mix_tbl = _table(
         ["混合物", "CAS", "製程", "操作量kg", "wt%", "純物質kg", "規定數量kg", "認定"],
         [[
@@ -278,7 +278,7 @@ def render_report_html(conn: sqlite3.Connection, site_id: str) -> str:
         1,
         f"""
         <p>無某設備類型聲明：{_e(none_types) or '（無）'}。禁止虛構主檔列。化學品可自行新增；規定數量自動帶入僅限危險物／有害物清單。管線與設備只填甲類範圍內須申報者。</p>
-        <p>甲類數量認定依勞動檢查法施行細則：操作量×重量百分比換算為純物質公斤，再對照危險物／有害物規定數量。化學品須填常用狀況相態（固態、液態、氣態）。氯化氫、氟化氫的附表管制量相態為氣態，液態或固態不列入。同一事業單位間距 500 公尺以內合併計算。</p>
+        <p>甲類數量認定：操作量（kg）×重量百分比÷100＝純物質量（kg），再對照規定數量（kg）；氣體也使用 kg。L、m³、Nm³ 須先依密度及溫壓條件換算。氯化氫、氟化氫須分別確認操作相態及水溶液別；水溶液不列入，無水液化或資料不足者待確認，液態不直接視為水溶液。同一事業單位間距 500 公尺以內合併計算。</p>
         {mix_tbl}
         {_table(['CAS','製程','最大存量kg','區域','計算說明'],
             [[_e(r['cas']), _e(r['process_id']), _e(r['max_kg']), _e(r['area_code']), _e(r['calc_note'])] for r in inv])}

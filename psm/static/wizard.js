@@ -240,6 +240,7 @@
       if (opt.getAttribute("data-dept")) form.elements.dept_id.value = opt.getAttribute("data-dept");
       if (opt.getAttribute("data-area")) form.elements.area_code.value = opt.getAttribute("data-area");
       if (opt.getAttribute("data-max")) form.elements.max_kg.value = opt.getAttribute("data-max");
+      if (form.elements.phase_state) form.elements.phase_state.value = opt.getAttribute("data-phase") || "未填";
       if (form.elements.name_en) {
         form.elements.name_en.value = opt.getAttribute("data-name-en") || "";
       }
@@ -262,6 +263,10 @@
       if (form.elements.ctrl_qty) {
         form.elements.ctrl_qty.value = opt.getAttribute("data-ctrl-qty") || "";
       }
+      if (form.elements.phase_state) form.elements.phase_state.value = opt.getAttribute("data-phase") || "未填";
+      if (form.elements.aqueous_label) form.elements.aqueous_label.value = opt.getAttribute("data-aqueous") || "待確認";
+      var note = byId("psi-12-annex-note");
+      if (note) note.textContent = opt.getAttribute("data-annex-note") || "待確認：請重新選取化學品。";
     });
   }
 
@@ -643,6 +648,9 @@
       if (form.id === "form-24" && key === "equipment_id") return;
       setField(form, key, values[key]);
     });
+    if (form.id === "form-12" && byId("psi-12-annex-note")) {
+      byId("psi-12-annex-note").textContent = values.annex_note || "待確認";
+    }
     if (form.id === "form-24" && form.elements.process_id) {
       form._loadingEdit = true;
       form.elements.process_id.dispatchEvent(new Event("change"));
@@ -847,9 +855,9 @@
     var phase = opt.getAttribute("data-phase") || "";
     var gate = opt.getAttribute("data-gate") === "1";
     if (gate && phase) {
-      hint.textContent = "附表管制量相態為" + phase + "。常用狀況不同（水溶液填液態）時不列入管制量。";
+      hint.textContent = "氯化氫、氟化氫須確認操作相態及水溶液別。水溶液不列入；無水液化或資料不足者待確認，不能只依液態排除。";
     } else if (phase) {
-      hint.textContent = "附表管制量相態參考為" + phase + "。此物質未因相態排除，仍以純物質公斤對規定數量。";
+      hint.textContent = "常見相態參考為" + phase + "，不因相態不同自動排除。操作量（kg）×wt%÷100 後對照規定數量（kg）。";
     } else {
       hint.textContent = "";
     }
@@ -898,8 +906,8 @@
     put("comp_pct_hi", data.pct_hi);
     put("comp_formula", data.formula);
     var phase = data.phase_state || "";
-    if (!phase && (data.is_aqueous === "1" || data.is_aqueous === 1)) phase = "液態";
     put("comp_phase", phase);
+    put("comp_aqueous_status", data.aqueous_status);
     var del = row.querySelector(".mix-del");
     if (del) {
       del.addEventListener("click", function () {
@@ -1512,7 +1520,7 @@
         var crow = ensureRow(table, "chemical", function (cur) {
           return cur.cas === item.cas && cur.process_id === (item.process_id || row.process_id);
         });
-        var stored = {
+        var stored = Object.assign({}, item, {
           cas: item.cas,
           process_id: item.process_id || row.process_id,
           sds_id: item.sds_id || row.sds_id || "",
@@ -1520,13 +1528,14 @@
           role: item.role || row.role || "",
           h_codes: item.h_codes || row.h_codes || "",
           phase_state: item.phase_state || row.phase_state || "",
+          aqueous_status: item.aqueous_status != null ? item.aqueous_status : (row.aqueous_status || ""),
           kind: item.kind || row.kind || "純物質"
-        };
+        });
         if (crow.closest("table").classList.contains("nest") && crow.children.length >= 5) {
           crow.children[0].textContent = stored.cas;
           crow.children[1].textContent = stored.name;
           crow.children[2].textContent = stored.role;
-          crow.children[3].textContent = stored.phase_state || "未填";
+          crow.children[3].textContent = (stored.phase_state || "未填") + "／" + ({ "1": "水溶液", "0": "非水溶液" }[stored.aqueous_status] || "待確認");
           crow.children[4].textContent = stored.h_codes;
         } else {
           fillCells(crow, [
@@ -1599,6 +1608,7 @@
     }
     if (kind === "chemical") {
       var cat = loadCatalog();
+      if (row.psi_facts) cat.psi_facts = row.psi_facts;
       var items = row.components && row.components.length ? row.components : [row];
       items.forEach(function (item) {
         if (!item.cas) return;
@@ -1647,8 +1657,18 @@
     var book = cat[kind] || {};
     var pipe = kind === "chemical" && selectUsesPipe(sel);
     var seen = {};
+    function syncPsiOption(opt) {
+      if (sel.id !== "psi-11-cas" && sel.id !== "psi-12-cas") return;
+      var fact = (cat.psi_facts || {})[opt.value];
+      if (!fact) return;
+      opt.setAttribute("data-phase", fact.phase_state || "未填");
+      opt.setAttribute("data-aqueous", fact.aqueous_label || "待確認");
+      opt.setAttribute("data-ctrl-qty", fact.ctrl_qty || "");
+      opt.setAttribute("data-annex-note", fact.annex_note || "待確認");
+    }
     Array.prototype.forEach.call(sel.options, function (opt) {
       if (!opt.value) return;
+      syncPsiOption(opt);
       var row = book[opt.value];
       if (!row && kind === "chemical") {
         Object.keys(book).forEach(function (key) {
@@ -1670,11 +1690,20 @@
       opt.value = value;
       opt.textContent = kind === "chemical" && !pipe ? (row.cas + " " + row.name) : row.label;
       if (row.process) opt.setAttribute("data-process", row.process);
+      syncPsiOption(opt);
       sel.appendChild(opt);
       seen[value] = true;
     });
     if (sel.disabled && sel.options.length > 1) sel.disabled = false;
     if (sel._refreshPick) sel._refreshPick();
+    if ((sel.id === "psi-11-cas" || sel.id === "psi-12-cas") && sel.value) {
+      var current = sel.options[sel.selectedIndex];
+      var form = sel.form;
+      if (form.elements.phase_state) form.elements.phase_state.value = current.getAttribute("data-phase") || "未填";
+      if (form.elements.aqueous_label) form.elements.aqueous_label.value = current.getAttribute("data-aqueous") || "待確認";
+      if (form.elements.ctrl_qty) form.elements.ctrl_qty.value = current.getAttribute("data-ctrl-qty") || "";
+      if (sel.id === "psi-12-cas" && byId("psi-12-annex-note")) byId("psi-12-annex-note").textContent = current.getAttribute("data-annex-note") || "待確認";
+    }
   }
   function syncPick(board, kind, cat) {
     var book = cat[kind] || {};

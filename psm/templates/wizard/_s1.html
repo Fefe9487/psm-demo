@@ -158,10 +158,11 @@
   </form>
 
   <h3>登錄製程使用的化學品與成分 <small class="table-ref">表1.0-4</small></h3>
-  <p class="note">純物質一列一筆。勾選混合物後，用下方巢狀表逐列填成分（CAS、比例、危害說明、常用狀況相態）。點列可改該筆。後續單元選取以 CAS＋製程為準；同一 CAS 於同一製程有多列者，選取清單合併為一筆。未揭露成分不虛構 CAS。操作量×重量百分比（上限）＝成分歸屬量，再對規定數量。常用狀況相態（固態、液態、氣態）必填，用來對照附表管制量相態。氯化氫、氟化氫的管制量相態是氣態，填液態或固態（含水溶液）不列入管制量。</p>
+  <p class="note">點列可改該筆；相態與水溶液別更新後，表1.1、1.2 會依最新資料帶入。</p>
+  <p class="note">純物質一列一筆；混合物逐列填成分。後續以 CAS＋製程選取，同一製程有多種相態時會併列。操作量（kg）×重量百分比（上限）÷100＝純物質量（kg）。氣體也填 kg；L、m³、Nm³ 須先依密度及溫壓條件換算。常用狀況相態必填，水溶液別請依 SDS 確認。氯化氫、氟化氫的水溶液不列入甲類數量認定；無水液化或相態不明者標示待確認，液態不直接視為水溶液。</p>
   {% if annex_merge %}
   <p class="note">同一 CAS 於本場所合併（間距視為 500 公尺以內）：
-    {% for cas, m in annex_merge.items() %}{{ cas }} 純物質 {{ m.pure_kg }} kg／規定數量 {{ m.limit_kg }} kg → {{ '達規定數量' if m.exceeds else '未達' }}{% if not loop.last %}；{% endif %}{% endfor %}
+    {% for cas, m in annex_merge.items() %}{{ cas }} 已確認純物質量 {{ m.pure_kg }} kg／規定數量 {{ m.limit_kg }} kg → {% if m.exceeds %}達規定數量{% if m.needs_review %}（另有待確認資料）{% endif %}{% elif m.needs_review %}待確認{% elif not m.counted_rows %}不列入甲類數量認定{% else %}未達規定數量{% endif %}{% if not loop.last %}；{% endif %}{% endfor %}
   </p>
   {% endif %}
   {% set chem_groups = chem_groups if chem_groups is defined else [] %}
@@ -181,10 +182,10 @@
     <tr class="chem-components-row">
       <td colspan="6"><div class="table-wrap">
         <table class="data nest" data-no-auto-add>
-          <tr><th>CAS／操作</th><th>名稱</th><th>角色</th><th>相態</th><th>危害說明</th><th>比例％</th><th>歸屬量kg</th><th>規定數量</th><th>認定</th></tr>
+          <tr><th>CAS／操作</th><th>名稱</th><th>角色</th><th>相態／水溶液別</th><th>危害說明</th><th>比例 wt%</th><th>歸屬量（kg）</th><th>法定門檻（kg）</th><th>計量判定</th></tr>
           {% for r in g.components %}
           <tr data-edit="chemical" data-json="{{ r | tojson | forceescape }}">
-            <td>{{ r.cas }}<div class="chem-component-controls"><button class="editish edit-row" type="button" aria-label="編輯成分 {{ r.name }}">編輯</button>{% if r.row_id %}<form method="post" action="/wizard/row/delete"><input type="hidden" name="step" value="1"><input type="hidden" name="row_id" value="{{ r.row_id }}"><button class="linkish" type="submit" aria-label="刪除成分 {{ r.name }}">刪除成分</button></form>{% endif %}</div></td><td>{{ r.name }}</td><td>{{ r.role }}</td><td>{{ r.phase_state or '未填' }}</td><td>{{ hazard_display_labels(r.h_codes)|join('、') }}</td>
+            <td>{{ r.cas }}<div class="chem-component-controls"><button class="editish edit-row" type="button" aria-label="編輯成分 {{ r.name }}">編輯</button>{% if r.row_id %}<form method="post" action="/wizard/row/delete"><input type="hidden" name="step" value="1"><input type="hidden" name="row_id" value="{{ r.row_id }}"><button class="linkish" type="submit" aria-label="刪除成分 {{ r.name }}">刪除成分</button></form>{% endif %}</div></td><td>{{ r.name }}</td><td>{{ r.role }}</td><td>{{ r.phase_state or '未填' }}／{{ {'1': '水溶液', '0': '非水溶液'}.get(r.aqueous_status, '待確認') }}</td><td>{{ hazard_display_labels(r.h_codes)|join('、') }}</td>
             <td>{{ r.pct_lo }}–{{ r.pct_hi }}</td>
             <td>{{ r.pure_kg or r.qty or '' }}{% if r.estimate %}（估算）{% endif %}</td>
             <td>{{ r.limit_kg or '' }}</td><td>{{ r.annex_note or '' }}</td>
@@ -216,7 +217,7 @@
       <select id="annex-pick">
         <option value="">（自行填 CAS／名稱，或選清單帶入）</option>
         {% for a in annex_catalog %}
-        <option value="{{ a.cas }}" data-name-zh="{{ a.name_zh }}" data-name-en="{{ a.name_en }}" data-limit="{{ a.limit_kg }}" data-phase="{{ a.limit_phase }}" data-gate="{{ 1 if a.phase_gate else 0 }}">{{ a.name_zh }}（{{ a.cas }}，規定數量 {{ a.limit_kg }} kg{% if a.limit_phase %}，管制量相態 {{ a.limit_phase }}{% endif %}）</option>
+        <option value="{{ a.cas }}" data-name-zh="{{ a.name_zh }}" data-name-en="{{ a.name_en }}" data-limit="{{ a.limit_kg }}" data-phase="{{ a.limit_phase }}" data-gate="{{ 1 if a.phase_gate else 0 }}">{{ a.name_zh }}（{{ a.cas }}，規定數量 {{ a.limit_kg }} kg{% if a.limit_phase %}，參考相態 {{ a.limit_phase }}{% endif %}）</option>
         {% endfor %}
       </select>
     </label>
@@ -242,6 +243,9 @@
         {% for ph in phases %}<option>{{ ph }}</option>{% endfor %}
       </select>
     </label>
+    <label class="pure-only">水溶液別（依 SDS）
+      <select name="aqueous_status"><option value="">待確認</option><option value="1">水溶液</option><option value="0">非水溶液</option></select>
+    </label>
     <label class="mix-only">混合物名稱 <input name="mix_name"></label>
     <label class="mix-only">比例基準
       <select name="basis">{% for b in ratio_bases %}<option>{{ b }}</option>{% endfor %}</select>
@@ -250,7 +254,7 @@
     <div class="span-all mix-only" id="mix-nest-wrap">
       <p class="note">成分列在這張巢狀表。可加多列，一次存進同一張混合物。</p>
       <table class="data nest" data-no-auto-add id="mix-nest">
-        <tr><th>CAS</th><th>名稱</th><th>角色</th><th>危害說明</th><th>比例下限%</th><th>比例上限%</th><th>常用狀況相態</th><th>換算式</th><th></th></tr>
+        <tr><th>CAS</th><th>名稱</th><th>角色</th><th>危害說明</th><th>比例下限 wt%</th><th>比例上限 wt%</th><th>常用狀況相態</th><th>水溶液別（依 SDS）</th><th>換算式</th><th></th></tr>
         <tbody id="mix-body"></tbody>
       </table>
       <button type="button" id="mix-add">加一列成分</button>
@@ -263,7 +267,8 @@
           <td><input name="comp_pct_lo"></td>
           <td><input name="comp_pct_hi"></td>
           <td><select name="comp_phase" required><option value="">（必選）</option>{% for ph in phases %}<option>{{ ph }}</option>{% endfor %}</select></td>
-          <td><input name="comp_formula" placeholder="操作量×wt%"></td>
+          <td><select name="comp_aqueous_status"><option value="">待確認</option><option value="1">水溶液</option><option value="0">非水溶液</option></select></td>
+          <td><input name="comp_formula" placeholder="操作量（kg）×wt%÷100"></td>
           <td><button type="button" class="linkish mix-del">刪列</button></td>
         </tr>
       </template>
@@ -354,10 +359,11 @@
   <p class="note">選已有化學品帶入名稱、CAS、「危／有」及建議「高燃／高毒」。使用單位帶入該製程操作權責部門；地點與最大存量若已有存量列可帶入，與現場不符時請改。英文名稱僅在危險物／有害物清單有列時自動帶入。</p>
   <div class="table-wrap">
   <table class="data">
-    <tr><th>中文名稱</th><th>英文名稱</th><th>CAS No.</th><th>使用單位</th><th>最大存量</th><th>月用量</th><th>危</th><th>有</th><th>高燃</th><th>高毒</th><th>地點</th><th>管制法規</th><th></th></tr>
+    <tr><th>中文名稱</th><th>英文名稱</th><th>CAS No.</th><th>操作相態（表1.0-4）</th><th>使用單位</th><th>最大存量（kg）</th><th>月用量（kg）</th><th>危</th><th>有</th><th>高燃</th><th>高毒</th><th>地點</th><th>管制法規</th><th></th></tr>
     {% for r in rows.get('1.1', []) %}
     <tr data-fill-form="form-11" data-json="{{ dict(r, cas=r.cas ~ '|' ~ r.process_id) | tojson | forceescape }}">
       <td>{{ r.name }}</td><td>{{ r.name_en }}</td><td>{{ r.cas }}</td>
+      <td>{{ r.phase_state }}</td>
       <td>{{ r.dept_id }}</td><td>{{ r.max_kg }}</td><td>{{ r.monthly_kg }}</td>
       <td>{% if r.is_danger %}危{% endif %}</td>
       <td>{% if r.is_harmful %}有{% endif %}</td>
@@ -378,6 +384,7 @@
       <select name="cas" id="psi-11-cas" required {% if not chemicals %}disabled{% endif %}>
         <option value="">（選已有化學品）</option>
         {% for c in chemicals %}
+        {% set fact = psi_facts.get(c.cas ~ '|' ~ c.process_id, {}) %}
         <option value="{{ c.cas }}|{{ c.process_id }}"
                 data-name="{{ c.name }}"
                 data-name-en="{{ c.annex.name_en if c.annex else '' }}"
@@ -385,6 +392,7 @@
                 data-area="{{ c.inv_area_code or '' }}"
                 data-max="{{ c.inv_max_kg or '' }}"
                 data-conc="{{ c.concentration_range or '' }}"
+                data-phase="{{ fact.get('phase_state', '未填') }}"
                 data-danger="{{ 1 if c.h_flags.is_danger else 0 }}"
                 data-harm="{{ 1 if c.h_flags.is_harmful else 0 }}"
                 data-flam="{{ 1 if c.h_flags.is_high_flammable else 0 }}"
@@ -398,6 +406,7 @@
     </label>
     <label>最大存量（公斤） <input name="max_kg" required></label>
     <label>平均每月使用量（公斤） <input name="monthly_kg"></label>
+    <label>操作相態（依表1.0-4） <input name="phase_state" readonly></label>
     <label>地點
       <select name="area_code" required>{% for a in areas %}<option value="{{ a.area_code }}">{{ a.area_code }} {{ a.name }}</option>{% endfor %}</select>
     </label>
@@ -412,14 +421,14 @@
 
 <section class="sec">
   <h3>確認高度危害化學品及其危害 <small class="table-ref">表1.2-1</small></h3>
-  <p class="note">選已有 CAS＋製程。物理／健康危害依危害說明帶入後由人確認。濃度得自表1.0-4 成分比例。英文名稱與管制數量僅在危險物／有害物清單有列時自動帶入。物化欄請依本場所 SDS 確認，不要用來檢查 1.6／1.9 缺漏。下方「特化／優先管理」僅供參考，不是核心表。</p>
+  <p class="note">選已有 CAS＋製程。法定門檻統一為 kg，代表法規規定數量；是否納入計量及是否達量請看「計量判定」。操作相態及水溶液別依表1.0-4 帶入，需修改時請回該表。物理／健康危害與物化資料請依本場所 SDS 確認。濃度採重量百分比（wt%）。</p>
   <div class="table-wrap">
   <table class="data">
-    <tr><th>中文</th><th>英文</th><th>CAS</th><th>濃度%</th><th>管制數量</th><th>型態</th><th>氣味</th><th>蒸氣壓</th><th>沸點</th><th>閃火點</th><th>爆炸界限</th><th>TWA</th><th>物理性</th><th>健康</th><th>不相容</th><th>安定性</th><th></th></tr>
+    <tr><th>中文</th><th>英文</th><th>CAS</th><th>濃度 wt%</th><th>法定門檻（kg）</th><th>操作相態／水溶液別</th><th>計量判定</th><th>氣味</th><th>蒸氣壓（mmHg）</th><th>沸點（℃）</th><th>閃火點（℃）</th><th>爆炸界限（vol%）</th><th>TWA／STEL／CEILING（註明單位）</th><th>物理性</th><th>健康</th><th>不相容</th><th>安定性</th><th></th></tr>
     {% for r in rows.get('1.2', []) %}
     <tr data-fill-form="form-12" data-json="{{ dict(r, cas=r.cas ~ '|' ~ r.process_id) | tojson | forceescape }}">
       <td>{{ r.name }}</td><td>{{ r.name_en }}</td><td>{{ r.cas }}</td><td>{{ r.conc }}</td><td>{{ r.ctrl_qty }}</td>
-      <td>{{ r.state }}</td><td>{{ r.odor }}</td><td>{{ r.vp }}</td><td>{{ r.bp }}</td><td>{{ r.fp }}</td><td>{{ r.expl }}</td><td>{{ r.twa }}</td>
+      <td>{{ r.phase_state }}／{{ r.aqueous_label }}</td><td>{{ r.annex_note }}</td><td>{{ r.odor }}</td><td>{{ r.vp }}</td><td>{{ r.bp }}</td><td>{{ r.fp }}</td><td>{{ r.expl }}</td><td>{{ r.twa }}</td>
       <td>{{ r.physical }}</td><td>{{ r.health }}</td>
       <td>{{ r.incompat }} {{ r.incompat_note or '' }}</td><td>{{ r.stable }} {{ r.stable_note or '' }}</td>
       <td><button class="editish" type="button" data-fill-row>修改</button> <form class="inline" method="post" action="/wizard/row/delete"><input type="hidden" name="step" value="1"><input type="hidden" name="row_id" value="{{ r.row_id }}"><button class="linkish" type="submit">刪</button></form></td>
@@ -433,10 +442,14 @@
       <select name="cas" id="psi-12-cas">
         <option value="">（選已有化學品）</option>
         {% for c in chemicals %}
+        {% set fact = psi_facts.get(c.cas ~ '|' ~ c.process_id, {}) %}
         <option value="{{ c.cas }}|{{ c.process_id }}"
                 data-conc="{{ c.concentration_range or '' }}"
                 data-name-en="{{ c.annex.name_en if c.annex else '' }}"
-                data-ctrl-qty="{{ c.annex.limit_kg if c.annex else '' }}"
+                data-ctrl-qty="{{ fact.get('ctrl_qty', '') }}"
+                data-phase="{{ fact.get('phase_state', '未填') }}"
+                data-aqueous="{{ fact.get('aqueous_label', '待確認') }}"
+                data-annex-note="{{ fact.get('annex_note', '待確認') }}"
                 data-physical="{{ c.h_flags.physical_label }}"
                 data-health="{{ c.h_flags.health_label }}"
                 data-incompat="{{ 1 if c.h_flags.incompat_air_water else 0 }}"
@@ -446,14 +459,16 @@
     </label>
     <label>英文名稱 <input name="name_en"></label>
     <label>濃度（重量百分比） <input name="conc"></label>
-    <label>管制數量 <input name="ctrl_qty" placeholder="達規定數量者自動帶入"></label>
-    <label>外觀型態 <select name="state"><option>液體</option><option>氣體</option><option>固體</option></select></label>
+    <label>法定門檻（kg） <input name="ctrl_qty" readonly placeholder="清單有列者帶入；不代表已達量"></label>
+    <label>操作相態（依表1.0-4） <input name="phase_state" readonly></label>
+    <label>水溶液別（依表1.0-4） <input name="aqueous_label" readonly></label>
+    <p class="note" id="psi-12-annex-note" aria-live="polite">選取化學品後顯示計量判定。</p>
     <label>氣味 <input name="odor"></label>
     <label>蒸氣壓 mmHg <input name="vp"></label>
     <label>沸點 ℃ <input name="bp"></label>
     <label>閃火點 ℃ <input name="fp"></label>
-    <label>爆炸界限 % <input name="expl"></label>
-    <label>TWA／STEL／CEILING <input name="twa"></label>
+    <label>爆炸界限（vol%） <input name="expl"></label>
+    <label>TWA／STEL／CEILING（須註明 ppm 或 mg/m³） <input name="twa" placeholder="例如 TWA 3 ppm；STEL 6 ppm"></label>
     <label>物理性危害 <select name="physical">{% for o in phys_opts %}<option>{{ o }}</option>{% endfor %}</select></label>
     <label>健康危害 <select name="health">{% for o in health_opts %}<option>{{ o }}</option>{% endfor %}</select></label>
     <label>與空氣或水不相容或放熱 <select name="incompat"><option>否</option><option>是</option></select></label>

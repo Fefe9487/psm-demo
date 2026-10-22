@@ -314,10 +314,10 @@ def test_psi_and_later_use_selects_not_free_names(tmp_path, monkeypatch):
     client = _client(tmp_path, monkeypatch, "sel.sqlite")
     _walk(client, 1)
     s1 = client.get("/wizard/1").text
-    block_11 = s1.split("1.1", 1)[1].split("1.2", 1)[0]
+    block_11 = s1.split('id="form-11"', 1)[1].split("</form>", 1)[0]
     assert "<select" in block_11
     assert 'name="cas"' in block_11
-    block_15 = s1.split("1.5", 1)[1].split("1.6", 1)[0]
+    block_15 = s1.split('id="form-limit-review"', 1)[1].split("</form>", 1)[0]
     assert 'name="equipment_id"' in block_15
     assert "<select" in block_15
     _walk(client, 12)
@@ -440,11 +440,11 @@ def test_psi_handbook_tables_on_step1(tmp_path, monkeypatch):
     assert "蒸氣壓" in page
     assert "閃火點" in page
     assert "TWA" in page
-    assert "建立方塊" in page
+    assert "加入流程圖" in page
     assert "已選" in page
     assert "巢狀表" in page
-    assert "不另建製程先後指標" in page
-    assert "下一製程" not in page
+    assert 'id="flow-canvas"' in page
+    assert 'id="flow-next-proc"' in page
     assert "設備編號" in page
     assert "氧化" in page
     assert "硝化" in page

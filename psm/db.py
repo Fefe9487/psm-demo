@@ -130,6 +130,7 @@ CREATE TABLE IF NOT EXISTS chemical (
     mixture_qty REAL,
     attributed_qty REAL,
     phase_state TEXT NOT NULL DEFAULT '',
+    aqueous_status TEXT NOT NULL DEFAULT '',
     PRIMARY KEY (process_id, sds_id, cas),
     FOREIGN KEY (cas, process_id) REFERENCES chemical_cite(cas, process_id)
 );
@@ -1254,6 +1255,7 @@ def migrate_schema(conn: sqlite3.Connection) -> None:
         _add_col(conn, "chemical", "mixture_qty", "REAL")
         _add_col(conn, "chemical", "attributed_qty", "REAL")
         _add_col(conn, "chemical", "phase_state", "TEXT NOT NULL DEFAULT ''")
+        _add_col(conn, "chemical", "aqueous_status", "TEXT NOT NULL DEFAULT ''")
         _add_col(conn, "chemical", "name_en", "TEXT")
     if "pec_map" in names:
         _add_col(conn, "pec_map", "sds_id", "TEXT NOT NULL DEFAULT ''")

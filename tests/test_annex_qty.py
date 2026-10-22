@@ -36,17 +36,18 @@ def test_hcl_aqueous_excluded_gas_counted():
     assert aq["counted"] is False
     assert aq["exceeds"] is False
     assert "水溶液" in aq["note"]
-    gas = annex_qty_check(cas="7647-01-0", op_kg="6000", wt_pct="100", is_aqueous=False)
+    gas = annex_qty_check(cas="7647-01-0", op_kg="6000", wt_pct="100", is_aqueous=False, phase="氣態")
     assert gas["counted"] is True
     assert gas["exceeds"] is True
 
 
-def test_hcl_liquid_phase_excluded_gas_phase_counted():
+def test_hcl_liquid_phase_needs_confirmation_gas_phase_counted():
     liq = annex_qty_check(cas="7647-01-0", op_kg="20000", wt_pct="35", phase="液態")
     assert liq["listed"] is True
     assert liq["limit_phase"] == "氣態"
     assert liq["counted"] is False
-    assert "相態不符" in liq["note"]
+    assert liq["needs_review"] is True
+    assert "待確認" in liq["note"]
     gas = annex_qty_check(cas="7647-01-0", op_kg="6000", wt_pct="100", phase="氣態")
     assert gas["counted"] is True
     assert gas["exceeds"] is True

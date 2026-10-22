@@ -34,6 +34,9 @@ SECTIONS = {
 }
 
 FIELD_NAMES = {
+    "ctrl_qty": "法定門檻（kg）", "phase_state": "操作相態（表1.0-4）",
+    "aqueous_label": "水溶液別", "annex_note": "計量判定",
+    "max_kg": "最大存量（kg）", "monthly_kg": "平均每月使用量（kg）",
     "process_id": "製程編號", "equipment_id": "設備編號", "sds_id": "SDS 編號",
     "cas": "CAS", "area_code": "區域編號", "dept_id": "部門編號",
     "name": "名稱", "title": "名稱", "item": "項目", "kind": "類型",
@@ -130,6 +133,7 @@ def render_report_v83(conn: sqlite3.Connection, site_id: str) -> str:
 
     flags = fil.all_flags(conn, site_id)
     by_section = fil.rows_by_section(conn, site_id)
+    fil.sync_psi_rows(by_section, fil.psi_chemical_facts(conn, site_id))
     by_section["11.2"] = [
         {
             **dict(r), "when": r["incident_date"],
@@ -184,7 +188,8 @@ def render_report_v83(conn: sqlite3.Connection, site_id: str) -> str:
                       """SELECT c.process_id,c.sds_id,c.cas,c.name,c.role,c.h_codes FROM chemical c
                          JOIN process p ON p.process_id=c.process_id WHERE p.site_id=? ORDER BY c.process_id,c.cas""",
                       ("process_id", "sds_id", "cas", "name", "role", "h_codes"))
-            mix_rows = [fil.attach_annex_check(row) for row in by_section.get("mix", [])]
+            mix_rows = fil.chemical_quantity_rows(conn, site_id)
+            parts.append("<p>操作量（kg）×重量百分比（上限）÷100＝純物質量（kg）。氣體也填 kg；L、m³、Nm³ 須先依密度及溫壓條件換算。法定門檻不代表已達量；HCl／HF 水溶液不列入，無水液化或資料不足者待確認。</p>")
             parts.append("<h3>表1.0-4 配方成分、相態與列管數量</h3>")
             parts.append(_table(
                 ("配方／成分", "製程", "相態", "操作量 kg", "成分 CAS", "重量比 %", "折算純物質 kg", "規定數量 kg", "列管判定"),

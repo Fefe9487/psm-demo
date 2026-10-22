@@ -97,7 +97,8 @@ def _save_wizard_chemical(
     phase_state: str = "",
     name_en: str = "",
     attributed_qty: str = "",
-) -> None:
+    aqueous_status: str = "",
+) -> str:
     filled = fil.annex_fill_blanks(cas, {"cas": cas, "name": name}, keys=("cas", "name"))
     if not str(filled.get("name") or "").strip():
         raise PsmError("未列於危險物／有害物清單者須自行填名稱")
@@ -125,12 +126,19 @@ def _save_wizard_chemical(
             "phase_state": phase_state,
             "name_en": name_en,
             "attributed_qty": attributed_qty,
+            "aqueous_status": aqueous_status,
         },
     )
+    stored = conn.execute(
+        """SELECT c.sds_id FROM chemical c JOIN sds s ON s.sds_id=c.sds_id
+           WHERE c.cas=? AND c.process_id=? AND s.file_path=? ORDER BY c.sds_id""",
+        (filled["cas"], process_id, sds),
+    ).fetchone()
+    stored_sds_id = sid or (stored["sds_id"] if stored else "")
     if kind == "混合物":
         mix = {
             "mix_name": mix_name or filled["name"],
-            "sds_id": sds_id or str(sds).rsplit("/", 1)[-1].rsplit("\\", 1)[-1],
+            "sds_id": stored_sds_id,
             "process_id": process_id,
             "cas": filled["cas"],
             "pct_lo": pct_lo,
@@ -138,12 +146,22 @@ def _save_wizard_chemical(
             "basis": basis or "重量比",
             "total_kg": total_kg,
             "phase_state": phase_state,
+            "aqueous_status": aqueous_status,
             "is_aqueous": "1" if is_aqueous in ("1", "on", "true") else "0",
-            "formula": formula or "操作量×重量百分比＝純物質公斤",
+            "formula": formula or "操作量（kg）×重量百分比÷100＝純物質量（kg）",
             "h_codes": h_codes,
             "name": filled["name"],
         }
-        fil.add_row(conn, WIZARD_SITE_ID, "mix", fil.attach_annex_check(mix))
+        checked = fil.attach_annex_check(mix)
+        legacy_sds_id = sds_id or str(sds).replace("\\", "/").rsplit("/", 1)[-1]
+        existing = next((r for r in fil.list_rows(conn, WIZARD_SITE_ID, "mix")
+                         if (r.get("cas"), r.get("process_id")) == (mix["cas"], mix["process_id"])
+                         and r.get("sds_id") in (stored_sds_id, legacy_sds_id)), None)
+        if existing:
+            fil.update_payload(conn, existing["row_id"], checked)
+        else:
+            fil.add_row(conn, WIZARD_SITE_ID, "mix", checked)
+    return stored_sds_id
 
 
 def _delete_mix_entries(conn, anchor_row_id: int, *, whole_group: bool) -> bool:
@@ -1145,6 +1163,7 @@ def register_wizard(app, *, get_conn, render, redirect_ok, redirect_err):
                 los = form.getlist("comp_pct_lo")
                 his = form.getlist("comp_pct_hi")
                 phases = form.getlist("comp_phase")
+                aqueous_statuses = form.getlist("comp_aqueous_status")
                 formulas = form.getlist("comp_formula")
                 rows = []
                 for i, raw in enumerate(cases):
@@ -1160,6 +1179,7 @@ def register_wizard(app, *, get_conn, render, redirect_ok, redirect_err):
                             "pct_lo": _at(los, i),
                             "pct_hi": _at(his, i),
                             "phase_state": _at(phases, i),
+                            "aqueous_status": _at(aqueous_statuses, i),
                             "formula": _at(formulas, i),
                         }
                     )
@@ -1170,13 +1190,11 @@ def register_wizard(app, *, get_conn, render, redirect_ok, redirect_err):
                 for row in rows:
                     if row["phase_state"] not in fil.PHASES:
                         return bail("每一成分須填常用狀況相態（固態、液態或氣態）")
-                    row["is_aqueous"] = (
-                        "1"
-                        if row["phase_state"] == "液態" and row["cas"] in fil.AQUEOUS_EXCLUDED_CAS
-                        else "0"
-                    )
+                    if row["aqueous_status"] not in ("", "0", "1"):
+                        return bail("請選擇有效的水溶液別")
+                    row["is_aqueous"] = row["aqueous_status"]
                 for row in rows:
-                    _save_wizard_chemical(
+                    row["sds_id"] = _save_wizard_chemical(
                         conn,
                         cas=row["cas"],
                         process_id=process_id,
@@ -1192,15 +1210,15 @@ def register_wizard(app, *, get_conn, render, redirect_ok, redirect_err):
                         basis=basis,
                         total_kg=total_kg,
                         is_aqueous=row["is_aqueous"],
-                        formula=row["formula"] or "操作量×重量百分比＝純物質公斤",
+                        formula=row["formula"],
                         phase_state=row["phase_state"],
+                        aqueous_status=row["aqueous_status"],
                     )
             else:
                 phase_state = str(form.get("phase_state") or "").strip()
                 if phase_state not in fil.PHASES:
                     return bail("請填常用狀況相態（固態、液態或氣態）")
-                cas_pure = str(form.get("cas") or "").strip()
-                _save_wizard_chemical(
+                sds_id = _save_wizard_chemical(
                     conn,
                     cas=str(form.get("cas") or ""),
                     process_id=process_id,
@@ -1215,13 +1233,14 @@ def register_wizard(app, *, get_conn, render, redirect_ok, redirect_err):
                     pct_hi=str(form.get("concentration_range") or ""),
                     basis=basis,
                     total_kg="",
-                    is_aqueous="1" if phase_state == "液態" and cas_pure in fil.AQUEOUS_EXCLUDED_CAS else "0",
+                    is_aqueous=str(form.get("aqueous_status") or ""),
                     formula="",
                     phase_state=phase_state,
                     un_number=str(form.get("un_number") or ""),
                     concentration_range=str(form.get("concentration_range") or ""),
                     name_en=str(form.get("name_en") or ""),
                     attributed_qty=str(form.get("attributed_qty") or ""),
+                    aqueous_status=str(form.get("aqueous_status") or ""),
                 )
             saved = {
                 "kind": kind,
@@ -1233,6 +1252,9 @@ def register_wizard(app, *, get_conn, render, redirect_ok, redirect_err):
                 "role": str(form.get("role") or ""),
                 "h_codes": str(form.get("h_codes") or ""),
                 "phase_state": str(form.get("phase_state") or ""),
+                "aqueous_status": str(form.get("aqueous_status") or ""),
+                "attributed_qty": str(form.get("attributed_qty") or ""),
+                "concentration_range": str(form.get("concentration_range") or ""),
             }
             if kind == "混合物":
                 saved["components"] = [
@@ -1242,12 +1264,20 @@ def register_wizard(app, *, get_conn, render, redirect_ok, redirect_err):
                         "role": r["role"],
                         "h_codes": r["h_codes"],
                         "phase_state": r["phase_state"],
+                        "aqueous_status": r["aqueous_status"],
+                        "mix_name": mix_name,
+                        "total_kg": total_kg,
+                        "pct_lo": r["pct_lo"],
+                        "pct_hi": r["pct_hi"],
+                        "basis": basis,
+                        "formula": r["formula"],
                         "process_id": process_id,
-                        "sds_id": sds_id,
+                        "sds_id": r["sds_id"],
                         "kind": "混合物",
                     }
                     for r in rows
                 ]
+            saved["psi_facts"] = fil.psi_chemical_facts(conn, WIZARD_SITE_ID)
         except PsmError as e:
             return bail(e.message)
         finally:
@@ -1869,6 +1899,9 @@ def register_wizard(app, *, get_conn, render, redirect_ok, redirect_err):
                         payload[bk] = raw in ("on", "1", "true", "True", "是")
                 if not payload.get("dept_id") or not payload.get("area_code") or not payload.get("max_kg"):
                     return redirect_err("/wizard/1", "1.1 使用單位、地點、最大存量必填")
+                payload.update(fil.psi_chemical_facts(conn, WIZARD_SITE_ID).get(
+                    f"{payload.get('cas')}|{payload.get('process_id')}", {}
+                ))
             if section == "1.2":
                 chem = conn.execute(
                     "SELECT name, h_codes, concentration_range FROM chemical WHERE cas=? AND process_id=?",
@@ -1880,6 +1913,10 @@ def register_wizard(app, *, get_conn, render, redirect_ok, redirect_err):
                 payload = fil.annex_fill_blanks(
                     payload.get("cas"), payload, keys=("name_en", "ctrl_qty")
                 )
+                payload.update(fil.psi_chemical_facts(conn, WIZARD_SITE_ID).get(
+                    f"{payload.get('cas')}|{payload.get('process_id')}", {}
+                ))
+                payload.pop("state", None)
                 hf = fil.h_code_flags(chem["h_codes"] or "")
                 if not payload.get("physical"):
                     payload["physical"] = hf["physical_label"]

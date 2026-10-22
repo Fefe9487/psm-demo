@@ -41,7 +41,8 @@ def test_hf_demo_phase_gate_and_chapter_links():
         assert mix["P-TANK"]["exceeds"] is True
         assert int(mix["P-TANK"]["limit_kg"]) == 1000
         assert mix["P-LOAD"]["counted"] is False
-        assert "相態不符" in mix["P-LOAD"]["annex_note"]
+        assert mix["P-LOAD"]["needs_review"] is True
+        assert "待確認" in mix["P-LOAD"]["annex_note"]
 
         for step in range(1, 15):
             missing = wizard.step_missing(conn, SITE_ID, step)
@@ -68,7 +69,7 @@ def test_hf_demo_phase_gate_and_chapter_links():
         assert "表1.0-4 配方成分、相態與列管數量" in report
         assert "無水氟化氫（氣態供料）" in report
         assert "無水氟化氫（液態接收）" in report
-        assert "相態不符不列入管制量" in report
+        assert "液態不等於水溶液" in report
         assert "HF 供料管線破損" in report
         assert "T-101 材質相容性" in report
         assert "近五年事故 0 件" not in report
