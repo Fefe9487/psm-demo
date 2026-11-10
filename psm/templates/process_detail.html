@@ -33,7 +33,7 @@
 <h3>化學品（CAS）</h3>
 <div class="table-bar"><a class="btn" href="/chemicals">新增</a></div>
 <table class="data" data-no-auto-add>
-  <tr><th>CAS</th><th>品名</th><th>角色</th></tr>
+  <tr><th>CAS</th><th>品名</th><th>製程功能</th></tr>
   {% for c in chemicals %}
   <tr><td>{{ c.cas }}</td><td>{{ c.name }}</td><td>{{ c.role }}</td></tr>
   {% else %}

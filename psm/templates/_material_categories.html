@@ -1,0 +1,8 @@
+<fieldset class="material-categories span-all">
+  <legend>建造材質類別（可複選）</legend>
+  <div class="material-options">
+    {% for m in MATERIAL_CATEGORIES %}
+    <label class="chk"><input type="checkbox" name="material_category" value="{{ m }}" data-native> {{ m }}</label>
+    {% endfor %}
+  </div>
+</fieldset>

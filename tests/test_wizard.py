@@ -314,9 +314,9 @@ def test_psi_and_later_use_selects_not_free_names(tmp_path, monkeypatch):
     client = _client(tmp_path, monkeypatch, "sel.sqlite")
     _walk(client, 1)
     s1 = client.get("/wizard/1").text
-    block_11 = s1.split('id="form-11"', 1)[1].split("</form>", 1)[0]
+    block_11 = s1.split('id="form-stock-11"', 1)[1].split("</form>", 1)[0]
     assert "<select" in block_11
-    assert 'name="cas"' in block_11
+    assert 'name="source_key"' in block_11
     block_15 = s1.split('id="form-limit-review"', 1)[1].split("</form>", 1)[0]
     assert 'name="equipment_id"' in block_15
     assert "<select" in block_15
@@ -467,7 +467,7 @@ def test_psi_handbook_tables_on_step1(tmp_path, monkeypatch):
     assert "PSV-101" in text
     assert "ESD-101" in text
     assert "H314,H330" in text
-    assert "達規定數量" in text
+    assert "待確認" in text
     assert "7664-39-3" in text
     assert "反應熱" in text
     assert "HF + NaOH" in text

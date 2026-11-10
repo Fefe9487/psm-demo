@@ -35,6 +35,7 @@ from psm.errors import PsmError
 from psm.floor import create_node_from_equipment, floor_bundle, score_consequence
 from psm.seed import seed_hf_demo
 from psm import services as svc
+from psm import materials as material_details
 from psm import wizard as wiz
 from psm.wizard_http import register_wizard
 from psm.sample_petrochemical import seed_petrochemical_sample
@@ -195,8 +196,9 @@ def ctx(request: Request, **extra):
 
 
 def _flash_url(url: str, key: str, message: str) -> str:
-    sep = "&" if "?" in url else "?"
-    return f"{url}{sep}{key}={quote(message)}"
+    base, marker, fragment = url.partition("#")
+    sep = "&" if "?" in base else "?"
+    return f"{base}{sep}{key}={quote(message)}" + (f"#{fragment}" if marker else "")
 
 
 def redirect_err(url: str, message: str) -> RedirectResponse:
@@ -786,17 +788,22 @@ def pid_save(
 
 @app.get("/psi", response_class=HTMLResponse)
 def psi_page(request: Request):
+    conn = get_conn()
+    try:
+        equipment = svc.equipment_list_joined(conn, active_site())
+    finally:
+        conn.close()
     return render(
         request,
         "psi.html",
         inventory=rows("SELECT * FROM inventory"),
         limits=rows("SELECT * FROM equipment_limit"),
-        materials=rows("SELECT * FROM equipment_material"),
+        materials=rows("SELECT * FROM equipment_material_detail ORDER BY equipment_id,sort_order,material_id"),
         relief=rows("SELECT * FROM relief_device"),
         interlocks=rows("SELECT * FROM interlock"),
         occupancy=rows("SELECT * FROM loading_occupancy"),
         chemicals=rows("SELECT cas, process_id, name FROM chemical"),
-        equipment=rows("SELECT equipment_id, name, equipment_type, process_id FROM equipment"),
+        equipment=equipment,
         areas=rows("SELECT area_code, name FROM area"),
         processes=rows("SELECT process_id, name FROM process"),
         scenarios=rows("SELECT scenario_id, name FROM esd_scenario"),
@@ -893,12 +900,16 @@ def _cas_process(token: str) -> tuple[str, str]:
 @app.post("/psi/material")
 def psi_material(
     equipment_id: str = Form(...),
-    material: str = Form(...),
-    material_category: str = Form(""),
+    material: str = Form(""),
+    material_category: list[str] = Form([]),
+    materials_json: str = Form(""),
     spec: str = Form(""),
 ):
     conn = get_conn()
     try:
+        if materials_json:
+            material_details.save_rows(conn, equipment_id, materials_json)
+            return redirect_ok("/psi", "已儲存設備材質明細")
         svc.save_equipment_material(
             conn,
             {

@@ -280,7 +280,7 @@
         form.elements.material.value = opt.getAttribute("data-material");
       }
       if (form.elements.material_category) {
-        form.elements.material_category.value = opt.getAttribute("data-matcat") || "";
+        setField(form, "material_category", opt.getAttribute("data-matcat") || "");
       }
       if (opt.getAttribute("data-spec") && form.elements.spec && !form.elements.spec.value) {
         form.elements.spec.value = opt.getAttribute("data-spec");
@@ -415,7 +415,7 @@
       if (opt.getAttribute("data-mi")) form.elements.mi_type.value = opt.getAttribute("data-mi");
       if (opt.getAttribute("data-pid") && form.elements.pid_no) form.elements.pid_no.value = opt.getAttribute("data-pid");
       var cas = (opt.getAttribute("data-contents") || "").split(",")[0];
-      if (cas && form.elements.cas) {
+      if (cas && form.elements.cas && form.elements.cas.options) {
         Array.prototype.forEach.call(form.elements.cas.options, function (o) {
           if (o.value.indexOf(cas + "|") === 0 && o.getAttribute("data-process") === opt.getAttribute("data-process")) {
             o.selected = true;
@@ -424,6 +424,124 @@
       }
     });
     miEq.dispatchEvent(new Event("change"));
+  }
+
+  var miPlanForm = byId("form-81");
+  if (miPlanForm && miPlanForm.querySelector("[data-mi-rows-body]")) {
+    var miRowsBody = miPlanForm.querySelector("[data-mi-rows-body]");
+    var miTemplate = miPlanForm.querySelector("[data-mi-row-template]");
+    var miCatalog = [], miMaterials = [], miOriginalIds = [];
+    try { miCatalog = JSON.parse(miPlanForm.querySelector("[data-mi-damage-catalog]").textContent); } catch (err) { /* custom mechanisms remain available */ }
+    function currentMiRows() { return Array.from(miRowsBody.querySelectorAll("tr[data-mi-plan-row]")); }
+    function syncMiRows() {
+      var rows = currentMiRows().map(function (row) {
+        var functional = row.querySelector("[data-mi-row-kind]").value === "function";
+        var damage = functional ? "" : row.querySelector("[data-mi-row-damage]").value.trim();
+        var known = miCatalog.find(function (item) { return item.name === damage; });
+        return { detail_id: row._miSeed.detail_id || "", material_id: row.querySelector("[data-mi-row-material]").value,
+          damage: damage, damage_code: known ? known.code : "", inspection_item: functional ? row.querySelector("[data-mi-row-function]").value.trim() : "",
+          method: row.querySelector("[data-mi-row-method]").value.trim(), freq: row.querySelector("[data-mi-row-frequency]").value.trim(),
+          proc_no: row.querySelector("[data-mi-row-procedure]").value.trim(), pid_no: row.querySelector("[data-mi-row-pid]").value };
+      });
+      miPlanForm.querySelector("[data-mi-rows-json]").value = JSON.stringify(rows);
+      var retained = rows.map(function (row) { return String(row.detail_id); });
+      miPlanForm.querySelector("[data-mi-deleted-json]").value = JSON.stringify(miOriginalIds.filter(function (id) { return retained.indexOf(String(id)) < 0; }));
+    }
+    function emptyMiRows() {
+      if (currentMiRows().length) return;
+      var tr = document.createElement("tr"); tr.setAttribute("data-mi-empty-row", "");
+      var td = document.createElement("td"); td.colSpan = 7; td.textContent = "從上方 66 項清單挑選機制，或按下方按鈕新增自訂／功能檢查列。";
+      tr.appendChild(td); miRowsBody.appendChild(tr);
+    }
+    function addMiRow(seed) {
+      seed = seed || {};
+      miRowsBody.querySelectorAll("[data-mi-empty-row]").forEach(function (node) { node.remove(); });
+      var row = miTemplate.content.firstElementChild.cloneNode(true); row._miSeed = Object.assign({}, seed); row.setAttribute("data-mi-plan-row", "");
+      var material = row.querySelector("[data-mi-row-material]");
+      miMaterials.forEach(function (item) {
+        var option = document.createElement("option"); option.value = String(item.material_id);
+        option.textContent = (item.part ? item.part + "／" : "") + item.material_category + "／" + item.material; material.appendChild(option);
+      });
+      var kind = row.querySelector("[data-mi-row-kind]"), damage = row.querySelector("[data-mi-row-damage]"), functional = row.querySelector("[data-mi-row-function]");
+      kind.value = seed.inspection_item ? "function" : "damage";
+      material.value = seed.material_id == null ? "" : String(seed.material_id);
+      if (!material.value && kind.value === "damage" && !seed.material_snapshot && miMaterials.length === 1) material.value = String(miMaterials[0].material_id);
+      damage.value = seed.damage || seed.damage_mechanism || ""; functional.value = seed.inspection_item || "";
+      row.querySelector("[data-mi-row-method]").value = seed.method || seed.inspect_method || "";
+      row.querySelector("[data-mi-row-frequency]").value = seed.freq || seed.inspect_frequency || "";
+      row.querySelector("[data-mi-row-procedure]").value = seed.proc_no || seed.procedure_ref || "";
+      var pid = row.querySelector("[data-mi-row-pid]");
+      Array.from(pid.options).forEach(function (option) {
+        if (!option.value) return;
+        var matches = option.getAttribute("data-process") === (miEq.selectedOptions[0].getAttribute("data-process") || ""); option.disabled = !matches; option.hidden = !matches;
+      });
+      pid.value = seed.pid_no || seed.pid_drawing_no || byId("mi-pid").value || "";
+      if (seed.material_missing) row.querySelector("[data-mi-row-material-note]").textContent = "原材質已移除，請重新選擇。";
+      else if (seed.material_changed) row.querySelector("[data-mi-row-material-note]").textContent = "材質資料已變更，請確認此機制與檢查安排。";
+      function refreshRow() {
+        var isFunction = kind.value === "function";
+        damage.hidden = isFunction; damage.disabled = isFunction; damage.required = !isFunction;
+        functional.hidden = !isFunction; functional.disabled = !isFunction; functional.required = isFunction;
+        material.required = !isFunction;
+        var known = miCatalog.find(function (item) { return item.name === damage.value.trim(); });
+        row.querySelector("[data-mi-row-code]").textContent = isFunction ? "功能檢查項目" : (known ? "DM-" + known.code : "可自訂機制名稱");
+        syncMiRows();
+      }
+      row.addEventListener("input", refreshRow); row.addEventListener("change", refreshRow);
+      row.querySelector("[data-mi-remove-row]").addEventListener("click", function () { row.remove(); emptyMiRows(); syncMiRows(); });
+      miRowsBody.appendChild(row); refreshRow(); return row;
+    }
+    function loadMiDevice() {
+      var option = miEq.selectedOptions[0], existing = [];
+      try { existing = JSON.parse(option.getAttribute("data-mi-details") || "[]"); } catch (err) { existing = []; }
+      try { miMaterials = JSON.parse(option.getAttribute("data-material-rows") || "[]"); } catch (err) { miMaterials = []; }
+      miOriginalIds = existing.map(function (row) { return row.detail_id; });
+      miRowsBody.replaceChildren();
+      var body = miPlanForm.querySelector("[data-mi-device-body]"); body.hidden = !miEq.value; body.disabled = !miEq.value;
+      miPlanForm.querySelector("[data-mi-equipment-name]").value = option.getAttribute("data-name") || "";
+      miPlanForm.elements.process_id.value = option.getAttribute("data-process") || "";
+      miPlanForm.elements.area_code.value = option.getAttribute("data-area") || "";
+      miPlanForm.elements.material.value = option.getAttribute("data-material") || "";
+      miPlanForm.elements.material_category.value = option.getAttribute("data-matcat") || "";
+      miPlanForm.elements.cas.value = option.getAttribute("data-contents") || "";
+      byId("mi-type").value = existing.length && existing[0].mi_type || option.getAttribute("data-mi") || "";
+      var defaultPid = byId("mi-pid");
+      Array.from(defaultPid.options).forEach(function (item) {
+        if (!item.value) return;
+        item.disabled = item.getAttribute("data-process") !== (option.getAttribute("data-process") || ""); item.hidden = item.disabled;
+      });
+      defaultPid.value = option.getAttribute("data-pid") || "";
+      existing.forEach(addMiRow); emptyMiRows(); syncMiRows();
+      miPlanForm.querySelectorAll("[data-mi-catalog-check]").forEach(function (box) { box.checked = false; });
+    }
+    miEq.addEventListener("change", loadMiDevice);
+    miPlanForm.addEventListener("submit", syncMiRows, true);
+    miPlanForm.addEventListener("reset", function () { miEq.value = ""; loadMiDevice(); });
+    miPlanForm.querySelector("[data-mi-add-custom]").addEventListener("click", function () { addMiRow({}).querySelector("[data-mi-row-material]").focus(); syncMiRows(); });
+    miPlanForm.querySelector("[data-mi-add-selected]").addEventListener("click", function () {
+      var selected = Array.from(miPlanForm.querySelectorAll("[data-mi-catalog-check]:checked"));
+      var first = null;
+      selected.forEach(function (box) {
+        var item = miCatalog.find(function (entry) { return entry.code === box.value; });
+        if (item) { var row = addMiRow({ damage: item.name, damage_code: item.code }); if (!first) first = row; }
+        box.checked = false;
+      });
+      if (first) { miPlanForm.querySelector("[data-mi-damage-picker]").open = false; first.querySelector("[data-mi-row-material]").focus(); }
+      syncMiRows();
+    });
+    miPlanForm.querySelector("[data-mi-damage-search]").addEventListener("input", function (event) {
+      var query = event.target.value.trim().toLowerCase(), visible = 0;
+      miPlanForm.querySelectorAll("[data-mi-catalog-option]").forEach(function (option) {
+        option.hidden = query && option.textContent.toLowerCase().indexOf(query) < 0; if (!option.hidden) visible++;
+      });
+      miPlanForm.querySelector("[data-mi-catalog-empty]").hidden = visible > 0;
+    });
+    document.addEventListener("click", function (event) {
+      var button = event.target.closest(".edit-mi-plan"); if (!button) return;
+      miEq.value = button.getAttribute("data-equipment") || ""; miEq.dispatchEvent(new Event("change"));
+      miPlanForm.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    loadMiDevice();
   }
 
   var limitEq = byId("limit-eq");
@@ -467,9 +585,26 @@
         if (limitCas._refreshPick) limitCas._refreshPick();
       }
       applyGates();
+      refreshLimitEditor();
     });
     limitEq.dispatchEvent(new Event("change"));
   }
+  function refreshLimitEditor() {
+    var form = byId("form-limit-review");
+    if (!form || !limitEq) return;
+    var body = form.querySelector("[data-limit-device-body]");
+    if (body) { body.hidden = !limitEq.value; body.disabled = !limitEq.value; }
+    var chosen = form.querySelectorAll('input[name="review_parameter"]:checked').length;
+    var reason = form.querySelector("[data-limit-none-reason]");
+    if (reason) { reason.hidden = chosen > 0; reason.querySelector("input").disabled = chosen > 0; }
+    form.querySelectorAll('input[name="review_parameter"]').forEach(function (input) {
+      input.setAttribute("aria-expanded", input.checked ? "true" : "false");
+    });
+  }
+  var limitEditor = byId("form-limit-review");
+  if (limitEditor) limitEditor.addEventListener("change", function (event) {
+    if (event.target.name === "review_parameter") refreshLimitEditor();
+  });
   document.addEventListener("click", function (event) {
     var button = event.target.closest(".edit-limit-review");
     if (!button || !limitEq) return;
@@ -527,11 +662,138 @@
     el.value = value == null ? "" : String(value);
   }
 
+  document.querySelectorAll("[data-material-editor]").forEach(function (editor, editorIndex) {
+    var form = editor.closest("form"), body = editor.querySelector("[data-material-body]");
+    var template = editor.querySelector("[data-material-row-template]"), output = editor.querySelector("[data-material-json]");
+    var catalog = [], serial = 0;
+    try {
+      JSON.parse(editor.querySelector("[data-material-catalog]").textContent).forEach(function (equipment) {
+        (equipment.material_rows || []).forEach(function (row) { catalog.push(row); });
+      });
+    } catch (err) { /* manual entry remains available */ }
+    function collect() {
+      return Array.from(body.querySelectorAll(":scope > tr")).map(function (row) {
+        return Object.assign({}, row._materialSeed || {}, {
+          material_category: row.querySelector("[data-material-category]").value,
+          material: row.querySelector("[data-material-name]").value.trim(),
+          part: row.querySelector("[data-material-part]").value.trim()
+        });
+      }).filter(function (row) { return row.material_category || row.material || row.part; });
+    }
+    function sync() { output.value = JSON.stringify(collect()); }
+    function addRow(seed) {
+      seed = seed || {};
+      var row = template.content.firstElementChild.cloneNode(true);
+      row._materialSeed = Object.assign({}, seed);
+      delete row._materialSeed.equipment_id;
+      var category = row.querySelector("[data-material-category]"), material = row.querySelector("[data-material-name]");
+      var part = row.querySelector("[data-material-part]"), list = row.querySelector("datalist");
+      list.id = "material-row-options-" + editorIndex + "-" + (++serial);
+      material.setAttribute("list", list.id);
+      if (seed.material_category && !Array.from(category.options).some(function (option) { return option.value === seed.material_category; })) {
+        var legacy = document.createElement("option"); legacy.value = seed.material_category;
+        legacy.textContent = "原有複選：" + seed.material_category; category.appendChild(legacy);
+      }
+      category.value = seed.material_category || ""; material.value = seed.material || ""; part.value = seed.part || "";
+      function refresh() {
+        var selected = category.value.split(","), seen = {};
+        list.replaceChildren();
+        catalog.forEach(function (entry) {
+          if (!entry.material || seen[entry.material] || !String(entry.material_category || "").split(",").some(function (value) { return selected.indexOf(value) >= 0; })) return;
+          seen[entry.material] = true;
+          var option = document.createElement("option"); option.value = entry.material; list.appendChild(option);
+        });
+        material.disabled = !category.value;
+        var filled = !!(category.value || material.value || part.value);
+        category.required = filled; material.required = filled;
+        sync();
+      }
+      category.addEventListener("change", function () {
+        refresh();
+        if (category.value && catalog.some(function (entry) { return entry.material === material.value; }) &&
+            !Array.from(list.options).some(function (option) { return option.value === material.value; })) material.value = "";
+        refresh();
+      });
+      row.addEventListener("input", refresh);
+      row.querySelector("[data-material-remove]").addEventListener("click", function () {
+        row.remove(); if (!body.children.length) addRow({}); sync();
+      });
+      body.appendChild(row); refresh();
+      return row;
+    }
+    function load(rows) { body.replaceChildren(); (rows && rows.length ? rows : [{}]).forEach(addRow); sync(); }
+    form._materialEditor = { load: load, sync: sync };
+    editor.querySelector("[data-material-add]").addEventListener("click", function () { addRow({}).querySelector("select").focus(); sync(); });
+    form.addEventListener("submit", sync, true);
+    form.addEventListener("reset", function () { load([]); });
+    load([]);
+    var equipmentSelect = form.querySelector("[data-material-equipment]");
+    if (equipmentSelect) {
+      function chooseEquipment() {
+        var option = equipmentSelect.selectedOptions[0], rows = [];
+        try { rows = JSON.parse(option && option.getAttribute("data-material-rows") || "[]"); } catch (err) { rows = []; }
+        load(rows); editor.hidden = !equipmentSelect.value;
+        form.querySelector('button[type="submit"]').disabled = !equipmentSelect.value;
+      }
+      equipmentSelect.addEventListener("change", chooseEquipment); chooseEquipment();
+    }
+  });
+
+  function refreshMaterialSpec(form) {
+    if (!form || !form._refreshMaterialSpec) return;
+    form._refreshMaterialSpec();
+  }
+  document.querySelectorAll("input[data-material-spec]").forEach(function (input, index) {
+    var form = input.form;
+    var holder = input.closest("label");
+    var list = holder.querySelector("datalist");
+    var hint = holder.querySelector("[data-material-spec-hint]");
+    var materialRequired = input.required;
+    var catalog = [];
+    try { catalog = JSON.parse(holder.querySelector("[data-material-spec-catalog]").textContent); } catch (err) { /* custom entry remains available */ }
+    list.id = "material-spec-options-" + index;
+    input.setAttribute("list", list.id);
+    hint.id = "material-spec-hint-" + index;
+    input.setAttribute("aria-describedby", hint.id);
+    form._refreshMaterialSpec = function () {
+      var checkboxes = Array.from(form.querySelectorAll('input[type="checkbox"][name="material_category"]'));
+      var categories = checkboxes.filter(function (box) { return box.checked; }).map(function (box) { return box.value; });
+      input.disabled = categories.length === 0;
+      input.required = materialRequired || categories.length > 0;
+      if (checkboxes.length) checkboxes[0].setCustomValidity(!categories.length && (input.required || input.value) ? "請先勾選建造材質類別，再填選詳細規格" : "");
+      list.replaceChildren();
+      var seen = {};
+      catalog.forEach(function (entry) {
+        var matches = String(entry.categories || "").split(",").some(function (category) { return categories.indexOf(category.trim()) >= 0; });
+        if (!matches || !entry.material || seen[entry.material]) return;
+        seen[entry.material] = true;
+        var option = document.createElement("option");
+        option.value = entry.material;
+        list.appendChild(option);
+      });
+      hint.textContent = !categories.length ? "請先勾選上方建造材質類別，再填選詳細規格。" :
+        (list.options.length ? "可選擇所勾類別已登錄的規格，或自行輸入詳細規格名稱。" : "所選類別尚無已登錄規格，請自行輸入詳細規格名稱。");
+    };
+    form.addEventListener("change", function (event) {
+      if (event.target.name === "material_category") {
+        refreshMaterialSpec(form);
+        if (!input.disabled && catalog.some(function (entry) { return entry.material === input.value; }) &&
+            !Array.from(list.options).some(function (option) { return option.value === input.value; })) input.value = "";
+      }
+    });
+    form.addEventListener("reset", function () { setTimeout(function () { refreshMaterialSpec(form); }, 0); });
+    refreshMaterialSpec(form);
+  });
+
   function fillEditForm(form, data, kind) {
     var keys = Object.keys(data);
     var i;
     for (i = 0; i < keys.length; i++) {
       setField(form, keys[i], data[keys[i]]);
+    }
+    refreshMaterialSpec(form);
+    if (kind === "equipment" && form._materialEditor) {
+      form._materialEditor.load(data.material_rows || (data.material ? [{ material: data.material, material_category: data.material_category || "其他" }] : []));
     }
     refreshHazardPickers(form, true);
     if (kind === "chemical") setField(form, "file_name", fileNameFrom(data.sds_file) || form.elements.file_name && form.elements.file_name.value);
@@ -1358,8 +1620,9 @@
       designProcess.dispatchEvent(new Event("change"));
       setDesignSelections("equipment_ids", data.equipment_values || "");
       setDesignSelections("cas_list", data.chemical_values || "");
-      designForm.elements.material_category.value = data.material_category || "";
-      designForm.elements.material.value = data.material || "";
+      setDesignSelections("material_category", data.material_category || "");
+      if (designForm.elements.material) designForm.elements.material.value = data.material || "";
+      refreshMaterialSpec(designForm);
       designForm.elements.spec.value = data.spec || "";
       designForm.elements.scope.value = data.scope || "";
       button.closest("tr").classList.add("on");
@@ -1367,6 +1630,36 @@
       if (designSubmit) designSubmit.textContent = designForm.getAttribute("data-edit-label") || "更新設計規範";
       if (designCancel) designCancel.hidden = false;
       designForm.scrollIntoView({ block: "center", behavior: "smooth" });
+    });
+  }
+
+  function refreshStockPanel() {
+    var panel = byId("stock-11");
+    if (!panel) return Promise.resolve();
+    return fetch("/wizard/1", { credentials: "same-origin", cache: "no-store" }).then(function (response) {
+      if (!response.ok) throw new Error("stock refresh failed");
+      return response.text();
+    }).then(function (html) {
+      var updated = new DOMParser().parseFromString(html, "text/html");
+      var selector = '#form-stock-11 select[name="source_key"]';
+      var current = document.querySelector(selector);
+      var incoming = updated.querySelector(selector);
+      if (current && incoming) {
+        var selected = current.value;
+        var oldOption = current.selectedOptions[0];
+        current.replaceChildren.apply(current, Array.from(incoming.options).map(function (option) { return option.cloneNode(true); }));
+        if (selected && !Array.from(current.options).some(function (option) { return option.value === selected; }) && oldOption) {
+          current.appendChild(oldOption.cloneNode(true));
+        }
+        current.value = selected;
+      }
+      ["stock-source-table", "stock-component-table", "stock-summary-table", "stock-annex-summary"].forEach(function (id) {
+        var oldNode = byId(id), newNode = updated.getElementById(id);
+        if (oldNode && newNode) oldNode.replaceWith(newNode);
+        else if (newNode) panel.appendChild(newNode);
+        else if (oldNode) oldNode.remove();
+      });
+      enhanceFilingRowEdits(panel);
     });
   }
 
@@ -1825,13 +2118,26 @@
         }
         keepScroll(function () { paintMaster(form, kind, row); });
         storeMaster(kind, row);
-        if (kind === "equipment") refreshLegalEquipment();
+        if (kind === "equipment") {
+          refreshLegalEquipment();
+          document.querySelectorAll("[data-material-equipment]").forEach(function (select) {
+            var option = Array.from(select.options).find(function (item) { return item.value === row.equipment_id; });
+            if (!option) { option = document.createElement("option"); option.value = row.equipment_id; select.appendChild(option); }
+            option.textContent = row.equipment_id + " " + row.name;
+            option.setAttribute("data-material-rows", JSON.stringify(row.material_rows || []));
+          });
+        }
         var head = headingBefore(form);
         if (head) head.dataset.catalogGen = String(loadCatalog().gen || 0);
         formNote(form, result.data.message || "已存檔", false);
         if (window.PsmFormUX) window.PsmFormUX.markSaved(form, submittedSnapshot);
         refreshCoreStatus(form);
         pageScroll().scrollTop = top;
+        if (kind === "chemical") {
+          return refreshStockPanel().catch(function () {
+            formNote(form, "化學品已儲存；請重新整理頁面以更新表1.1 來源清單", false);
+          });
+        }
       }).catch(function () {
         formNote(form, "沒有存成", true);
       }).then(function () {

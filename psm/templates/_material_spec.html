@@ -1,0 +1,8 @@
+<label class="span-all">建造材質詳細規格名稱
+  <input name="material" data-material-spec {% if material_required %}required{% endif %} placeholder="如 403/404 不銹鋼">
+  <small class="muted" data-material-spec-hint>先勾選上方建造材質類別，再選擇已登錄規格或自行輸入。</small>
+  <datalist data-material-spec-options></datalist>
+  <script type="application/json" data-material-spec-catalog>[
+    {% for e in eq_all | default(equipment) %}{"material": {{ (e.material or '') | tojson }}, "categories": {{ (e.material_category or '') | tojson }}}{% if not loop.last %},{% endif %}{% endfor %}
+  ]</script>
+</label>

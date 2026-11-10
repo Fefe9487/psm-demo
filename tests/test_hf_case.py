@@ -66,10 +66,11 @@ def test_hf_demo_phase_gate_and_chapter_links():
         assert conn.execute("SELECT COUNT(*) FROM consequence").fetchone()[0] == 2
         report = services.generate_report_html(conn, SITE_ID)
         assert "V8.3 填報預覽" in report
-        assert "表1.0-4 配方成分、相態與列管數量" in report
+        assert "表1.0-4 配方成分與相態" in report
+        assert "表1.1-1 來源存量與使用量" in report
         assert "無水氟化氫（氣態供料）" in report
         assert "無水氟化氫（液態接收）" in report
-        assert "液態不等於水溶液" in report
+        assert "請至表1.1 填寫並確認此來源的最大存量" in report
         assert "HF 供料管線破損" in report
         assert "T-101 材質相容性" in report
         assert "近五年事故 0 件" not in report

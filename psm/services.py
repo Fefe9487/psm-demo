@@ -26,6 +26,7 @@ from psm.enums import (
     WIZARD_SITE_ID,
 )
 from psm.errors import PsmError
+from psm import materials as material_details
 from psm.report import render_report_html
 from psm.report_v83 import render_report_v83
 
@@ -46,6 +47,20 @@ def infer_material_category(material: str | None) -> str:
     if "CS" in m or "碳鋼" in m or "A283" in m:
         return "碳鋼(CS)"
     return "其他" if (material or "").strip() else ""
+
+
+def normalize_material_categories(value: Any) -> str:
+    """沿用單選文字格式，以逗號儲存已驗證、去重的複選類別。"""
+    values = value if isinstance(value, (list, tuple)) else [value]
+    categories = list(dict.fromkeys(
+        category.strip()
+        for item in values
+        for category in str(item or "").split(",")
+        if category.strip()
+    ))
+    if any(category not in MATERIAL_CATEGORIES for category in categories):
+        raise PsmError("建造材質類別須為本署劣化機制查詢選項")
+    return ",".join(categories)
 
 
 def _nz(v: Any) -> str | None:
@@ -395,8 +410,16 @@ def save_equipment(conn: sqlite3.Connection, data: dict) -> None:
         raise PsmError("所屬製程不存在")
     if not conn.execute("SELECT 1 FROM department WHERE dept_id=?", (maint,)).fetchone():
         raise PsmError("維護權責部門不存在")
+    nested_materials = material_details.normalize_rows(data["material_rows"]) if "material_rows" in data else None
+    if nested_materials is not None:
+        owned = {row[0] for row in conn.execute("SELECT material_id FROM equipment_material_detail WHERE equipment_id=?", (eid,))}
+        if any(row.get("material_id") not in owned for row in nested_materials if row.get("material_id") is not None):
+            raise PsmError("材質明細不屬於所選設備")
+        data = {**data, **material_details.summary(nested_materials)}
     material = _nz(data.get("material"))
-    category = _nz(data.get("material_category")) or infer_material_category(material)
+    category = normalize_material_categories(data.get("material_category")) or infer_material_category(material)
+    if category and not material:
+        raise PsmError("選擇建造材質類別後，請填寫建造材質詳細規格名稱")
     conn.execute(
         """INSERT INTO equipment(
             equipment_id, site_id, process_id, maint_dept_id, name, alias,
@@ -450,7 +473,9 @@ def save_equipment(conn: sqlite3.Connection, data: dict) -> None:
             "UPDATE filing_flag SET v='0' WHERE site_id=? AND k='no_art16' AND v='1'",
             (data["site_id"],),
         )
-    if material:
+    if nested_materials is not None:
+        material_details.replace_rows(conn, eid, nested_materials)
+    elif material:
         _upsert_equipment_material(
             conn,
             {
@@ -474,12 +499,16 @@ def _upsert_equipment_material(
     if not conn.execute("SELECT 1 FROM equipment WHERE equipment_id=?", (eid,)).fetchone():
         raise PsmError("設備須選已有編號")
     if not material:
-        raise PsmError("表1.6-1 建造材料（規格名稱）必填")
-    category = _nz(data.get("material_category")) or infer_material_category(material)
+        raise PsmError("表1.6-1 建造材質詳細規格名稱必填")
+    category = normalize_material_categories(data.get("material_category")) or infer_material_category(material)
     if not category:
         raise PsmError("表1.6-1 須選材質類別，才能對本署劣化機制查詢")
-    if category not in MATERIAL_CATEGORIES:
-        raise PsmError("材質類別須為本署劣化機制查詢選項")
+    details = material_details.rows_for_equipment(conn, eid)
+    if len(details) > 1:
+        bound = material_details.summary(details)
+        if material == bound["material"] and category == bound["material_category"]:
+            return
+        raise PsmError("此設備有多筆材質，請由材質巢狀表修改，避免覆蓋其他材質")
     spec = _nz(data.get("spec"))
     allow = _nz(data.get("corrosion_allowance"))
     existing = conn.execute(
@@ -508,6 +537,10 @@ def _upsert_equipment_material(
             "UPDATE equipment SET material=?, material_category=? WHERE equipment_id=?",
             (material, category, eid),
         )
+    material_details.replace_rows(conn, eid, [{"material": material, "material_category": category,
+                                              "spec": spec or "", "corrosion_allowance": allow or "",
+                                              "part": details[0].get("part", "") if details else "",
+                                              **({"material_id": details[0]["material_id"]} if details else {})}])
 
 
 def save_equipment_material(conn: sqlite3.Connection, data: dict) -> None:
@@ -516,8 +549,11 @@ def save_equipment_material(conn: sqlite3.Connection, data: dict) -> None:
     conn.commit()
 
 
-def material_for_mi(conn: sqlite3.Connection, equipment_id: str) -> dict[str, str]:
+def material_for_mi(conn: sqlite3.Connection, equipment_id: str) -> dict[str, Any]:
     """表8.1-1 的材質只讀表1.6-1／設備清單，不以第八章表單覆寫。"""
+    details = material_details.rows_for_equipment(conn, equipment_id)
+    if details:
+        return {**material_details.summary(details), "material_rows": details}
     row = conn.execute(
         """SELECT COALESCE(m.material, e.material) AS material,
                   COALESCE(NULLIF(m.material_category, ''), e.material_category) AS material_category
@@ -527,10 +563,11 @@ def material_for_mi(conn: sqlite3.Connection, equipment_id: str) -> dict[str, st
         (equipment_id,),
     ).fetchone()
     if not row:
-        return {"material": "", "material_category": ""}
+        return {"material": "", "material_category": "", "material_rows": []}
     return {
         "material": row["material"] or "",
         "material_category": row["material_category"] or "",
+        "material_rows": [],
     }
 
 
@@ -613,9 +650,9 @@ def save_chemical(conn: sqlite3.Connection, data: dict) -> None:
     name = _nz(data.get("name"))
     role = _nz(data.get("role"))
     if not cas or not process_id or not name or not role:
-        raise PsmError("化學品須有 CAS、製程編號、名稱、角色")
+        raise PsmError("化學品須有 CAS、製程編號、名稱、製程功能")
     if role not in CHEMICAL_ROLES:
-        raise PsmError("角色須為原物料／中間產物／產物／副產物／觸媒／清洗劑")
+        raise PsmError("製程功能須為原物料／中間產物／產物／副產物／觸媒／清洗劑")
     sds_id = _nz(data.get("sds_id"))
     sds_file = _nz(data.get("sds_file"))
     if not sds_id and sds_file:
@@ -666,7 +703,7 @@ def save_chemical(conn: sqlite3.Connection, data: dict) -> None:
              h_codes=excluded.h_codes, purity_or_mixture=excluded.purity_or_mixture,
              mixture_name=excluded.mixture_name, pct_low=excluded.pct_low,
              pct_high=excluded.pct_high, pct_basis=excluded.pct_basis,
-             mixture_qty=excluded.mixture_qty, attributed_qty=excluded.attributed_qty,
+             mixture_qty=excluded.mixture_qty, attributed_qty=COALESCE(excluded.attributed_qty, chemical.attributed_qty),
              phase_state=CASE WHEN ?=1 THEN excluded.phase_state ELSE chemical.phase_state END,
              aqueous_status=CASE WHEN ?=1 THEN excluded.aqueous_status ELSE chemical.aqueous_status END""",
         (
@@ -1159,7 +1196,7 @@ def equipment_list_joined(conn: sqlite3.Connection, site_id: str) -> list[dict]:
                   p.operating_dept_id, od.name AS operating_dept_name,
                   e.maint_dept_id, md.name AS maint_dept_name,
                   e.area_code, e.is_safety_critical, e.is_regulated_machinery, e.is_high_pressure_gas,
-                  e.alias, e.material, e.legal_cert_type
+                  e.alias, e.material, e.material_category, e.legal_cert_type
            FROM equipment e
            JOIN process p ON p.process_id = e.process_id
            JOIN department od ON od.dept_id = p.operating_dept_id
@@ -1168,7 +1205,7 @@ def equipment_list_joined(conn: sqlite3.Connection, site_id: str) -> list[dict]:
            ORDER BY e.equipment_id""",
         (site_id,),
     ).fetchall()
-    return [dict(r) for r in rows]
+    return [{**dict(r), "material_rows": material_details.rows_for_equipment(conn, r["equipment_id"])} for r in rows]
 
 
 def masters_complete(conn: sqlite3.Connection, site_id: str) -> tuple[bool, list[str]]:

@@ -6,6 +6,8 @@ import json
 import re
 import sqlite3
 
+from psm.damage_mechanisms import DAMAGE_NAMES
+
 H_RE = re.compile(r"H\d{3}[A-Z]?", re.I)
 HIGH_FLAMMABLE = {"H220", "H221", "H222", "H223"}
 HIGH_TOXIC = {"H300", "H301", "H310", "H311", "H330", "H331"}
@@ -77,16 +79,7 @@ REACTION_TYPES = (
     "其他",
 )
 
-DAMAGE_MECHS = (
-    "腐蝕",
-    "沖蝕",
-    "疲勞",
-    "裂化",
-    "過熱",
-    "機械損傷",
-    "應力腐蝕",
-    "其他",
-)
+DAMAGE_MECHS = DAMAGE_NAMES
 
 INSPECT_METHODS = (
     "目視檢查",
@@ -865,12 +858,10 @@ def merge_annex_qty(rows: list[dict]) -> dict[str, dict]:
 
 
 def chemical_quantity_rows(conn: sqlite3.Connection, site_id: str) -> list[dict]:
-    """Calculate every pure substance and mixture component once, preserving its SDS."""
-    chemicals = [dict(r) for r in conn.execute(
-        """SELECT c.* FROM chemical c JOIN process p ON p.process_id=c.process_id
-           WHERE p.site_id=? ORDER BY c.cas,c.process_id,c.sds_id""", (site_id,),
-    )]
-    return [attach_annex_check(r) for r in chem_104_rows(chemicals, list_rows(conn, site_id, "mix"))]
+    """數量一律讀表 1.1 來源存量；組成及相態讀表 1.0-4。"""
+    from psm.chemical_stock import quantity_rows
+
+    return quantity_rows(conn, site_id)
 
 
 def psi_chemical_facts(conn: sqlite3.Connection, site_id: str) -> dict[str, dict]:

@@ -20,6 +20,9 @@ from psm import filing as fil
 from psm import services as svc
 from psm import wizard as wiz
 from psm import delete_item
+from psm import chemical_stock as stock
+from psm import materials as material_details
+from psm import mi_plans
 
 
 def _partial(request: Request) -> bool:
@@ -158,6 +161,9 @@ def _save_wizard_chemical(
                          if (r.get("cas"), r.get("process_id")) == (mix["cas"], mix["process_id"])
                          and r.get("sds_id") in (stored_sds_id, legacy_sds_id)), None)
         if existing:
+            if not total_kg:
+                mix["total_kg"] = existing.get("total_kg", "")
+                checked = fil.attach_annex_check(mix)
             fil.update_payload(conn, existing["row_id"], checked)
         else:
             fil.add_row(conn, WIZARD_SITE_ID, "mix", checked)
@@ -504,6 +510,10 @@ def register_wizard(app, *, get_conn, render, redirect_ok, redirect_err):
             "prefill": wiz.PREFILL,
         }
         extra.update(wiz.page_extra(conn, sid, step))
+        for code in extra["design_codes"]:
+            bounds = [svc.material_for_mi(conn, eid) for eid in (code.get("equipment_values") or "").split(",") if eid]
+            code["material"] = "；".join(dict.fromkeys(bound["material"] for bound in bounds if bound["material"]))
+            code["material_category"] = svc.normalize_material_categories([bound["material_category"] for bound in bounds])
         extra["legal_equipment"] = fil.legal_equipment(conn, sid)
         contents_by_eq: dict[str, list[str]] = {}
         for c in extra.get("contents") or []:
@@ -520,6 +530,7 @@ def register_wizard(app, *, get_conn, render, redirect_ok, redirect_err):
             c["special_ref"] = fil.SPECIAL_CHEM_REF.get(c["cas"])
             c["annex"] = fil.lookup_annex(c.get("cas"))
         for e in extra["eq_all"]:
+            e["material_rows"] = material_details.rows_for_equipment(conn, e["equipment_id"])
             e["mi_type"] = fil.mi_type_suggest(e.get("equipment_type") or "", e.get("power_kind"))
             e["contents"] = ",".join(x for x in contents_by_eq.get(e["equipment_id"], []) if x)
             e["pid_no"] = pid_by_eq.get(e["equipment_id"], "")
@@ -1057,7 +1068,8 @@ def register_wizard(app, *, get_conn, render, redirect_ok, redirect_err):
         phase_class: str = Form("液體"),
         area_code: str = Form(""),
         material: str = Form(""),
-        material_category: str = Form(""),
+        material_category: list[str] = Form([]),
+        materials_json: str = Form(""),
         power_kind: str = Form(""),
         is_safety_critical: str = Form(""),
         is_regulated_machinery: str = Form(""),
@@ -1075,6 +1087,8 @@ def register_wizard(app, *, get_conn, render, redirect_ok, redirect_err):
                 if _partial(request):
                     return _json_err(msg)
                 return redirect_err("/wizard/1", msg)
+            category = svc.normalize_material_categories(material_category) or wiz.guess_material_category(material)
+            nested = material_details.normalize_rows(materials_json) if materials_json else None
             svc.save_equipment(
                 conn,
                 {
@@ -1087,12 +1101,13 @@ def register_wizard(app, *, get_conn, render, redirect_ok, redirect_err):
                     "phase_class": phase_class,
                     "area_code": area,
                     "material": material,
-                    "material_category": material_category or wiz.guess_material_category(material),
+                    "material_category": category,
                     "power_kind": power_kind or None,
                     "is_safety_critical": is_safety_critical or True,
                     "is_regulated_machinery": is_regulated_machinery,
                     "is_high_pressure_gas": is_high_pressure_gas,
                     "legal_cert_type": legal_cert_type,
+                    **({"material_rows": nested} if nested is not None else {}),
                 },
             )
             wiz.ensure_sops_for_types(conn, WIZARD_SITE_ID)
@@ -1104,12 +1119,14 @@ def register_wizard(app, *, get_conn, render, redirect_ok, redirect_err):
                 "equipment_type": equipment_type,
                 "phase_class": phase_class,
                 "material": material,
-                "material_category": material_category,
+                "material_category": category,
                 "power_kind": power_kind,
                 "is_regulated_machinery": is_regulated_machinery,
                 "is_high_pressure_gas": is_high_pressure_gas,
                 "legal_cert_type": legal_cert_type,
+                "material_rows": material_details.rows_for_equipment(conn, equipment_id),
             }
+            row.update({key: svc.material_for_mi(conn, equipment_id)[key] for key in ("material", "material_category")})
         except PsmError as e:
             if _partial(request):
                 return _json_err(e.message)
@@ -1119,6 +1136,36 @@ def register_wizard(app, *, get_conn, render, redirect_ok, redirect_err):
         if _partial(request):
             return _json_ok({"kind": "equipment", "row": row})
         return redirect_ok("/wizard/1")
+
+    @app.post("/wizard/1/materials")
+    async def wizard_materials(request: Request):
+        form = await request.form()
+        conn = get_conn()
+        try:
+            equipment_id = str(form.get("equipment_id") or "").strip()
+            if not conn.execute("SELECT 1 FROM equipment WHERE equipment_id=? AND site_id=?", (equipment_id, WIZARD_SITE_ID)).fetchone():
+                raise PsmError("請先選本場所的設備編號")
+            material_details.save_rows(conn, equipment_id, form.get("materials_json") or "[]")
+        except PsmError as e:
+            return redirect_err("/wizard/1#equipment-materials", e.message)
+        finally:
+            conn.close()
+        return redirect_ok("/wizard/1#equipment-materials", "已儲存設備材質明細，MI 已更新")
+
+    @app.post("/wizard/1/stock")
+    async def wizard_stock(request: Request):
+        form = await request.form()
+        conn = get_conn()
+        try:
+            blocked = _guard(conn, 1)
+            if blocked:
+                return blocked
+            stock.save_stock(conn, WIZARD_SITE_ID, dict(form))
+        except PsmError as e:
+            return redirect_err("/wizard/1#stock-11", e.message)
+        finally:
+            conn.close()
+        return redirect_ok("/wizard/1#stock-11", "已儲存來源存量；彙總與數量判定已更新")
 
     @app.post("/wizard/1/chemical")
     async def wizard_chemical(request: Request):
@@ -1807,6 +1854,8 @@ def register_wizard(app, *, get_conn, render, redirect_ok, redirect_err):
             if blocked:
                 return blocked
             raw_row_id = str(form.get("row_id") or "").strip()
+            if section in ("1.1", stock.SECTION):
+                return redirect_err("/wizard/1#stock-11", "數量統一由表1.1 的來源存量填寫，CAS 彙總由系統計算")
             editing_row = None
             if raw_row_id:
                 try:
@@ -2369,16 +2418,29 @@ def register_wizard(app, *, get_conn, render, redirect_ok, redirect_err):
             equipment_ids = list(dict.fromkeys(str(v).strip() for v in form.getlist("equipment_ids") if v))
             cas_list = list(dict.fromkeys(str(v).strip() for v in form.getlist("cas_list") if v))
             material = str(form.get("material") or "").strip()
-            category = str(form.get("material_category") or "").strip()
+            category = svc.normalize_material_categories(form.getlist("material_category"))
+            legacy_material = bool(material or category)
             spec = str(form.get("spec") or "").strip()
             scope = str(form.get("scope") or "").strip()
             if not pid or not conn.execute("SELECT 1 FROM process WHERE process_id=? AND site_id=?", (pid, WIZARD_SITE_ID)).fetchone():
                 return redirect_err("/wizard/1", "1.6 須選已有製程")
-            if not equipment_ids or not material or not category or not spec:
-                return redirect_err("/wizard/1", "1.6 須選至少一台設備，並填建造材料、材質類別與設計規範")
+            if not equipment_ids or not spec or (legacy_material and (not material or not category)):
+                return redirect_err("/wizard/1", "1.6 須選至少一台設備並填設計規範；材質請先在上方巢狀表填寫")
             for eid in equipment_ids:
                 if not conn.execute("SELECT 1 FROM equipment WHERE equipment_id=? AND process_id=? AND site_id=?", (eid, pid, WIZARD_SITE_ID)).fetchone():
                     return redirect_err("/wizard/1", "1.6 設備必須屬於所選製程")
+            if not legacy_material:
+                bounds = [svc.material_for_mi(conn, eid) for eid in equipment_ids]
+                if any(not bound.get("material_rows") for bound in bounds):
+                    return redirect_err("/wizard/1", "請先在上方為所選設備填寫材質明細")
+                material = "；".join(dict.fromkeys(bound["material"] for bound in bounds))
+                category = svc.normalize_material_categories([bound["material_category"] for bound in bounds])
+            else:
+                for eid in equipment_ids:
+                    details = material_details.rows_for_equipment(conn, eid)
+                    bound = material_details.summary(details)
+                    if len(details) > 1 and (material != bound["material"] or category != bound["material_category"]):
+                        return redirect_err("/wizard/1", "此設備有多筆材質，請由上方巢狀表修改")
             for cas in cas_list:
                 if not conn.execute("SELECT 1 FROM chemical_cite WHERE cas=? AND process_id=?", (cas, pid)).fetchone():
                     return redirect_err("/wizard/1", "1.6 化學品必須屬於所選製程")
@@ -2412,9 +2474,10 @@ def register_wizard(app, *, get_conn, render, redirect_ok, redirect_err):
             conn.execute("INSERT INTO design_code_process(code_id,process_id) VALUES (?,?)", (code_id, pid))
             for eid in equipment_ids:
                 conn.execute("INSERT INTO design_code_equipment(code_id,equipment_id) VALUES (?,?)", (code_id, eid))
-                svc.save_equipment_material(conn, {
-                    "equipment_id": eid, "material": material, "material_category": category, "spec": spec,
-                })
+                if legacy_material:
+                    svc.save_equipment_material(conn, {
+                        "equipment_id": eid, "material": material, "material_category": category, "spec": spec,
+                    })
             for cas in cas_list:
                 conn.execute(
                     "INSERT INTO design_code_chemical(code_id,process_id,cas) VALUES (?,?,?)",
@@ -2633,6 +2696,23 @@ def register_wizard(app, *, get_conn, render, redirect_ok, redirect_err):
             conn.close()
         return redirect_ok("/wizard/3")
 
+    @app.post("/wizard/8/details")
+    async def wizard_mi_details(request: Request):
+        form = await request.form()
+        conn = get_conn()
+        try:
+            blocked = _guard(conn, 8)
+            if blocked:
+                return blocked
+            mi_plans.save_details(conn, WIZARD_SITE_ID, str(form.get("equipment_id") or ""),
+                                  str(form.get("mi_type") or ""), form.get("mi_rows_json") or "[]",
+                                  form.get("mi_deleted_json") or "[]")
+        except PsmError as e:
+            return redirect_err("/wizard/8#form-81", e.message)
+        finally:
+            conn.close()
+        return redirect_ok("/wizard/8#form-81", "已儲存這台設備的多項機制與檢查明細")
+
     @app.post("/wizard/8/screen")
     def wizard_mi_screen(
         request: Request,
@@ -2803,14 +2883,14 @@ def register_wizard(app, *, get_conn, render, redirect_ok, redirect_err):
                     """INSERT INTO unstructured_attachment(
                         process_id, kind, original_name, attachment_path, note
                     ) VALUES (?,?,?,?,?)""",
-                    (process_id, "mi", file_name or path, path, equipment_id),
+                    (process_id, "mi", file_name or (file.filename if file and file.filename else path), path, equipment_id),
                 )
             conn.commit()
         except PsmError as e:
             return redirect_err("/wizard/8", e.message)
         finally:
             conn.close()
-        return redirect_ok("/wizard/8", "檢查測試紀錄已登錄")
+        return redirect_ok("/wizard/8", "檢查測試紀錄附件已儲存")
 
     @app.post("/wizard/row/delete")
     def wizard_row_delete(step: int = Form(...), row_id: int = Form(...)):

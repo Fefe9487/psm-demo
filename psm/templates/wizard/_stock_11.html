@@ -1,0 +1,59 @@
+<section class="sec" id="stock-11">
+  <h3>填寫來源存量並彙總危害性化學品 <small class="table-ref">表1.1-1</small></h3>
+  <p class="note">先完成表1.0-4 的化學品與成分，再於此處依製程、SDS 及存放地點填數量。混合物填整體最大存量一次，各成分依重量百分比上限換算；純物質直接採該筆存量。不同地點可分列，同一筆存量請勿重複登錄。</p>
+  <p class="note">最大存量與平均每月使用量分開填，均以 kg 為單位；氣體也填 kg，L、m³、Nm³ 須先換算。最大存量（kg）×重量百分比（上限）÷100＝成分純物質量（kg）。</p>
+  <h4>各來源的存量與使用量</h4>
+  <div class="table-wrap"><table class="data" id="stock-source-table" data-add-form="form-stock-11" data-add-label="新增來源存量">
+    <tr><th>製程</th><th>SDS</th><th>純物質／混合物</th><th>成分</th><th>地點</th><th>最大存量（kg）</th><th>月用量（kg）</th><th>狀態</th><th>操作</th></tr>
+    {% for r in stock_rows %}
+    <tr data-fill-form="form-stock-11" data-json="{{ {'row_id': r.row_id or '', 'source_key': r.source_key, 'area_code': r.area_code, 'dept_id': r.dept_id, 'max_kg': r.max_kg, 'monthly_kg': r.monthly_kg, 'regulation': r.regulation or ''} | tojson | forceescape }}">
+      <td>{{ r.process_id }}</td><td>{{ r.sds_id }}</td><td>{{ r.name }}<div class="muted">{{ r.kind }}</div></td><td>{{ r.component_names }}</td>
+      <td>{{ r.area_code or '待填' }}</td><td>{{ r.max_kg if r.max_kg != '' else '待填' }}</td><td>{{ r.monthly_kg }}</td>
+      <td>{{ '已確認' if r.confirmed else ('舊量待確認' if r.max_kg != '' else '待填存量') }}</td>
+      <td><button class="editish" type="button" data-fill-row>{{ '修改' if r.confirmed else '填寫／確認' }}</button>
+        {% if r.row_id %}<form class="inline" method="post" action="/wizard/row/delete" data-confirm="刪除這筆來源存量？彙總與判定會重新計算。"><input type="hidden" name="step" value="1"><input type="hidden" name="row_id" value="{{ r.row_id }}"><button class="linkish" type="submit">刪除</button></form>{% endif %}
+      </td>
+    </tr>
+    {% else %}<tr><td colspan="9">請先於表1.0-4 建立化學品與成分。</td></tr>{% endfor %}
+  </table></div>
+  <form class="grid card" method="post" action="/wizard/1/stock" id="form-stock-11" data-add-label="儲存來源存量" data-edit-label="更新來源存量">
+    <input type="hidden" name="row_id" value="">
+    <label>化學品／混合物來源
+      <select name="source_key" required data-edit-identity>
+        <option value="">（選製程＋SDS＋來源）</option>
+        {% for s in stock_sources %}<option value="{{ s.source_key }}">{{ s.process_id }}／{{ s.sds_id }}／{{ s.name }}（{{ s.kind }}）</option>{% endfor %}
+      </select>
+    </label>
+    <label>使用單位 <select name="dept_id" required><option value="">（請選）</option>{% for d in departments %}<option value="{{ d.dept_id }}">{{ d.dept_id }} {{ d.name }}</option>{% endfor %}</select></label>
+    <label>存放地點 <select name="area_code" required><option value="">（請選）</option>{% for a in areas %}<option value="{{ a.area_code }}">{{ a.area_code }} {{ a.name }}</option>{% endfor %}</select></label>
+    <label>最大存量（公斤） <input name="max_kg" type="number" min="0" step="any" required placeholder="純物質或整份混合物的最大存量"></label>
+    <label>平均每月使用量（公斤） <input name="monthly_kg" type="number" min="0" step="any" placeholder="選填；未知請留白"></label>
+    <label>管制法規／備註（人工填寫） <input name="regulation" aria-describedby="stock-regulation-hint"><small class="muted" id="stock-regulation-hint">請依實際適用法規填寫；目前不會依 CAS 自動帶入。</small></label>
+    <button type="submit">儲存來源存量</button>
+  </form>
+  <h4>成分純物質量（依來源計算）</h4>
+  <div class="table-wrap"><table class="data" id="stock-component-table">
+    <tr><th>製程</th><th>SDS／來源</th><th>地點</th><th>CAS／成分</th><th>來源最大存量（kg）</th><th>重量百分比上限（%）</th><th>成分純物質量（kg）</th><th>確認狀態</th></tr>
+    {% for r in stock_components %}<tr><td>{{ r.process_id }}</td><td>{{ r.sds_id }}／{{ r.mix_name or r.name }}</td><td>{{ r.area_code or '待填' }}</td><td>{{ r.cas }} {{ r.name }}</td><td>{{ r.total_kg if r.total_kg != '' else '待確認' }}</td><td>{{ r.pct_hi }}{% if r.kind == '混合物' and r.basis != '重量比' %}<div class="muted">{{ r.basis or '基準待確認' }}，須先換算 wt%</div>{% endif %}</td><td>{{ r.pure_kg if r.pure_kg != '' else '待確認' }}{% if r.estimate %}（估算）{% endif %}</td><td>{{ '已確認存量' if r.stock_confirmed else '請先確認來源存量' }}</td></tr>{% endfor %}
+  </table></div>
+  <h4>危害性化學品清單（依 CAS＋製程彙總）</h4>
+  <p class="note">下列數量自動彙總，不需再填一份。任一來源或成分比例尚未確認時，最大存量顯示待確認；修改上方來源存量或表1.0-4 的成分後，表1.2 與報表同步更新。</p>
+  <p class="note">危險物、有害物、可燃性氣體及毒性氣體為依 SDS 危害說明帶出的分類建議，請依適用規定確認；管制法規由人員填寫。</p>
+  <div class="table-wrap"><table class="data" id="stock-summary-table">
+    <tr><th>中文名稱</th><th>CAS No.</th><th>製程</th><th>操作相態（表1.0-4）</th><th>使用單位</th><th>最大存量（kg）</th><th>月用量（kg）</th><th>危險物</th><th>有害物</th><th title="依高壓氣體勞工安全規則的分類">可燃性氣體</th><th title="依高壓氣體勞工安全規則的分類">毒性氣體</th><th>地點</th><th>管制法規／備註（人工填寫）</th></tr>
+    {% for r in rows.get('1.1', []) %}<tr><td>{{ r.name }}</td><td>{{ r.cas }}</td><td>{{ r.process_id }}</td><td>{{ r.phase_state }}</td><td>{{ r.dept_id }}</td><td>{{ r.max_kg }}{% if not r.max_complete and r.confirmed_max_kg != '0' %}<div class="muted">已確認 {{ r.confirmed_max_kg }} kg</div>{% endif %}</td><td>{{ r.monthly_kg if r.monthly_kg != '' else '待填' }}</td><td>{{ '是' if r.is_danger else '—' }}</td><td>{{ '是' if r.is_harmful else '—' }}</td><td>{{ '是' if r.is_high_flammable else '—' }}</td><td>{{ '是' if r.is_high_toxic else '—' }}</td><td>{{ r.area_code }}</td><td>{{ r.regulation }}</td></tr>{% endfor %}
+  </table></div>
+  {% if legacy_stock_rows %}
+  <details><summary>舊版表1.1 存量（保留供核對）</summary>
+    <p class="note">這些是舊版另外填寫的 CAS 彙總，未分配至各 SDS 來源，不納入新版加總。請與上方各來源核對後儲存；舊值仍保留。</p>
+    <div class="table-wrap"><table class="data"><tr><th>製程</th><th>CAS／名稱</th><th>地點</th><th>最大存量（kg）</th><th>月用量（kg）</th></tr>
+      {% for r in legacy_stock_rows %}<tr><td>{{ r.process_id }}</td><td>{{ r.cas }} {{ r.name }}</td><td>{{ r.area_code }}</td><td>{{ r.max_kg }}</td><td>{{ r.monthly_kg }}</td></tr>{% endfor %}
+    </table></div>
+  </details>
+  {% endif %}
+  {% if annex_merge %}
+  <p class="note" id="stock-annex-summary">同一 CAS 於本場所合併（間距視為 500 公尺以內）：
+    {% for cas, m in annex_merge.items() %}{{ cas }} 已確認純物質量 {{ m.pure_kg }} kg／規定數量 {{ m.limit_kg }} kg → {% if m.exceeds %}達規定數量{% if m.needs_review %}（另有待確認資料）{% endif %}{% elif m.needs_review %}待確認{% elif not m.counted_rows %}不列入甲類數量認定{% else %}未達規定數量{% endif %}{% if not loop.last %}；{% endif %}{% endfor %}
+  </p>
+  {% endif %}
+</section>

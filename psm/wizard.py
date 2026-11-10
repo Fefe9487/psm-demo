@@ -13,6 +13,8 @@ from psm.db import db_path
 from psm.enums import PROCESS_OVERVIEWS, UNIT_TITLES
 from psm import filing as fil
 from psm import services as svc
+from psm import mi_plans
+from psm.damage_mechanisms import DAMAGE_CATALOG
 from psm.sample_flow import HF_FLOW_ROWS
 
 PREFILL = {
@@ -469,7 +471,7 @@ def _step_missing_core(conn: sqlite3.Connection, site_id: str, n: int) -> list[s
             (site_id,),
         )
         if n_chem < 1:
-            miss.append("至少新增一筆化學品（CAS＋製程＋角色＋危害說明＋SDS）")
+            miss.append("至少新增一筆化學品（CAS＋製程＋製程功能＋危害說明＋SDS）")
         nosds = conn.execute(
             """SELECT c.cas, c.process_id FROM chemical c
                JOIN process p ON p.process_id=c.process_id
@@ -486,7 +488,7 @@ def _step_missing_core(conn: sqlite3.Connection, site_id: str, n: int) -> list[s
         ).fetchall()
         if noh:
             miss.append("每筆化學品須填危害說明（GHS H 代碼）")
-        if not fil.list_rows(conn, site_id, "1.1"):
+        if not fil.list_rows(conn, site_id, "1.1") and not fil.list_rows(conn, site_id, "1.1-source"):
             miss.append("1.1 危害性化學品清單至少一列")
         if not _overview_ok(conn, site_id):
             miss.append("1.3 製程概述須有文字")
@@ -1074,6 +1076,9 @@ def page_extra(conn: sqlite3.Connection, site_id: str, step: int) -> dict:
     flags = fil.all_flags(conn, site_id)
     by_sec = fil.rows_by_section(conn, site_id)
     psi_facts = fil.psi_chemical_facts(conn, site_id)
+    from psm import chemical_stock as stock
+    legacy_stock_rows = list(by_sec.get("1.1", []))
+    by_sec["1.1"] = stock.inventory_summary(conn, site_id)
     fil.sync_psi_rows(by_sec, psi_facts)
     by_sec["11.2"] = [
         {
@@ -1242,19 +1247,7 @@ def page_extra(conn: sqlite3.Connection, site_id: str, step: int) -> dict:
             (site_id,),
         )
     ]
-    mi_details = []
-    for r in conn.execute(
-        """SELECT d.*,e.name AS equipment_name,e.equipment_type,e.process_id,e.area_code,
-                  s.mi_type,s.mi_type_confirmed
-           FROM mi_inspection_detail d JOIN equipment e ON e.equipment_id=d.equipment_id
-           JOIN mi_screen s ON s.equipment_id=d.equipment_id
-           WHERE e.site_id=? ORDER BY e.process_id,e.equipment_id,d.detail_id""", (site_id,)
-    ):
-        detail = dict(r)
-        bound = svc.material_for_mi(conn, r["equipment_id"])
-        detail["material"] = bound["material"]
-        detail["material_category"] = bound["material_category"]
-        mi_details.append(detail)
+    mi_details = mi_plans.list_details(conn, site_id)
     documents = [
         {**dict(r), "is_uploaded": has_uploaded_file(r["attachment_path"])}
         for r in conn.execute(
@@ -1319,6 +1312,8 @@ def page_extra(conn: sqlite3.Connection, site_id: str, step: int) -> dict:
         "mi_uploads": mi_uploads,
         "mi_screen_rows": mi_screen_rows,
         "mi_details": mi_details,
+        "mi_form_rows": {eid: [r for r in mi_details if r["equipment_id"] == eid] for eid in {r["equipment_id"] for r in mi_details}},
+        "damage_catalog": DAMAGE_CATALOG,
         "mi_detail_equipment": list({d["equipment_id"]: d for d in mi_details
             if d["confirmed"] and any(s["equipment_id"] == d["equipment_id"] and s["is_critical"] == 1
                                      for s in mi_screen_rows)}.values()),
@@ -1383,6 +1378,10 @@ def page_extra(conn: sqlite3.Connection, site_id: str, step: int) -> dict:
         "health_opts": fil.HEALTH_OPTS,
         "unit_titles": UNIT_TITLES,
         "annex_merge": fil.merge_annex_qty(fil.chemical_quantity_rows(conn, site_id)),
+        "stock_sources": stock.source_catalog(conn, site_id),
+        "stock_rows": stock.stock_rows(conn, site_id),
+        "stock_components": fil.chemical_quantity_rows(conn, site_id),
+        "legacy_stock_rows": legacy_stock_rows,
         "annex_catalog": fil.annex_catalog(),
         "chem_104": (
             chem_104 := fil.chem_104_rows(

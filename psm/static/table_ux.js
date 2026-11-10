@@ -187,7 +187,13 @@
       try { sessionStorage.setItem(pendingKey, JSON.stringify({ path: location.pathname, action: action })); } catch (e) { /* navigation still works */ }
     }
     leaving = true;
-    location.assign(url);
+    var destination = new URL(url, location.href);
+    if (refreshNeeded && destination.origin === location.origin && destination.pathname === location.pathname && destination.search === location.search) {
+      history.replaceState(null, "", destination.href);
+      location.reload();
+    } else {
+      location.assign(url);
+    }
   }
   async function guard(proceed, action, affected) {
     if (saving || dialog.open || forms().some(function (f) { return f._saving; })) return;
@@ -271,7 +277,7 @@
   document.addEventListener("click", function (ev) {
     if (bypass || ev.defaultPrevented || ev.button !== 0 || ev.ctrlKey || ev.metaKey || ev.shiftKey || ev.altKey) return;
     var add = ev.target.closest("[data-new-form]");
-    var edit = ev.target.closest("[data-fill-row], .edit-row, .edit-design-code, .edit-limit-review, .cancel-edit, #design-cancel");
+    var edit = ev.target.closest("[data-fill-row], .edit-row, .edit-design-code, .edit-limit-review, .edit-mi-plan, .cancel-edit, #design-cancel");
     var row = ev.target.closest("[data-edit][data-json]");
     if (!edit && row && !ev.target.closest("a, button, input, select, textarea, label")) edit = row;
     if (add || edit) {
@@ -280,6 +286,7 @@
       if (source) formId = source.dataset.fillForm || "form-" + source.dataset.edit;
       if (edit && edit.matches(".edit-design-code")) formId = "form-16";
       if (edit && edit.matches(".edit-limit-review")) formId = "form-limit-review";
+      if (edit && edit.matches(".edit-mi-plan")) formId = "form-81";
       var form = formId ? document.getElementById(formId) : edit.closest("form");
       if (!form) return;
       var action = { kind: add ? "add" : "edit", formId: form.id, data: source && source.dataset.json, design: edit && edit.dataset.json, equipment: edit && edit.dataset.equipment, cancel: !!(edit && edit.matches(".cancel-edit, #design-cancel")) };
@@ -371,7 +378,7 @@
         var caption = cell.textContent.trim();
         cell.setAttribute("scope", "col");
         if (!caption && index === header.cells.length - 1) cell.textContent = "操作";
-        if (/操作/.test(cell.textContent)) {
+        if (cell.textContent.trim() === "操作") {
           Array.from(table.rows).forEach(function (row) {
             if (row.cells.length === header.cells.length) row.cells[index].classList.add("ux-actions");
           });
@@ -386,12 +393,17 @@
       Array.from(table.rows).forEach(function (row) {
         if (row.cells.length === header.cells.length && row.cells[0].colSpan === 1) row.cells[0].classList.add("ux-first-column");
       });
-      var hint = document.createElement("p"); hint.className = "ux-scroll-hint";
+      var hint = wrap.previousElementSibling;
+      if (!hint || !hint.classList.contains("ux-scroll-hint")) {
+        hint = document.createElement("p"); hint.className = "ux-scroll-hint";
+        wrap.before(hint);
+      }
       hint.textContent = "左右捲動查看完整欄位；識別欄與操作欄保持顯示。";
-      wrap.before(hint);
       var wide = header.cells.length >= 8;
       function overflow() { hint.hidden = !wide && table.scrollWidth <= wrap.clientWidth + 1; }
-      new ResizeObserver(overflow).observe(wrap); overflow();
+      if (wrap._psmOverflowObserver) wrap._psmOverflowObserver.disconnect();
+      wrap._psmOverflowObserver = new ResizeObserver(overflow);
+      wrap._psmOverflowObserver.observe(wrap); overflow();
     });
   }
   enhanceTables();
@@ -403,11 +415,11 @@
       var action = pending.action;
       if (action.kind === "add") perform(action);
       else if (!action.cancel) {
-        var candidates = Array.from(document.querySelectorAll("[data-fill-form], [data-edit][data-json], .edit-design-code, .edit-limit-review"));
+        var candidates = Array.from(document.querySelectorAll("[data-fill-form], [data-edit][data-json], .edit-design-code, .edit-limit-review, .edit-mi-plan"));
         var target = candidates.find(function (el) {
           return (action.data && el.dataset.json === action.data && (el.dataset.fillForm || "form-" + el.dataset.edit) === action.formId) ||
             (action.design && el.matches(".edit-design-code") && el.dataset.json === action.design) ||
-            (action.equipment && el.matches(".edit-limit-review") && el.dataset.equipment === action.equipment);
+            (action.equipment && el.matches(".edit-limit-review, .edit-mi-plan") && el.dataset.equipment === action.equipment);
         });
         if (target) {
           perform(action, target.querySelector("[data-fill-row], .edit-row") || target);

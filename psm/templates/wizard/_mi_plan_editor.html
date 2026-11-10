@@ -1,0 +1,68 @@
+<div class="table-wrap"><table class="data" data-add-form="form-81" data-add-label="填寫設備檢查明細">
+  <tr><th>製程／區域</th><th>設備編號</th><th>設備名稱</th><th>六大類</th><th>檢查項目數</th><th>操作</th></tr>
+  {% for e in mi_screen_rows %}{% set details = mi_form_rows.get(e.equipment_id, []) %}{% if details %}
+  <tr><td>{{ e.process_id }}{% for eq in eq_all if eq.equipment_id == e.equipment_id %}／{{ eq.area_code or '—' }}{% endfor %}</td><td>{{ e.equipment_id }}</td><td>{{ e.name }}</td><td>{{ e.mi_type or '待確認' }}</td><td>{{ details|length }} 項</td><td><button class="editish edit-mi-plan" type="button" data-equipment="{{ e.equipment_id }}">編輯／確認明細</button></td></tr>
+  <tr><td colspan="6"><div class="table-wrap"><table class="data nest" data-no-auto-add>
+    <tr><th>適用材質／部位</th><th>腐蝕劣化機制／功能檢查項目</th><th>檢查方式</th><th>頻率</th><th>程序書編號</th><th>P&amp;ID 圖號</th><th>確認</th></tr>
+    {% for r in details %}<tr><td>{{ r.material or '未指定材質' }}{% if r.material_part %}<div class="muted">{{ r.material_part }}</div>{% endif %}{% if r.material_missing %}<div class="muted">原材質已移除，請重選</div>{% endif %}</td><td>{% if r.damage_code %}DM-{{ r.damage_code }} {% endif %}{{ r.damage_mechanism or r.inspection_item }}</td><td>{{ r.inspect_method }}</td><td>{{ r.inspect_frequency }}</td><td>{{ r.procedure_ref }}</td><td>{{ r.pid_drawing_no }}</td><td>{{ '已確認' if r.confirmed else '待確認' }}</td></tr>{% endfor %}
+  </table></div></td></tr>
+  {% endif %}{% endfor %}
+  {% if not mi_details %}<tr><td colspan="6">尚無檢查明細，請在下方選設備後新增。</td></tr>{% endif %}
+</table></div>
+<div data-panel="mi-none" data-show="0">
+  <form class="card mi-plan-editor" method="post" action="/wizard/8/details" id="form-81" data-add-label="儲存設備檢查明細" data-edit-label="更新設備檢查明細">
+    <label class="mi-equipment-label">設備編號
+      <select name="equipment_id" id="mi-eq" required>
+        <option value="">（先選設備編號）</option>
+        {% for e in eq_all %}<option value="{{ e.equipment_id }}" data-process="{{ e.process_id }}" data-area="{{ e.area_code or '' }}" data-name="{{ e.name }}"
+          data-material="{{ e.material or '' }}" data-matcat="{{ e.material_category or '' }}" data-material-rows="{{ e.material_rows | tojson | forceescape }}"
+          data-mi="{{ e.mi_type or '' }}" data-pid="{{ e.pid_no or '' }}" data-contents="{{ e.contents or '' }}"
+          data-query="{{ '1' if e.query and e.query.ready else '0' }}" data-missing="{{ (e.query.missing | join('、')) if e.query else '' }}"
+          data-mi-details="{{ mi_form_rows.get(e.equipment_id, []) | tojson | forceescape }}">{{ e.equipment_id }} {{ e.name }}</option>{% endfor %}
+      </select>
+    </label>
+    <fieldset class="mi-device-body" data-mi-device-body disabled hidden>
+      <legend class="sr-only">這台設備的多項機制與檢查安排</legend>
+      <div class="mi-context-grid">
+        <label>設備名稱 <input data-mi-equipment-name readonly></label>
+        <label>單位／製程 <input name="process_id" data-mi-process readonly></label>
+        <label>區域／系統 <input name="area_code" readonly></label>
+        <label>設備類型（六大類） <select name="mi_type" id="mi-type" required><option value="">（請選六大類）</option>{% for t in mi_six %}<option>{{ t }}</option>{% endfor %}</select></label>
+        <label>材質類別（表1.6-1） <input name="material_category" id="mi-matcat" readonly></label>
+        <label>選用材質（表1.6-1） <input name="material" id="mi-material" readonly></label>
+        <label>內容物（表1.5） <input name="cas" id="mi-cas" readonly></label>
+        <label>新增明細預設 P&amp;ID 圖號 <select name="pid_no" id="mi-pid"><option value=""></option>{% for d in drawings %}<option value="{{ d.drawing_no }}" data-process="{{ d.process_id }}">{{ d.drawing_no }} {{ d.revision }}</option>{% endfor %}</select></label>
+      </div>
+      <p class="note" id="mi-query-note"></p>
+      <details class="mi-damage-picker" data-mi-damage-picker>
+        <summary>從職安署 66 項腐蝕劣化機制挑選（可複選）</summary>
+        <label>搜尋機制名稱或 DM 編號 <input type="search" data-mi-damage-search placeholder="輸入中文、英文或編號"></label>
+        <div class="mi-damage-options">
+          {% for d in damage_catalog %}<label class="chk" data-mi-catalog-option><input type="checkbox" value="{{ d.code }}" data-mi-catalog-check data-native> <span>DM-{{ d.code }}　{{ d.name }}</span></label>{% endfor %}
+        </div>
+        <p class="note" data-mi-catalog-empty hidden>沒有符合的機制，可在下方新增自訂項目。</p>
+        <button type="button" class="secondary" data-mi-add-selected>將勾選機制加入明細</button>
+      </details>
+      <p class="note">每列只填一個損壞機制或一個功能檢查項目，並各自指定材質、檢查方式、頻率、程序書及 P&amp;ID。可從 66 項清單選取，也可自訂加入；同台設備可填多列。</p>
+      <p class="note">左右捲動表格可填寫完整欄位。</p>
+      <input type="hidden" name="mi_rows_json" value="[]" data-mi-rows-json>
+      <input type="hidden" name="mi_deleted_json" value="[]" data-mi-deleted-json>
+      <div class="table-wrap"><table class="data nest mi-plan-table" data-no-auto-add>
+        <thead><tr><th>適用材質／部位</th><th>機制／檢查項目名稱</th><th>檢查及測試方式</th><th>檢查及測試頻率</th><th>檢查測試程序書編號</th><th>P&amp;ID 圖號</th><th>操作</th></tr></thead>
+        <tbody data-mi-rows-body></tbody>
+      </table></div>
+      <div class="mi-plan-actions"><button type="button" class="secondary" data-mi-add-custom>＋ 新增自訂機制／功能檢查列</button><button type="submit">儲存設備檢查明細</button></div>
+    </fieldset>
+    <template data-mi-row-template><tr>
+      <td><select data-mi-row-material aria-label="適用材質或部位"><option value="">（選適用材質）</option></select><small class="muted" data-mi-row-material-note></small></td>
+      <td><select data-mi-row-kind aria-label="檢查項目類型"><option value="damage">腐蝕劣化機制</option><option value="function">功能檢查</option></select><input name="damage" data-mi-row-damage aria-label="腐蝕劣化機制名稱" list="mi-damage-options" placeholder="選機制或自訂名稱"><input name="inspection_item" data-mi-row-function aria-label="功能檢查項目" placeholder="填寫功能檢查項目" hidden><small class="muted" data-mi-row-code></small></td>
+      <td><input name="method" data-mi-row-method aria-label="檢查方式" list="mi-method-options" required></td>
+      <td><input name="freq" data-mi-row-frequency aria-label="檢查頻率" required placeholder="如每年、每季"></td>
+      <td><input name="proc_no" data-mi-row-procedure aria-label="檢查測試程序書編號" required></td>
+      <td><select data-mi-row-pid aria-label="明細 P&ID 圖號" required><option value="">（請選圖號）</option>{% for d in drawings %}<option value="{{ d.drawing_no }}" data-process="{{ d.process_id }}">{{ d.drawing_no }} {{ d.revision }}</option>{% endfor %}</select></td>
+      <td><button type="button" class="linkish" data-mi-remove-row>移除此列</button></td>
+    </tr></template>
+    <script type="application/json" data-mi-damage-catalog>{{ damage_catalog | tojson }}</script>
+    <datalist id="mi-damage-options">{% for d in damage_catalog %}<option value="{{ d.name }}">DM-{{ d.code }}</option>{% endfor %}</datalist>
+    <datalist id="mi-method-options">{% for m in inspect_methods %}<option value="{{ m }}">{% endfor %}</datalist>
+  </form>

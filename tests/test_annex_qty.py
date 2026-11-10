@@ -109,7 +109,7 @@ def test_seeded_demo_shows_pure_qty_and_reaction_heat():
     assert "純物質" in html
     assert "規定數量" in html
     assert "7000" in html or "7,000" in html
-    assert "達規定數量" in html
+    assert "待確認" in html  # 舊版存量未經表 1.1 來源確認，不宣告已達量。
     assert "2 H2O2" in html or "H2O2" in html
     assert "反應熱" in html
     assert "−98" in html or "-98" in html

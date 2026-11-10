@@ -1,0 +1,51 @@
+<form class="card limit-editor" method="post" action="/wizard/1/limit" id="form-limit-review">
+  <label class="limit-equipment-label">設備編號
+    <select name="equipment_id" id="limit-eq" required>
+      <option value="">（先選設備編號）</option>
+      {% for e in eq_all %}<option value="{{ e.equipment_id }}" data-process="{{ e.process_id }}" data-name="{{ e.name }}" data-review="{{ limit_form_data.get(e.equipment_id, {}) | tojson | forceescape }}">{{ e.equipment_id }} {{ e.name }}</option>{% endfor %}
+    </select>
+  </label>
+  <p class="note">先選設備，再勾選須檢討的項目。每勾一項，下方會展開對應的上下限表格。</p>
+  <fieldset class="limit-device-body" data-limit-device-body disabled hidden>
+    <legend class="sr-only">這台設備的安全界限與內容物</legend>
+    <fieldset class="limit-choices"><legend>須檢討的項目（可複選）</legend>
+      <div class="limit-choice-grid">
+        {% for name, key in [('壓力','p'),('溫度','t'),('流量','f'),('組成','c')] %}
+        <label class="chk"><input type="checkbox" name="review_parameter" data-native data-gate="lim-{{ key }}" value="{{ name }}" aria-controls="limit-panel-{{ key }}"> {{ name }}</label>
+        {% endfor %}
+      </div>
+    </fieldset>
+    <label class="limit-none-reason" data-limit-none-reason>所有界限參數均不適用的理由 <input name="no_parameter_reason" placeholder="四項皆未選時，請說明原因"></label>
+    <div class="limit-panels">
+      {% for name, key, unit in [('壓力','p','kg/cm²G'),('溫度','t','℃'),('流量','f','m³/hr'),('組成','c','wt%')] %}
+      <section class="limit-panel" id="limit-panel-{{ key }}" data-panel="lim-{{ key }}" data-show="{{ name }}" hidden>
+        <div class="limit-panel-head"><h4>{{ name }}上下限</h4><label>單位 <input name="{{ key }}_unit" value="{{ unit }}" aria-label="{{ name }}單位"></label></div>
+        <div class="table-wrap"><table class="data nest limit-values-table" data-no-auto-add>
+          <thead><tr><th>方向</th><th>操作範圍</th><th>安全界限</th><th>不適用理由</th></tr></thead>
+          <tbody>{% for side, label in [('high','上限'),('low','下限')] %}
+            <tr><th scope="row">{{ label }}</th><td><input name="{{ key }}_design_{{ side }}" aria-label="{{ name }}操作範圍{{ label }}" inputmode="decimal"></td><td><input name="{{ key }}_safety_{{ side }}" aria-label="{{ name }}安全{{ label }}" inputmode="decimal"></td><td><input name="{{ key }}_{{ side }}_na_reason" aria-label="{{ name }}{{ label }}不適用理由" placeholder="此方向不適用時填寫"></td></tr>
+          {% endfor %}</tbody>
+        </table></div>
+        <p class="note">每一方向請同時填操作值及安全值，或填不適用理由；至少一個方向須有實際數值。</p>
+      </section>
+      {% endfor %}
+    </div>
+    <h4>批次操作與實際內容物</h4>
+    <div class="limit-common-grid">
+      <label>單次操作量（批次） <input name="batch_qty" type="number" min="0" step="any"></label>
+      <label>單次操作量單位 <input name="batch_unit" list="batch-unit-options"></label>
+      <datalist id="batch-unit-options"><option value="公斤"><option value="公升"></datalist>
+      <label>連續操作或無批次的不適用理由 <input name="batch_na_reason"></label>
+      <label>容積 L <input name="volume" inputmode="decimal"></label>
+      <label class="span-all">備註 <input name="note"></label>
+    </div>
+    <label class="chk limit-content-none"><input type="checkbox" name="no_process_chemical" value="1" data-gate="lim-chem"> 本設備無實際裝填或流經的製程化學品</label>
+    <label data-panel="lim-chem" data-show="1" hidden>無操作化學品理由 <input name="no_content_reason"></label>
+    <div data-panel="lim-chem" data-show="0">
+      <label>內容物（可複選） <select name="cas" id="limit-cas" multiple>
+        {% for c in chemicals %}<option value="{{ c.cas }}|{{ c.process_id }}|{{ c.sds_id }}" data-process="{{ c.process_id }}">{{ c.cas or c.name }} {{ c.name }} / {{ c.process_id }} / {{ c.sds_id }}</option>{% endfor %}
+      </select></label>
+    </div>
+    <button type="submit">儲存這台設備的 1.5 資料</button>
+  </fieldset>
+</form>

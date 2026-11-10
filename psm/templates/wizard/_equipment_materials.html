@@ -1,0 +1,11 @@
+<div id="equipment-materials">
+  <h4>逐台設備填寫材質與規格</h4>
+  <form class="card equipment-material-form" method="post" action="/wizard/1/materials" id="form-equipment-materials">
+    <label>設備編號 <select name="equipment_id" required data-material-equipment>
+      <option value="">（先選設備編號）</option>
+      {% for e in equipment %}<option value="{{ e.equipment_id }}" data-material-rows="{{ e.material_rows | tojson | forceescape }}">{{ e.equipment_id }} {{ e.name }}</option>{% endfor %}
+    </select></label>
+    {% include "_material_rows.html" %}
+    <button type="submit">儲存這台設備的材質明細</button>
+  </form>
+</div>

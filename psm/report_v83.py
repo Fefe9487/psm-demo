@@ -133,6 +133,8 @@ def render_report_v83(conn: sqlite3.Connection, site_id: str) -> str:
 
     flags = fil.all_flags(conn, site_id)
     by_section = fil.rows_by_section(conn, site_id)
+    from psm import chemical_stock as stock
+    by_section["1.1"] = stock.inventory_summary(conn, site_id)
     fil.sync_psi_rows(by_section, fil.psi_chemical_facts(conn, site_id))
     by_section["11.2"] = [
         {
@@ -184,21 +186,19 @@ def render_report_v83(conn: sqlite3.Connection, site_id: str) -> str:
             add_table("表1.0-3 設備清單", ("設備編號", "名稱", "類型", "製程編號"),
                       "SELECT equipment_id,name,equipment_type,process_id FROM equipment WHERE site_id=? ORDER BY equipment_id",
                       ("equipment_id", "name", "equipment_type", "process_id"))
-            add_table("表1.0-4 化學品清單", ("製程", "SDS", "CAS", "名稱", "角色", "危害說明"),
+            add_table("表1.0-4 化學品清單", ("製程", "SDS", "CAS", "名稱", "製程功能", "危害說明"),
                       """SELECT c.process_id,c.sds_id,c.cas,c.name,c.role,c.h_codes FROM chemical c
                          JOIN process p ON p.process_id=c.process_id WHERE p.site_id=? ORDER BY c.process_id,c.cas""",
                       ("process_id", "sds_id", "cas", "name", "role", "h_codes"))
-            mix_rows = fil.chemical_quantity_rows(conn, site_id)
-            parts.append("<p>操作量（kg）×重量百分比（上限）÷100＝純物質量（kg）。氣體也填 kg；L、m³、Nm³ 須先依密度及溫壓條件換算。法定門檻不代表已達量；HCl／HF 水溶液不列入，無水液化或資料不足者待確認。</p>")
-            parts.append("<h3>表1.0-4 配方成分、相態與列管數量</h3>")
+            mix_rows = [component for source in stock.source_catalog(conn, site_id) for component in source["components"]]
+            parts.append("<p>表1.0-4 建立化學品與成分；數量統一於表1.1 依來源與地點填寫，再提供表1.2 判定。</p>")
+            parts.append("<h3>表1.0-4 配方成分與相態</h3>")
             parts.append(_table(
-                ("配方／成分", "製程", "相態", "操作量 kg", "成分 CAS", "重量比 %", "折算純物質 kg", "規定數量 kg", "列管判定"),
+                ("配方／成分", "製程", "SDS", "相態", "成分 CAS", "重量比 %"),
                 [
                     (
-                        row.get("mix_name"), row.get("process_id"), row.get("phase_state"),
-                        row.get("total_kg"), row.get("cas"),
+                        row.get("mix_name") or row.get("name"), row.get("process_id"), row.get("sds_id"), row.get("phase_state"), row.get("cas"),
                         f"{row.get('pct_lo') or ''}–{row.get('pct_hi') or ''}",
-                        row.get("pure_kg"), row.get("limit_kg"), row.get("annex_note"),
                     )
                     for row in mix_rows
                 ],
@@ -330,15 +330,14 @@ def render_report_v83(conn: sqlite3.Connection, site_id: str) -> str:
                          ON s.equipment_id=e.equipment_id
                          WHERE e.site_id=? ORDER BY e.process_id,e.equipment_id""",
                       ("process_id", "equipment_id", "name", "equipment_type", "mi_type", "status", "basis"))
-            add_table("表8.1-1 安全關鍵設備逐項檢查明細",
-                      ("設備編號", "損壞機制", "功能檢查項目", "方式", "頻率", "程序書", "P&ID", "狀態"),
-                      """SELECT d.equipment_id,d.damage_mechanism,d.inspection_item,
-                         d.inspect_method,d.inspect_frequency,d.procedure_ref,d.pid_drawing_no,
-                         CASE WHEN d.confirmed=1 THEN '已確認' ELSE '舊資料待確認' END AS status
-                         FROM mi_inspection_detail d JOIN equipment e ON e.equipment_id=d.equipment_id
-                         WHERE e.site_id=? ORDER BY d.equipment_id,d.detail_id""",
-                      ("equipment_id", "damage_mechanism", "inspection_item", "inspect_method",
-                       "inspect_frequency", "procedure_ref", "pid_drawing_no", "status"))
+            from psm import mi_plans
+            parts.append("<h3>表8.1-1 安全關鍵設備逐項檢查明細</h3>")
+            parts.append(_table(("設備編號", "材質／部位", "DM編號", "損壞機制", "功能檢查項目", "方式", "頻率", "程序書", "P&ID", "狀態"), [
+                (r["equipment_id"], (r["material_part"] + "：" if r["material_part"] else "") + r["material"],
+                 r["damage_code"], r["damage_mechanism"], r["inspection_item"], r["inspect_method"], r["inspect_frequency"],
+                 r["procedure_ref"], r["pid_drawing_no"], "已確認" if r["confirmed"] else "待確認")
+                for r in mi_plans.list_details(conn, site_id)
+            ]))
             add_table("表8.2-1 設備失效率", ("設備編號", "六大類", "統計起", "統計迄", "運行小時", "失效事件數", "次／百萬小時", "說明", "確認"),
                       """SELECT f.equipment_id,s.mi_type,f.period_start,f.period_end,
                          f.run_hours,f.failure_count,
@@ -373,6 +372,35 @@ def render_report_v83(conn: sqlite3.Connection, site_id: str) -> str:
             parts.append("<p>本章無填報表，以程序書附件檢核。</p>")
 
         for section, title in SECTIONS.get(n, ()):
+            if section == "1.6":
+                parts.append("<h3>表1.6-1 設備材質明細</h3>")
+                parts.append(_table(("設備編號", "部位／用途", "建造材質類別", "建造材質詳細規格名稱", "原登錄規範"), [
+                    tuple(row[key] for key in ("equipment_id", "part", "material_category", "material", "spec"))
+                    for row in conn.execute("""SELECT d.* FROM equipment_material_detail d JOIN equipment e ON e.equipment_id=d.equipment_id
+                                              WHERE e.site_id=? ORDER BY e.equipment_id,d.sort_order,d.material_id""", (site_id,))
+                ]))
+                by_section[section] = [{k: v for k, v in row.items() if k not in ("material", "material_category")}
+                                       if row.get("code_id") else row for row in by_section.get(section, [])]
+            if section == "1.1":
+                parts.append("<h3>表1.1-1 來源存量與使用量</h3>")
+                parts.append("<p>最大存量（kg）×重量百分比（上限）÷100＝成分純物質量（kg）；未確認的舊量不納入加總。</p>")
+                parts.append(_table(("製程", "SDS", "純物質／混合物", "地點", "最大存量 kg", "平均每月使用量 kg", "狀態"), [
+                    (r["process_id"], r["sds_id"], r["name"], r.get("area_code"), r.get("max_kg"), r.get("monthly_kg"),
+                     "已確認" if r["confirmed"] else "待確認（舊量僅供核對）")
+                    for r in stock.stock_rows(conn, site_id)
+                ]))
+                parts.append("<h3>表1.1-1 成分純物質量</h3>")
+                parts.append(_table(("製程", "SDS", "CAS", "成分", "地點", "來源最大存量 kg", "重量比上限 %", "成分純物質量 kg", "列管判定"), [
+                    (r["process_id"], r["sds_id"], r["cas"], r.get("name"), r.get("area_code"), r.get("total_kg"),
+                     r.get("pct_hi"), r.get("pure_kg"), r.get("annex_note"))
+                    for r in fil.chemical_quantity_rows(conn, site_id)
+                ]))
+                parts.append(f"<h3>{_e(title)}（依 CAS＋製程彙總）</h3>")
+                parts.append(_table(("製程", "CAS", "名稱", "相態", "使用單位", "最大存量 kg", "平均每月使用量 kg", "地點", "管制法規／備註"), [
+                    tuple(r.get(k, "") for k in ("process_id", "cas", "name", "phase_state", "dept_id", "max_kg", "monthly_kg", "area_code", "regulation"))
+                    for r in by_section["1.1"]
+                ]))
+                continue
             parts.append(f"<h3>{_e(title)}</h3>{_filled_rows(by_section.get(section, []))}")
         if n == 12:
             totals = wiz.page_extra(conn, site_id, 12)["gear_totals"]

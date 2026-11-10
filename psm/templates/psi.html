@@ -47,19 +47,15 @@
 
 <h3>建造材料／釋壓／連鎖（seed 已有；畫面列出）</h3>
 <table class="data">
-  <tr><th>設備</th><th>材質</th><th>規格</th></tr>
-  {% for r in materials %}<tr><td>{{ r.equipment_id }}</td><td>{{ r.material }}</td><td>{{ r.spec }}</td></tr>{% endfor %}
+  <tr><th>設備</th><th>部位／用途</th><th>建造材質類別</th><th>建造材質詳細規格名稱</th></tr>
+  {% for r in materials %}<tr><td>{{ r.equipment_id }}</td><td>{{ r.part }}</td><td>{{ r.material_category }}</td><td>{{ r.material }}</td></tr>{% endfor %}
 </table>
-<form class="grid card" method="post" action="/psi/material">
-  <label>設備
-    <select name="equipment_id" required>{% for e in equipment %}<option value="{{ e.equipment_id }}">{{ e.equipment_id }}</option>{% endfor %}</select>
+<form class="card equipment-material-form" method="post" action="/psi/material" id="form-psi-materials">
+  <label>設備編號
+    <select name="equipment_id" required data-material-equipment><option value="">（先選設備）</option>{% for e in equipment %}<option value="{{ e.equipment_id }}" data-material-rows="{{ e.material_rows | default([]) | tojson | forceescape }}">{{ e.equipment_id }} {{ e.name }}</option>{% endfor %}</select>
   </label>
-  <label>建造材料 <input name="material" required></label>
-  <label>材質類別
-    <select name="material_category">{% for m in MATERIAL_CATEGORIES %}<option>{{ m }}</option>{% endfor %}</select>
-  </label>
-  <label>規格 <input name="spec"></label>
-  <button type="submit">新增材料</button>
+  {% include "_material_rows.html" %}
+  <button type="submit">儲存設備材質明細</button>
 </form>
 <table class="data">
   <tr><th>釋壓設備</th><th>類型</th><th>設定</th><th>CAS</th><th>圖號</th></tr>

@@ -393,6 +393,18 @@ CREATE TABLE IF NOT EXISTS equipment_material (
     corrosion_allowance TEXT
 );
 
+CREATE TABLE IF NOT EXISTS equipment_material_detail (
+    material_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    equipment_id TEXT NOT NULL REFERENCES equipment(equipment_id) ON DELETE CASCADE,
+    material_category TEXT NOT NULL,
+    material TEXT NOT NULL,
+    part TEXT NOT NULL DEFAULT '',
+    spec TEXT NOT NULL DEFAULT '',
+    corrosion_allowance TEXT NOT NULL DEFAULT '',
+    sort_order INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS idx_equipment_material_detail_equipment ON equipment_material_detail(equipment_id);
+
 CREATE TABLE IF NOT EXISTS relief_device (
     equipment_id TEXT PRIMARY KEY REFERENCES equipment(equipment_id),
     device_type TEXT NOT NULL,
@@ -819,6 +831,9 @@ CREATE TABLE IF NOT EXISTS mi_inspection_detail (
     pid_drawing_no TEXT NOT NULL DEFAULT '',
     confirmed INTEGER NOT NULL DEFAULT 0,
     legacy_row_id INTEGER UNIQUE,
+    material_id INTEGER REFERENCES equipment_material_detail(material_id) ON DELETE SET NULL,
+    material_snapshot TEXT NOT NULL DEFAULT '',
+    damage_code TEXT NOT NULL DEFAULT '',
     CHECK (damage_mechanism<>'' OR inspection_item<>'')
 );
 
@@ -1642,6 +1657,20 @@ def _migrate_mi_failure(conn: sqlite3.Connection) -> None:
 def init_schema(conn: sqlite3.Connection) -> None:
     conn.executescript(SCHEMA)
     migrate_schema(conn)
+    _add_col(conn, "mi_inspection_detail", "material_id", "INTEGER REFERENCES equipment_material_detail(material_id) ON DELETE SET NULL")
+    _add_col(conn, "mi_inspection_detail", "material_snapshot", "TEXT NOT NULL DEFAULT ''")
+    _add_col(conn, "mi_inspection_detail", "damage_code", "TEXT NOT NULL DEFAULT ''")
+    conn.execute("""INSERT INTO equipment_material_detail(equipment_id,material_category,material,spec,corrosion_allowance)
+                    SELECT m.equipment_id,COALESCE(m.material_category,''),m.material,
+                           COALESCE(m.spec,''),COALESCE(m.corrosion_allowance,'')
+                    FROM equipment_material m WHERE NOT EXISTS (
+                        SELECT 1 FROM equipment_material_detail d WHERE d.equipment_id=m.equipment_id)
+                    AND TRIM(m.material)<>''""")
+    conn.execute("""INSERT INTO equipment_material_detail(equipment_id,material_category,material)
+                    SELECT e.equipment_id,COALESCE(e.material_category,''),e.material
+                    FROM equipment e WHERE NOT EXISTS (
+                        SELECT 1 FROM equipment_material_detail d WHERE d.equipment_id=e.equipment_id)
+                    AND COALESCE(TRIM(e.material),'')<>''""")
     conn.commit()
 
 

@@ -1,0 +1,17 @@
+<div class="material-editor span-all" data-material-editor>
+  <h4>設備材質明細</h4>
+  <p class="note">同一設備有多種材質時請逐列新增。每列先選類別，再填選詳細規格；可註明殼體、內襯、接管等部位。</p>
+  <input type="hidden" name="materials_json" value="[]" data-material-json>
+  <div class="table-wrap"><table class="data nest material-detail-table" data-no-auto-add>
+    <thead><tr><th>建造材質類別</th><th>建造材質詳細規格名稱</th><th>部位／用途（選填）</th><th>操作</th></tr></thead>
+    <tbody data-material-body></tbody>
+  </table></div>
+  <button type="button" class="secondary" data-material-add>＋ 新增材質</button>
+  <template data-material-row-template><tr>
+    <td><select data-material-category aria-label="建造材質類別"><option value="">（先選類別）</option>{% for m in MATERIAL_CATEGORIES %}<option value="{{ m }}">{{ m }}</option>{% endfor %}</select></td>
+    <td><input data-material-name aria-label="建造材質詳細規格名稱" placeholder="如 403/404 不銹鋼" disabled><datalist data-material-suggestions></datalist></td>
+    <td><input data-material-part aria-label="材質部位或用途" placeholder="如殼體、內襯、接管"></td>
+    <td><button type="button" class="linkish" data-material-remove>移除此列</button></td>
+  </tr></template>
+  <script type="application/json" data-material-catalog>{{ equipment | default([]) | tojson }}</script>
+</div>

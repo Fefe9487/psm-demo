@@ -4,7 +4,7 @@
 <h2>6 化學品（複合鍵 CAS + 製程編號）</h2>
 <p class="note">化學品可自行新增。名稱僅在勞動檢查法施行細則危險物／有害物清單有列時自動帶入。混合物以操作量×重量百分比換成純物質，再對規定數量。</p>
 <table class="data">
-  <tr><th>CAS</th><th>製程編號</th><th>製程名稱</th><th>品名</th><th>角色</th><th>UN</th><th>運輸分類</th><th>濃度</th><th>危害說明</th><th>相態</th></tr>
+  <tr><th>CAS</th><th>製程編號</th><th>製程名稱</th><th>品名</th><th>製程功能</th><th>UN</th><th>運輸分類</th><th>濃度</th><th>危害說明</th><th>相態</th></tr>
   {% for c in chemicals %}
   <tr>
     <td>{{ c.cas }}</td><td>{{ c.process_id }}</td><td>{{ c.process_name }}</td>
@@ -30,7 +30,7 @@
     </select>
   </label>
   <label>名稱 <input name="name" id="chem-name"></label>
-  <label>角色
+  <label>製程功能
     <select name="role">{% for r in CHEMICAL_ROLES %}<option>{{ r }}</option>{% endfor %}</select>
   </label>
   <label>UN 編號 <input name="un_number"></label>

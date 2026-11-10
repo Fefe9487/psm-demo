@@ -208,7 +208,7 @@ def render_report_html(conn: sqlite3.Connection, site_id: str) -> str:
       )}
       <h3>化學品（可列製造、處置、使用之危害物；規定數量僅對施行細則所列物質自動帶入）</h3>
       {_table(
-        ['CAS','製程編號','製程名稱','品名','角色','UN','運輸分類'],
+        ['CAS','製程編號','製程名稱','品名','製程功能','UN','運輸分類'],
         [[_e(c['cas']), _e(c['process_id']), _e(c['process_name']), _e(c['name']),
           _e(c['role']), _e(c['un_number']), _e(c['transport_hazard_class'])] for c in chems]
       )}

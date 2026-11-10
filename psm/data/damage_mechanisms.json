@@ -1,0 +1,336 @@
+{
+  "source_url": "https://psm.osha.gov.tw/hwripsm/public/listAllDamageMechanism.action",
+  "retrieved_on": "2026-11-10",
+  "items": [
+    {
+      "code": "01",
+      "name": "硫化 Sulfidation",
+      "source_id": "2c99162175547fd2017587ae999600a8"
+    },
+    {
+      "code": "02",
+      "name": "濕硫化氫損傷 (起泡/HIC/SOHIC/SSC) Wet H2S Damage (Blistering / HIC / SOHIC / SCC)",
+      "source_id": "2c99162175547fd2017587d79a6600be"
+    },
+    {
+      "code": "03",
+      "name": "潛變與應力斷裂 Creep and Stress Rupture",
+      "source_id": "2c99162175547fd20175878638630095"
+    },
+    {
+      "code": "04",
+      "name": "高溫H2/H2S腐蝕 High Temperature H2/H2S Corrosion",
+      "source_id": "2c99162175547fd2017587d079de00b4"
+    },
+    {
+      "code": "05",
+      "name": "聚硫酸應力腐蝕龜裂(PASCC) Polythionic Acid Stress Corrosion Cracking (PASCC)",
+      "source_id": "2c99162175547fd2017587d4d25100b8"
+    },
+    {
+      "code": "06",
+      "name": "環烷酸腐蝕(NAC) Naphthenic Acid Corrosion (NAC)",
+      "source_id": "2c99162175547fd2017587d316f600b6"
+    },
+    {
+      "code": "07",
+      "name": "硫化氫銨腐蝕(鹼性污水) Ammonium Bisulfide Corrosion (Alkaline Sour Water)",
+      "source_id": "2c9916218071a1000180b62093db0126"
+    },
+    {
+      "code": "08",
+      "name": "氯化銨腐蝕 Ammonium Chloride Corrosion",
+      "source_id": "2c99162175547fd2017587cc0d9800b2"
+    },
+    {
+      "code": "09",
+      "name": "鹽酸腐蝕 Hydrochloric Acid (HCl) Corrosion",
+      "source_id": "2c99162175547fd2017587cf365c00b3"
+    },
+    {
+      "code": "10",
+      "name": "高溫氫攻擊（HTHA） High Temperature Hydrogen Attack (HTHA)",
+      "source_id": "2c99162175547fd2017587da28fc00c1"
+    },
+    {
+      "code": "11",
+      "name": "氧化 Oxidation",
+      "source_id": "2c9916217543d2c701754faa533402a5"
+    },
+    {
+      "code": "12",
+      "name": "熱疲勞 Thermal Fatigue",
+      "source_id": "2c99162175547fd201758787a5b80096"
+    },
+    {
+      "code": "13",
+      "name": "酸性(含硫)汙水腐蝕 Sour Water Corrosion (Acidic)",
+      "source_id": "2c9916218071a1000180b6287d50012a"
+    },
+    {
+      "code": "14",
+      "name": "耐火材料劣化 Refractory Degradation",
+      "source_id": "2c9916218071a1000180b28403690101"
+    },
+    {
+      "code": "15",
+      "name": "石墨化 Graphitization",
+      "source_id": "2c9916218071a1000180b220877300f0"
+    },
+    {
+      "code": "16",
+      "name": "回火脆化 Temper Embrittlement",
+      "source_id": "2c9916218071a1000180b25f013600f4"
+    },
+    {
+      "code": "17",
+      "name": "脫碳 Decarburization",
+      "source_id": "2c9916218071a1000180b6096fe30120"
+    },
+    {
+      "code": "18",
+      "name": "鹼致應力腐蝕龜裂(鹼致脆化) Caustic Stress Corrosion Cracking (Caustic Embrittlement)",
+      "source_id": "2c99162175547fd2017587b7253300ab"
+    },
+    {
+      "code": "19",
+      "name": "鹼性腐蝕 Caustic Corrosion",
+      "source_id": "2c99162175547fd2017587aa374100a6"
+    },
+    {
+      "code": "20",
+      "name": "沖蝕/沖蝕–腐蝕 Erosion / Erosion-Corrosion",
+      "source_id": "2c99162175547fd2017587908e4e009a"
+    },
+    {
+      "code": "21",
+      "name": "碳酸鹽應力腐蝕龜裂 Carbonate Stress Corrosion Cracking (ACSCC)",
+      "source_id": "2c99162175547fd2017587d91a4000c0"
+    },
+    {
+      "code": "22",
+      "name": "胺致應力腐蝕龜裂 Amine Stress Corrosion Cracking",
+      "source_id": "2c99162175547fd2017587d597db00b9"
+    },
+    {
+      "code": "23",
+      "name": "氯化物應力腐蝕龜裂(Cl-SCC) Chloride Stress Corrosion Cracking(Cl-SCC)",
+      "source_id": "2c99162175547fd2017587b545a500a9"
+    },
+    {
+      "code": "24",
+      "name": "滲碳 Carburization",
+      "source_id": "2c9916218071a1000180b6086643011f"
+    },
+    {
+      "code": "25",
+      "name": "氫脆(HE) Hydrogen Embrittlement (HE)",
+      "source_id": "2c99162175547fd2017587c838ea00af"
+    },
+    {
+      "code": "26",
+      "name": "蒸汽包覆 Steam Blanketing",
+      "source_id": "2c9916218071a1000180b6048258011c"
+    },
+    {
+      "code": "27",
+      "name": "熱衝擊 Thermal Shock",
+      "source_id": "2c99162175547fd20175878f90670099"
+    },
+    {
+      "code": "28",
+      "name": "氣蝕 Cavitation",
+      "source_id": "2c9916218071a1000180b280546b00fe"
+    },
+    {
+      "code": "29",
+      "name": "石墨化腐蝕 Graphitic Corrosion",
+      "source_id": "2c9916218071a1000180b606ec93011e"
+    },
+    {
+      "code": "30",
+      "name": "短期過熱–應力破裂 Short Term Overheating – Stress Rupture",
+      "source_id": "2c99162175547fd201758788c5650097"
+    },
+    {
+      "code": "31",
+      "name": "脆性斷裂 Brittle Fracture",
+      "source_id": "2c99162175547fd2017587854d4f0094"
+    },
+    {
+      "code": "32",
+      "name": "σ相脆化 Sigma Phase Embrittlement",
+      "source_id": "2c9916218071a1000180b279e3fa00fb"
+    },
+    {
+      "code": "33",
+      "name": "885℉(475℃)脆化 885℉(475℃) Embrittlement",
+      "source_id": "2c9916218071a1000180b2740ba300f8"
+    },
+    {
+      "code": "34",
+      "name": "軟化(球化) Softening (Spheroidization)",
+      "source_id": "2c9916218071a1000180b25a6c0d00f3"
+    },
+    {
+      "code": "35",
+      "name": "再熱開裂 Reheat Cracking",
+      "source_id": "2c9916218071a1000180b28a56500104"
+    },
+    {
+      "code": "36",
+      "name": "硫酸腐蝕 Sulfuric Acid Corrosion",
+      "source_id": "2c99162175547fd2017587d3e41700b7"
+    },
+    {
+      "code": "37",
+      "name": "氫氟酸(HF)腐蝕 Hydrofluoric (HF) Acid Corrosion",
+      "source_id": "2c99162175547fd2017587d17a1700b5"
+    },
+    {
+      "code": "38",
+      "name": "煙氣露點腐蝕 Flue Gas Dew Point Corrosion",
+      "source_id": "2c99162175547fd2017587a31e8200a3"
+    },
+    {
+      "code": "39",
+      "name": "異種金屬銲接(DMW)開裂 Dissimilar Metal Weld (DMW) Cracking",
+      "source_id": "2c99162175547fd20175878eb03c0098"
+    },
+    {
+      "code": "40",
+      "name": "氫致應力龜裂-氫氟酸(HF) Hydrogen Stress Cracking – HF",
+      "source_id": "2c99162175547fd2017587d85d3100bf"
+    },
+    {
+      "code": "41",
+      "name": "去合金(選擇性腐蝕) Dealloying",
+      "source_id": "2c99162175547fd2017587abde4d00a7"
+    },
+    {
+      "code": "42",
+      "name": "二氧化碳腐蝕 CO2 Corrosion",
+      "source_id": "2c99162175547fd2017587a0ad1d00a2"
+    },
+    {
+      "code": "43",
+      "name": "腐蝕疲勞 Corrosion Fatigue",
+      "source_id": "2c99162175547fd2017587b618ce00aa"
+    },
+    {
+      "code": "44",
+      "name": "燃料灰腐蝕 Fuel Ash Corrosion",
+      "source_id": "2c9916218071a1000180b619de620122"
+    },
+    {
+      "code": "45",
+      "name": "胺腐蝕 Amine Corrosion",
+      "source_id": "2c9916218071a1000180b61db58a0125"
+    },
+    {
+      "code": "46",
+      "name": "保溫層下腐蝕(CUI) Corrosion Under Insulation (CUI)",
+      "source_id": "2c99162175547fd2017587970c9c009f"
+    },
+    {
+      "code": "47",
+      "name": "大氣腐蝕 Atmospheric Corrosion",
+      "source_id": "2c99162175547fd2017587958d2c009e"
+    },
+    {
+      "code": "48",
+      "name": "氨致應力腐蝕龜裂 Ammonia Stress Corrosion Cracking",
+      "source_id": "2c99162175547fd2017587b9ee5e00ac"
+    },
+    {
+      "code": "49",
+      "name": "冷卻水腐蝕 Cooling Water Corrosion",
+      "source_id": "2c99162175547fd2017587983d4e00a0"
+    },
+    {
+      "code": "50",
+      "name": "鍋爐水冷凝液腐蝕 Boiler Water Condensate Corrosion",
+      "source_id": "2c99162175547fd20175879aa10600a1"
+    },
+    {
+      "code": "51",
+      "name": "微生物腐蝕(MIC) Microbiologically Induced Corrosion (MIC)",
+      "source_id": "2c99162175547fd2017587a4124c00a4"
+    },
+    {
+      "code": "52",
+      "name": "液態金屬脆化(LME) Liquid Metal Embrittlement (LME)",
+      "source_id": "2c99162175547fd2017587bb4d7100ad"
+    },
+    {
+      "code": "53",
+      "name": "伽凡尼腐蝕 Galvanic Corrosion",
+      "source_id": "2c99162175547fd20175879447b9009d"
+    },
+    {
+      "code": "54",
+      "name": "機械疲勞 Mechanical Fatigue",
+      "source_id": "2c99162175547fd2017587920a9d009b"
+    },
+    {
+      "code": "55",
+      "name": "滲氮 Nitriding",
+      "source_id": "2c9916218071a1000180b61b6d6e0123"
+    },
+    {
+      "code": "56",
+      "name": "振動所致疲勞 Vibration-Induced Fatigue",
+      "source_id": "2c99162175547fd201758792c1d6009c"
+    },
+    {
+      "code": "57",
+      "name": "鈦氫化 Titanium Hydriding",
+      "source_id": "2c9916218071a1000180b62ad9bf012d"
+    },
+    {
+      "code": "58",
+      "name": "土壤腐蝕 Soil Corrosion",
+      "source_id": "2c99162175547fd2017587a5642f00a5"
+    },
+    {
+      "code": "59",
+      "name": "金屬塵化 Metal Dusting",
+      "source_id": "2c9916218071a1000180b617e39b0121"
+    },
+    {
+      "code": "60",
+      "name": "應變時效 Strain Aging",
+      "source_id": "2c9916218071a1000180b26bdcb900f5"
+    },
+    {
+      "code": "61",
+      "name": "硫酸鹽應力腐蝕龜裂 Sulfate Stress Corrosion Cracking",
+      "source_id": "2c9916218071a1000180b61cddf60124"
+    },
+    {
+      "code": "62",
+      "name": "磷酸腐蝕 Phosphoric Acid Corrosion",
+      "source_id": "2c9916218071a1000180b627522e0129"
+    },
+    {
+      "code": "63",
+      "name": "苯酚(石碳酸)腐蝕 Phenol (Carbonic Acid) Corrosion",
+      "source_id": "2c9916218071a1000180b62687d90128"
+    },
+    {
+      "code": "64",
+      "name": "乙醇應力腐蝕龜裂 Ethanol Stress Corrosion Cracking (Ethanol SCC)",
+      "source_id": "2c99162175547fd2017587c8f9b000b0"
+    },
+    {
+      "code": "65",
+      "name": "氣態氧增強點火和燃燒 Gaseous Oxygen-Enhanced Ignition and Combustion",
+      "source_id": "2c9916218071a1000180b60335080119"
+    },
+    {
+      "code": "66",
+      "name": "含水有機酸腐蝕 Aqueous Organic Acid Corrosion",
+      "source_id": "2c9916218071a1000180b62938c1012b"
+    }
+  ]
+}

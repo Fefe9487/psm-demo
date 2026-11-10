@@ -6,6 +6,19 @@ from psm.db import connect, init_schema
 from psm.enums import WIZARD_SITE_ID
 from psm.report_v83 import render_report_v83
 from tests.test_wizard import _client, _walk
+from psm import chemical_stock as stock
+
+
+def _confirm_quantities(client, path, cas):
+    with connect(path) as conn:
+        rows = [r for r in stock.stock_rows(conn, WIZARD_SITE_ID)
+                if r.get("max_kg") not in (None, "") and any(c["cas"] == cas for c in r["components"])]
+    for row in rows:
+        saved = client.post("/wizard/1/stock", data={
+            "source_key": row["source_key"], "max_kg": row["max_kg"],
+            "area_code": "AREA-A", "dept_id": "D-OPS",
+        })
+        assert "err=" not in saved.headers.get("location", "")
 
 
 @pytest.mark.parametrize("cas,limit", [("7647-01-0", 5000), ("7664-39-3", 1000)])
@@ -84,6 +97,7 @@ def test_same_cas_different_sds_preserves_gas_and_aqueous_components(tmp_path, m
         "comp_phase": "液態", "comp_aqueous_status": "1", "comp_pct_hi": "20",
     }, follow_redirects=True)
     assert "err=" not in str(aqueous.url)
+    _confirm_quantities(client, tmp_path / "multi-sds.sqlite", "7647-01-0")
     with connect(tmp_path / "multi-sds.sqlite") as conn:
         rows = [r for r in fil.chemical_quantity_rows(conn, WIZARD_SITE_ID) if r["cas"] == "7647-01-0"]
         assert len(rows) == 2 and len({r["sds_id"] for r in rows}) == 2
@@ -104,6 +118,7 @@ def test_psi_saved_rows_and_report_follow_current_master_facts(tmp_path, monkeyp
     }
     created = client.post("/wizard/1/chemical", data=chemical, follow_redirects=True)
     assert created.status_code == 200 and "err=" not in str(created.url)
+    _confirm_quantities(client, tmp_path / "psi-sync.sqlite", "7664-39-3")
     response = client.post("/wizard/row", data={
         "step": "1", "section": "1.2", "cas": "7664-39-3|P-TANK",
         "ctrl_qty": "999999", "state": "液體", "phase_state": "液態",
