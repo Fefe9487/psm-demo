@@ -12,6 +12,20 @@ PSMdemo 是以 FastAPI 建立的製程安全資訊填報示範。這份倉庫備
 
 服務預設在 http://127.0.0.1:8765。
 
+## GitHub Pages 互動展示
+
+線上入口：[PSM 互動展示](https://fefe9487.github.io/psm-demo/)。原有 FastAPI 表單在瀏覽器內執行，資料與附件儲存在訪客自己的瀏覽器；網站更新會保留既有填報資料，資料庫結構於開啟時升級。
+
+推送 `main` 後，`.github/workflows/pages.yml` 會自動執行測試、打包最新程式並部署 GitHub Pages，也可在 Actions 手動執行。Pages 的發布來源須選 **GitHub Actions**，`github-pages` 環境須允許 `main` 部署。不要再單獨維護 `gh-pages` 的舊程式包。
+
+首頁會檢查新版服務程式；每個程式包使用 SHA-256 識別及驗證。已開啟的填報頁發現新版時，會提示先儲存再載入更新。`version.json` 提供實際部署的 `source_commit`，方便核對線上版本與 GitHub commit。
+
+本機打包（預設輸出與下載快取均已列入 `.gitignore`）：
+
+    python scripts/build_browser_demo.py --output _site-interactive
+
+修正原因與驗證詳見 [Pages 自動更新紀錄](docs/2026-11-10-Pages自動部署與版本更新.md)。
+
 ## 範例資料
 
 data/ 內保存一般版與高壓氣體版的示範／填報資料庫、示範案例和歷史資料庫備份。啟動精靈時會依選擇使用相應的填報資料庫；石化業案例資料庫位於 data/demo_cases/petrochemical-complete.sqlite。SQLite 檔案的 SHA-256 清單在 data/MANIFEST.sha256。
@@ -42,4 +56,4 @@ data/ 內保存一般版與高壓氣體版的示範／填報資料庫、示範�
 
 ## 備份內容
 
-本倉庫為 PSMdemo 的私有備份，包含資料庫快照。若要試填，請先另存資料庫副本，再把環境變數 PSM_WIZARD_DB_PATH（一般案例）或 PSM_WIZARD_PETRO_DB_PATH（石化案例）指向副本。
+本倉庫保存 PSMdemo 程式與範例資料庫快照。若要在本機試填，請先另存資料庫副本，再把環境變數 PSM_WIZARD_DB_PATH（一般案例）或 PSM_WIZARD_PETRO_DB_PATH（石化案例）指向副本。
